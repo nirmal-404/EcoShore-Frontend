@@ -5,3 +5,4 @@ coverage
 .next
 .env
 package-lock.json
+*.log
