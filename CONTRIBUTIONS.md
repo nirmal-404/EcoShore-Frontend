@@ -8,13 +8,13 @@ Thank you for considering contributing to this project! To ensure a smooth colla
 
 When creating branches, use the following naming conventions:
 
-| Type      | Format                     | Example                     |
-|-----------|----------------------------|-----------------------------|
-| Feature   | `feature/your-feature`     | `feature/login-auth`        |
-| Bugfix    | `bugfix/fix-name`          | `bugfix/fix-navbar`         |
-| Hotfix    | `hotfix/branch-name`       | `hotfix/crash-on-startup`   |
-| Chore     | `chore/description`        | `chore/update-dependencies` |
-| Refactor  | `refactor/description`     | `refactor/user-service`     |
+| Type     | Format                 | Example                     |
+| -------- | ---------------------- | --------------------------- |
+| Feature  | `feature/your-feature` | `feature/login-auth`        |
+| Bugfix   | `bugfix/fix-name`      | `bugfix/fix-navbar`         |
+| Hotfix   | `hotfix/branch-name`   | `hotfix/crash-on-startup`   |
+| Chore    | `chore/description`    | `chore/update-dependencies` |
+| Refactor | `refactor/description` | `refactor/user-service`     |
 
 > Use lowercase letters and hyphens (`-`) to separate words. Avoid underscores (`_`) or spaces.
 
@@ -23,6 +23,7 @@ When creating branches, use the following naming conventions:
 ## Commit Message Guidelines
 
 Follow [Conventional Commits](https://www.conventionalcommits.org/) style for commit messages:
+
 ```
 <type>(<scope>): <short description>
 ```
@@ -32,6 +33,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/) style for co
 - **short description**: concise summary of changes
 
 **Examples:**
+
 ```
 feat(auth): add JWT token authentication
 fix(ui): correct button alignment on mobile
