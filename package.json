@@ -1,0 +1,37 @@
+{
+  "name": "ecoshore-frontend",
+  "version": "1.0.0",
+  "description": "Life Below Water - An app for beach cleanup organizer with waste analytics under Plastic Pollution.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prettier": "prettier --write \"**/*.{ts,js,jsx,tsx,json,css,md}\"",
+    "pre-commit": "npm run prettier"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nirmal-404/EcoShore-Frontend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nirmal-404/EcoShore-Frontend/issues"
+  },
+  "homepage": "https://github.com/nirmal-404/EcoShore-Frontend#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^20.4.1",
+    "@commitlint/config-conventional": "^20.4.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,css,md}": [
+      "prettier --write"
+    ]
+  }
+}
