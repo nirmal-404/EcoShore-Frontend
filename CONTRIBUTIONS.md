@@ -23,6 +23,7 @@ When creating branches, use the following naming conventions:
 ## Commit Message Guidelines
 
 Follow [Conventional Commits](https://www.conventionalcommits.org/) style for commit messages:
+
 ```
 <type>(<scope>): <short description>
 ```
@@ -41,6 +42,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/) style for co
 - **build**: Build system changes
 
 ### Examples
+
 ```
 feat(auth): add JWT token authentication
 fix(ui): correct button alignment on mobile
