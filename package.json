@@ -8,6 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "prettier": "prettier --write \"**/*.{ts,js,jsx,tsx,json,css,md}\"",
     "pre-commit": "npm run prettier"
   },
