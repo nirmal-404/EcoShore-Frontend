@@ -97,14 +97,27 @@ export default function Login() {
         </p>
       )}
 
-      <div style={{ marginTop: 30, padding: 20, border: '1px solid #ccc', display: 'inline-block' }}>
+      <div
+        style={{
+          marginTop: 30,
+          padding: 20,
+          border: '1px solid #ccc',
+          display: 'inline-block',
+        }}
+      >
         <h3>Quick Login (Testing)</h3>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-          <button onClick={() => handleQuickLogin('admin@gmail.com', 'admin')}>Admin</button>
-          <button onClick={() => handleQuickLogin('organizer@gmail.com', 'organizer')}>
+          <button onClick={() => handleQuickLogin('admin@gmail.com', 'admin')}>
+            Admin
+          </button>
+          <button
+            onClick={() => handleQuickLogin('organizer@gmail.com', 'organizer')}
+          >
             Organizer
           </button>
-          <button onClick={() => handleQuickLogin('volunteer@gmail.com', 'volunteer')}>
+          <button
+            onClick={() => handleQuickLogin('volunteer@gmail.com', 'volunteer')}
+          >
             Volunteer
           </button>
         </div>

@@ -22,7 +22,11 @@ export const loginUser = async (email, password) => {
 // Register request
 export const registerUser = async (email, password) => {
   // role is handled by backend default or can be sent as 'volunteer'
-  const response = await API.post('/auth/register', { email, password, role: 'volunteer' });
+  const response = await API.post('/auth/register', {
+    email,
+    password,
+    role: 'volunteer',
+  });
   return response.data; // { user, token }
 };
 
