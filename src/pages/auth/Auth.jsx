@@ -3,7 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { loginUser, setAuthToken, getMe } from '@/api/authApi';
 import { useDispatch, useSelector } from 'react-redux';
 import { setUser } from '@/store/authSlice';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import GoogleLogin from '@/components/auth/GoogleLogin';
 
 export default function Login() {
@@ -28,17 +28,16 @@ export default function Login() {
 
     if (token) {
       setAuthToken(token);
-      localStorage.setItem('token', token);
       getMe()
-        .then((user) => {
-          dispatch(setUser(user));
-          redirectByRole(user.role);
+        .then((data) => {
+          dispatch(setUser(data));
+          // Note: setUser will handle the cookie via authSlice
         })
         .catch((error) => {
           console.error('Invalid Google token', error);
         });
     }
-  }, [searchParams]);
+  }, [searchParams, dispatch]);
 
   // 🚫 Prevent logged-in users from seeing login
   useEffect(() => {
@@ -48,17 +47,20 @@ export default function Login() {
   }, [user]);
 
   const mutation = useMutation({
-    mutationFn: () => loginUser(email, password),
+    mutationFn: ({ email, password }) => loginUser(email, password),
     onSuccess: (data) => {
       setAuthToken(data.token);
-      dispatch(setUser(data.user));
-      redirectByRole(data.user.role);
+      dispatch(setUser(data));
     },
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    mutation.mutate();
+    mutation.mutate({ email, password });
+  };
+
+  const handleQuickLogin = (email, password) => {
+    mutation.mutate({ email, password });
   };
 
   return (
@@ -84,12 +86,37 @@ export default function Login() {
         />
         <br />
         <br />
-        <button type="submit">Login</button>
+        <button type="submit" disabled={mutation.isPending}>
+          {mutation.isPending ? 'Logging in...' : 'Login'}
+        </button>
       </form>
+
+      {mutation.isError && (
+        <p style={{ color: 'red', marginTop: 10 }}>
+          {mutation.error.response?.data?.error || 'Login failed'}
+        </p>
+      )}
+
+      <div style={{ marginTop: 30, padding: 20, border: '1px solid #ccc', display: 'inline-block' }}>
+        <h3>Quick Login (Testing)</h3>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+          <button onClick={() => handleQuickLogin('admin@gmail.com', 'admin')}>Admin</button>
+          <button onClick={() => handleQuickLogin('organizer@gmail.com', 'organizer')}>
+            Organizer
+          </button>
+          <button onClick={() => handleQuickLogin('volunteer@gmail.com', 'volunteer')}>
+            Volunteer
+          </button>
+        </div>
+      </div>
 
       <p style={{ margin: '12px 0' }}>or</p>
 
       <GoogleLogin />
+
+      <p style={{ marginTop: 20 }}>
+        Don't have an account? <Link to="/register">Register</Link>
+      </p>
     </div>
   );
 }
