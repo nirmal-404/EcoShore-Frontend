@@ -30,4 +30,3 @@ jobs:
       - name: Validate commit messages
         if: github.event_name == 'pull_request'
         run: npx commitlint --from=origin/${{ github.base_ref }} --to=HEAD --verbose
-
