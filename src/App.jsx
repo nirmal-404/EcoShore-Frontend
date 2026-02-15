@@ -8,7 +8,11 @@ import './App.css';
 
 import Home from '@/pages/Home.jsx';
 import Event from '@/pages/Event.jsx';
+import Beaches from '@/pages/Beaches.jsx';
+import Contact from '@/pages/Contact.jsx';
 import OraganizerPanel from '@/pages/OrganizerPanel.jsx';
+import VolunteerDashboard from '@/pages/volunteer/Dashboard.jsx';
+import CollectorDashboard from '@/pages/collector/Dashboard.jsx';
 import Navbar from '@/components/common/Navbar.jsx';
 
 import { useDispatch, useSelector } from 'react-redux';
@@ -43,6 +47,8 @@ function App() {
         {/* Public */}
         <Route path="/" element={<Home />} />
         <Route path="/events" element={<Event />} />
+        <Route path="/beaches" element={<Beaches />} />
+        <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
@@ -60,6 +66,22 @@ function App() {
           element={
             <PrivateRoute allowedRoles={['organizer', 'admin']}>
               <OraganizerPanel />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/volunteer"
+          element={
+            <PrivateRoute allowedRoles={['volunteer', 'organizer', 'admin']}>
+              <VolunteerDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/collector"
+          element={
+            <PrivateRoute allowedRoles={['collector', 'admin']}>
+              <CollectorDashboard />
             </PrivateRoute>
           }
         />
