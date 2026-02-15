@@ -37,28 +37,65 @@ export default function Navbar() {
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground group-hover:rotate-12 transition-transform">
             <Waves className="w-5 h-5" />
           </div>
-          <span className="text-xl font-bold tracking-tight">Eco<span className="text-primary">Shore</span></span>
+          <span className="text-xl font-bold tracking-tight">
+            Eco<span className="text-primary">Shore</span>
+          </span>
         </Link>
 
         <div className="hidden md:flex gap-6 items-center">
-          <Link to="/" className="text-sm font-medium hover:text-primary transition-colors">Home</Link>
-          <Link to="/events" className="text-sm font-medium hover:text-primary transition-colors">Events</Link>
-          <Link to="/beaches" className="text-sm font-medium hover:text-primary transition-colors">Beaches</Link>
+          <Link
+            to="/"
+            className="text-sm font-medium hover:text-primary transition-colors"
+          >
+            Home
+          </Link>
+          <Link
+            to="/events"
+            className="text-sm font-medium hover:text-primary transition-colors"
+          >
+            Events
+          </Link>
+          <Link
+            to="/beaches"
+            className="text-sm font-medium hover:text-primary transition-colors"
+          >
+            Beaches
+          </Link>
 
           {user?.role === 'volunteer' && (
-            <Link to="/volunteer" className="text-sm font-medium hover:text-primary transition-colors">My Profile</Link>
+            <Link
+              to="/volunteer"
+              className="text-sm font-medium hover:text-primary transition-colors"
+            >
+              My Profile
+            </Link>
           )}
 
           {user?.role === 'organizer' && (
-            <Link to="/organizer" className="text-sm font-medium hover:text-primary transition-colors">Organizer Panel</Link>
+            <Link
+              to="/organizer"
+              className="text-sm font-medium hover:text-primary transition-colors"
+            >
+              Organizer Panel
+            </Link>
           )}
 
           {user?.role === 'admin' && (
-            <Link to="/admin" className="text-sm font-medium hover:text-primary transition-colors">Admin Dashboard</Link>
+            <Link
+              to="/admin"
+              className="text-sm font-medium hover:text-primary transition-colors"
+            >
+              Admin Dashboard
+            </Link>
           )}
 
           {user?.role === 'collector' && (
-            <Link to="/collector" className="text-sm font-medium hover:text-primary transition-colors">Waste Collection</Link>
+            <Link
+              to="/collector"
+              className="text-sm font-medium hover:text-primary transition-colors"
+            >
+              Waste Collection
+            </Link>
           )}
         </div>
       </div>
@@ -78,7 +115,9 @@ export default function Navbar() {
           <DropdownMenu>
             <DropdownMenuTrigger className="outline-none">
               <div className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-full border border-border hover:bg-secondary/50 transition-colors">
-                <span className="text-sm font-medium hidden sm:inline-block">{user?.name}</span>
+                <span className="text-sm font-medium hidden sm:inline-block">
+                  {user?.name}
+                </span>
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
                     {user?.name?.[0]?.toUpperCase() || 'U'}
@@ -89,11 +128,16 @@ export default function Navbar() {
 
             <DropdownMenuContent align="end" className="w-56 mt-2">
               <div className="px-2 py-1.5">
-                <p className="text-xs font-medium text-muted-foreground">Signed in as</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Signed in as
+                </p>
                 <p className="text-sm font-semibold truncate">{user?.email}</p>
               </div>
               <div className="h-px bg-border my-1" />
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer">
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="text-destructive focus:text-destructive cursor-pointer"
+              >
                 Logout
               </DropdownMenuItem>
             </DropdownMenuContent>

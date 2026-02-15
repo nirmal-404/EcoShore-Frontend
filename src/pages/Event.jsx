@@ -12,22 +12,31 @@ const fetchEvents = async () => {
 
 export default function EventPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const { data: events, isLoading, error } = useQuery({
+  const {
+    data: events,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['events'],
     queryFn: fetchEvents,
   });
 
-  const filteredEvents = events?.filter(event =>
-    event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    event.beach?.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredEvents = events?.filter(
+    (event) =>
+      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.beach?.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="container mx-auto px-6 py-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight mb-2">Cleanup Events</h1>
-          <p className="text-muted-foreground">Find and join cleanup initiatives near you.</p>
+          <h1 className="text-4xl font-bold tracking-tight mb-2">
+            Cleanup Events
+          </h1>
+          <p className="text-muted-foreground">
+            Find and join cleanup initiatives near you.
+          </p>
         </div>
 
         <div className="flex w-full md:w-auto gap-4">
@@ -50,17 +59,19 @@ export default function EventPage() {
 
       {isLoading ? (
         <div className="grid md:grid-cols-3 gap-8">
-          {[1, 2, 3].map(i => (
+          {[1, 2, 3].map((i) => (
             <div key={i} className="h-64 rounded-2xl bg-muted animate-pulse" />
           ))}
         </div>
       ) : error ? (
         <div className="text-center py-20 bg-destructive/5 rounded-2xl border border-destructive/10">
-          <p className="text-destructive font-medium">Failed to load events. Please check your connection.</p>
+          <p className="text-destructive font-medium">
+            Failed to load events. Please check your connection.
+          </p>
         </div>
       ) : (
         <div className="grid md:grid-cols-3 gap-8">
-          {filteredEvents?.map(event => (
+          {filteredEvents?.map((event) => (
             <EventCard key={event._id} event={event} />
           ))}
           {filteredEvents?.length === 0 && (
@@ -78,7 +89,7 @@ function EventCard({ event }) {
   const date = new Date(event.date).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
-    year: 'numeric'
+    year: 'numeric',
   });
 
   return (
@@ -88,7 +99,9 @@ function EventCard({ event }) {
           {event.status.toUpperCase()}
         </Badge>
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button variant="secondary" className="rounded-full shadow-lg">View Details</Button>
+          <Button variant="secondary" className="rounded-full shadow-lg">
+            View Details
+          </Button>
         </div>
       </div>
 
@@ -106,7 +119,8 @@ function EventCard({ event }) {
           </div>
           <div className="flex items-center text-sm text-muted-foreground">
             <Users className="w-4 h-4 mr-2 text-primary" />
-            {event.participants?.length || 0} / {event.capacity || '∞'} Volunteers
+            {event.participants?.length || 0} / {event.capacity || '∞'}{' '}
+            Volunteers
           </div>
         </div>
 
