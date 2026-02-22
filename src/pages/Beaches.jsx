@@ -1,24 +1,41 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import { getBeaches } from '@/api/beachApi';
+import { useDispatch, useSelector } from 'react-redux';
+import { setBeaches, setLoading, setError } from '@/store/beachSlice';
 import { MapPin, Info, Waves } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const fetchBeaches = async () => {
-  const { data } = await axios.get('http://localhost:4000/api/beaches');
-  return data;
-};
-
 export default function BeachesPage() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const dispatch = useDispatch();
+  const { beaches: reduxBeaches } = useSelector((state) => state.beaches);
+
   const {
     data: beaches,
     isLoading,
+    isError,
     error,
   } = useQuery({
     queryKey: ['beaches'],
-    queryFn: fetchBeaches,
+    queryFn: getBeaches,
   });
 
+  useEffect(() => {
+    dispatch(setLoading(isLoading));
+    if (beaches?.data) {
+      dispatch(setBeaches(beaches.data));
+    }
+    if (isError) {
+      dispatch(setError(error?.message));
+    }
+  }, [beaches, isLoading, isError, error, dispatch]);
+
+  const displayBeaches = reduxBeaches || [];
+
+  const filteredBeaches = displayBeaches.filter((beach) =>
+    beach.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
   return (
     <div className="container mx-auto px-6 py-12">
       <div className="mb-12">
@@ -44,10 +61,10 @@ export default function BeachesPage() {
         </div>
       ) : (
         <div className="grid md:grid-cols-4 gap-6">
-          {beaches?.map((beach) => (
-            <BeachCard key={beach._id} beach={beach} />
+          {filteredBeaches?.map((beach) => (
+            <BeachCard key={beach.id} beach={beach} />
           ))}
-          {beaches?.length === 0 && (
+          {displayBeaches?.length === 0 && (
             <div className="col-span-full text-center py-20 text-muted-foreground bg-secondary/20 rounded-2xl border border-dashed border-border">
               No beaches are currently registered in the system.
             </div>
@@ -75,7 +92,7 @@ function BeachCard({ beach }) {
       <div className="flex items-center justify-between mt-auto">
         <div className="flex items-center text-xs font-medium text-muted-foreground">
           <MapPin className="w-3 h-3 mr-1 text-primary" />
-          {beach.location?.coordinates?.join(', ') || 'View on Map'}
+          {beach.location?.city || 'View on Map'}
         </div>
         <Button
           variant="ghost"

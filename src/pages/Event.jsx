@@ -1,30 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import { getEvents } from '@/api/eventApi';
+import { useDispatch, useSelector } from 'react-redux';
+import { setEvents, setLoading, setError } from '@/store/eventSlice';
 import { Calendar, MapPin, Users, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-const fetchEvents = async () => {
-  const { data } = await axios.get('http://localhost:4000/api/events');
-  return data;
-};
-
 export default function EventPage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const dispatch = useDispatch();
+  const { events: reduxEvents } = useSelector((state) => state.events);
+
   const {
     data: events,
     isLoading,
+    isError,
     error,
   } = useQuery({
     queryKey: ['events'],
-    queryFn: fetchEvents,
+    queryFn: getEvents,
   });
 
-  const filteredEvents = events?.filter(
+  useEffect(() => {
+    dispatch(setLoading(isLoading));
+    if (events?.data?.events) {
+      dispatch(setEvents(events.data.events));
+    }
+    if (isError) {
+      dispatch(setError(error?.message));
+    }
+  }, [events, isLoading, isError, error, dispatch]);
+
+  const displayEvents = reduxEvents || [];
+
+  const filteredEvents = displayEvents.filter(
     (event) =>
-      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.beach?.name.toLowerCase().includes(searchTerm.toLowerCase())
+      event.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.beachId?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -86,7 +99,7 @@ export default function EventPage() {
 }
 
 function EventCard({ event }) {
-  const date = new Date(event.date).toLocaleDateString('en-US', {
+  const date = new Date(event.startDate).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -111,15 +124,15 @@ function EventCard({ event }) {
         <div className="space-y-3 mb-6">
           <div className="flex items-center text-sm text-muted-foreground">
             <MapPin className="w-4 h-4 mr-2 text-primary" />
-            {event.beach?.name || 'Unknown Location'}
+            {event.beachId.name || 'Unknown Location'}
           </div>
           <div className="flex items-center text-sm text-muted-foreground">
             <Calendar className="w-4 h-4 mr-2 text-primary" />
-            {date} at {event.time}
+            {date}
           </div>
           <div className="flex items-center text-sm text-muted-foreground">
             <Users className="w-4 h-4 mr-2 text-primary" />
-            {event.participants?.length || 0} / {event.capacity || '∞'}{' '}
+            {event.volunteers?.length || 0} / {event.maxVolunteers || '∞'}{' '}
             Volunteers
           </div>
         </div>
