@@ -50,6 +50,10 @@ export default function AdminDashboard() {
       (await axios.get('http://localhost:4000/api/waste/analytics')).data,
   });
 
+  // Normalize events response to an array - some API responses wrap the array
+  const eventsList = Array.isArray(events) ? events : events?.data ?? events?.events ?? [];
+  const pendingEvents = eventsList.filter((e) => e.status === 'pending');
+
   // Mutations
   const approveEvent = useMutation({
     mutationFn: async ({ id, status }) =>
@@ -106,9 +110,7 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-bold flex items-center gap-2 mb-2">
             Pending Event Approvals
           </h2>
-          {events
-            ?.filter((e) => e.status === 'pending')
-            .map((event) => (
+          {pendingEvents.map((event) => (
               <Card
                 key={event._id}
                 className="rounded-2xl border-border hover:border-primary/20 transition-all"
@@ -158,7 +160,7 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             ))}
-          {events?.filter((e) => e.status === 'pending').length === 0 && (
+          {pendingEvents.length === 0 && (
             <div className="text-center py-20 bg-muted/20 rounded-2xl border border-dashed border-border text-muted-foreground">
               No pending events for approval.
             </div>
