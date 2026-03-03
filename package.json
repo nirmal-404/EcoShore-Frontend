@@ -14,9 +14,12 @@
     "pre-commit": "npm run prettier"
   },
   "dependencies": {
+    "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-navigation-menu": "^1.2.14",
+    "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
     "@reduxjs/toolkit": "^2.11.2",
@@ -29,6 +32,7 @@
     "lucide-react": "^0.563.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-phone-number-input": "^3.4.16",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.13.0",
     "tailwind-merge": "^3.4.0",
