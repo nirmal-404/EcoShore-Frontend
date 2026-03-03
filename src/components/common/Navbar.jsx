@@ -2,8 +2,14 @@ import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '@/store/authSlice';
 import {
-  Waves, MessageSquare, LogOut, User, LayoutDashboard,
-  ShieldCheck, Trash2, ChevronDown,
+  Waves,
+  MessageSquare,
+  LogOut,
+  User,
+  LayoutDashboard,
+  ShieldCheck,
+  Trash2,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,9 +23,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 const navLinkClass = ({ isActive }) =>
-  `text-sm font-medium transition-colors relative pb-0.5 ${isActive
-    ? 'text-primary after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-primary after:rounded-full'
-    : 'text-foreground/70 hover:text-foreground'
+  `text-sm font-medium transition-colors relative pb-0.5 ${
+    isActive
+      ? 'text-primary after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-primary after:rounded-full'
+      : 'text-foreground/70 hover:text-foreground'
   }`;
 
 const ROLE_META = {
@@ -70,7 +77,12 @@ export default function Navbar() {
   const role = user?.role;
   const roleMeta = ROLE_META[role] || null;
   const initials = user?.name
-    ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase()
     : 'U';
 
   return (
@@ -87,10 +99,18 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden md:flex gap-6 items-center">
-          <NavLink to="/" end className={navLinkClass}>Home</NavLink>
-          <NavLink to="/events" className={navLinkClass}>Events</NavLink>
-          <NavLink to="/beaches" className={navLinkClass}>Beaches</NavLink>
-          <NavLink to="/community" className={navLinkClass}>Community</NavLink>
+          <NavLink to="/" end className={navLinkClass}>
+            Home
+          </NavLink>
+          <NavLink to="/events" className={navLinkClass}>
+            Events
+          </NavLink>
+          <NavLink to="/beaches" className={navLinkClass}>
+            Beaches
+          </NavLink>
+          <NavLink to="/community" className={navLinkClass}>
+            Community
+          </NavLink>
 
           {user && (
             <NavLink to="/chat" className={navLinkClass}>
@@ -119,10 +139,12 @@ export default function Navbar() {
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-full border border-border/60 hover:border-primary/40 hover:bg-secondary/30 transition-all duration-200 outline-none group">
                 {/* Avatar */}
-                <div className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm bg-gradient-to-br shrink-0',
-                  roleMeta?.gradient || 'from-primary to-primary/60'
-                )}>
+                <div
+                  className={cn(
+                    'w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm bg-gradient-to-br shrink-0',
+                    roleMeta?.gradient || 'from-primary to-primary/60'
+                  )}
+                >
                   {initials}
                 </div>
 
@@ -132,10 +154,12 @@ export default function Navbar() {
                     {user?.name || 'User'}
                   </span>
                   {roleMeta && (
-                    <span className={cn(
-                      'text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full',
-                      roleMeta.color
-                    )}>
+                    <span
+                      className={cn(
+                        'text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full',
+                        roleMeta.color
+                      )}
+                    >
                       {roleMeta.label}
                     </span>
                   )}
@@ -145,13 +169,19 @@ export default function Navbar() {
               </button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-64 mt-2 p-0 overflow-hidden rounded-2xl shadow-xl border border-border/60">
-
+            <DropdownMenuContent
+              align="end"
+              className="w-64 mt-2 p-0 overflow-hidden rounded-2xl shadow-xl border border-border/60"
+            >
               {/* Profile card header */}
-              <div className={cn(
-                'px-4 pt-4 pb-3.5 bg-gradient-to-br',
-                roleMeta?.gradient ? `${roleMeta.gradient} opacity-90` : 'from-primary to-primary/70'
-              )}>
+              <div
+                className={cn(
+                  'px-4 pt-4 pb-3.5 bg-gradient-to-br',
+                  roleMeta?.gradient
+                    ? `${roleMeta.gradient} opacity-90`
+                    : 'from-primary to-primary/70'
+                )}
+              >
                 <div className="flex items-center gap-3">
                   {/* Large avatar */}
                   <div className="w-12 h-12 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-white text-lg font-bold shadow-md shrink-0">
@@ -178,26 +208,43 @@ export default function Navbar() {
                 {/* Role-specific dashboard */}
                 {roleMeta && (
                   <>
-                    <DropdownMenuItem asChild className="rounded-xl px-3 py-2.5 cursor-pointer gap-3">
-                      <Link to={roleMeta.dashboardPath} className="flex items-center gap-3">
+                    <DropdownMenuItem
+                      asChild
+                      className="rounded-xl px-3 py-2.5 cursor-pointer gap-3"
+                    >
+                      <Link
+                        to={roleMeta.dashboardPath}
+                        className="flex items-center gap-3"
+                      >
                         <div className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center shrink-0">
                           <roleMeta.icon className="w-4 h-4 text-foreground" />
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-foreground">{roleMeta.dashboardLabel}</p>
-                          <p className="text-[11px] text-muted-foreground">View your workspace</p>
+                          <p className="text-sm font-semibold text-foreground">
+                            {roleMeta.dashboardLabel}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            View your workspace
+                          </p>
                         </div>
                       </Link>
                     </DropdownMenuItem>
 
-                    <DropdownMenuItem asChild className="rounded-xl px-3 py-2.5 cursor-pointer">
+                    <DropdownMenuItem
+                      asChild
+                      className="rounded-xl px-3 py-2.5 cursor-pointer"
+                    >
                       <Link to="/chat" className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center shrink-0">
                           <MessageSquare className="w-4 h-4 text-foreground" />
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-foreground">Group Chats</p>
-                          <p className="text-[11px] text-muted-foreground">Open your chat groups</p>
+                          <p className="text-sm font-semibold text-foreground">
+                            Group Chats
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Open your chat groups
+                          </p>
                         </div>
                       </Link>
                     </DropdownMenuItem>
@@ -216,7 +263,9 @@ export default function Navbar() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold">Log out</p>
-                    <p className="text-[11px] text-muted-foreground">Sign out of your account</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Sign out of your account
+                    </p>
                   </div>
                 </DropdownMenuItem>
               </div>

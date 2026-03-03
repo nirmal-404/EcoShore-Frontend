@@ -4,6 +4,6 @@
 // Database URL: https://echoshore-18def-default-rtdb.firebaseio.com
 
 export const FIREBASE_CONFIG = {
-    projectId: 'echoshore-18def',
-    databaseURL: 'https://echoshore-18def-default-rtdb.firebaseio.com',
+  projectId: 'echoshore-18def',
+  databaseURL: 'https://echoshore-18def-default-rtdb.firebaseio.com',
 };

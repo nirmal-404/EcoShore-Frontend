@@ -51,7 +51,9 @@ export default function AdminDashboard() {
   });
 
   // Normalize events response to an array - some API responses wrap the array
-  const eventsList = Array.isArray(events) ? events : events?.data ?? events?.events ?? [];
+  const eventsList = Array.isArray(events)
+    ? events
+    : (events?.data ?? events?.events ?? []);
   const pendingEvents = eventsList.filter((e) => e.status === 'pending');
 
   // Mutations
@@ -111,55 +113,55 @@ export default function AdminDashboard() {
             Pending Event Approvals
           </h2>
           {pendingEvents.map((event) => (
-              <Card
-                key={event._id}
-                className="rounded-2xl border-border hover:border-primary/20 transition-all"
-              >
-                <CardContent className="flex items-center p-6 gap-6">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-lg">{event.title}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-1">
-                      {event.description}
-                    </p>
-                    <div className="flex gap-4 mt-2 text-xs">
-                      <span className="flex items-center text-primary">
-                        <MapPin className="w-3 h-3 mr-1" /> {event.beach?.name}
-                      </span>
-                      <span className="text-muted-foreground">
-                        Organizer: {event.organizer?.name}
-                      </span>
-                    </div>
+            <Card
+              key={event._id}
+              className="rounded-2xl border-border hover:border-primary/20 transition-all"
+            >
+              <CardContent className="flex items-center p-6 gap-6">
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg">{event.title}</h3>
+                  <p className="text-sm text-muted-foreground line-clamp-1">
+                    {event.description}
+                  </p>
+                  <div className="flex gap-4 mt-2 text-xs">
+                    <span className="flex items-center text-primary">
+                      <MapPin className="w-3 h-3 mr-1" /> {event.beach?.name}
+                    </span>
+                    <span className="text-muted-foreground">
+                      Organizer: {event.organizer?.name}
+                    </span>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="rounded-lg h-9 text-destructive border-destructive/20 hover:bg-destructive/5"
-                      onClick={() =>
-                        approveEvent.mutate({
-                          id: event._id,
-                          status: 'rejected',
-                        })
-                      }
-                    >
-                      <X className="w-4 h-4 mr-1" /> Reject
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="rounded-lg h-9"
-                      onClick={() =>
-                        approveEvent.mutate({
-                          id: event._id,
-                          status: 'approved',
-                        })
-                      }
-                    >
-                      <Check className="w-4 h-4 mr-1" /> Approve
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="rounded-lg h-9 text-destructive border-destructive/20 hover:bg-destructive/5"
+                    onClick={() =>
+                      approveEvent.mutate({
+                        id: event._id,
+                        status: 'rejected',
+                      })
+                    }
+                  >
+                    <X className="w-4 h-4 mr-1" /> Reject
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="rounded-lg h-9"
+                    onClick={() =>
+                      approveEvent.mutate({
+                        id: event._id,
+                        status: 'approved',
+                      })
+                    }
+                  >
+                    <Check className="w-4 h-4 mr-1" /> Approve
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
           {pendingEvents.length === 0 && (
             <div className="text-center py-20 bg-muted/20 rounded-2xl border border-dashed border-border text-muted-foreground">
               No pending events for approval.

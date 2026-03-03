@@ -79,7 +79,9 @@ function App() {
             <Route
               path="/volunteer"
               element={
-                <PrivateRoute allowedRoles={['volunteer', 'organizer', 'admin']}>
+                <PrivateRoute
+                  allowedRoles={['volunteer', 'organizer', 'admin']}
+                >
                   <VolunteerDashboard />
                 </PrivateRoute>
               }
@@ -95,7 +97,14 @@ function App() {
             <Route
               path="/chat"
               element={
-                <PrivateRoute allowedRoles={['volunteer', 'organizer', 'admin', 'collector']}>
+                <PrivateRoute
+                  allowedRoles={[
+                    'volunteer',
+                    'organizer',
+                    'admin',
+                    'collector',
+                  ]}
+                >
                   <ChatApp />
                 </PrivateRoute>
               }
