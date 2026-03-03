@@ -7,7 +7,7 @@ export const useBeaches = () => {
     queryKey: ['beaches'],
     queryFn: async () => {
       const { data } = await API.get('/beaches');
-      return data.data;
+      return data;
     },
   });
 };
@@ -18,8 +18,8 @@ export const useAddBeach = () => {
 
   return useMutation({
     mutationFn: async (newBeach) => {
-      const { data } = await API.post('/beaches', newBeach);
-      return data;
+      const { response } = await API.post('/beaches', newBeach);
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['beaches'] });
@@ -33,8 +33,8 @@ export const useEditBeach = () => {
 
   return useMutation({
     mutationFn: async ({ id, updatedData }) => {
-      const { data } = await API.put(`/beaches/${id}`, updatedData);
-      return data;
+      const { response } = await API.put(`/beaches/${id}`, updatedData);
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['beaches'] });

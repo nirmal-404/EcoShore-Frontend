@@ -5,6 +5,8 @@ import BeachCard from '@/components/beach/BeachCard.jsx';
 export default function BeachesPage() {
   const { data, isLoading, isError } = useBeaches();
 
+  const beaches = data?.data || [];
+
   if (isLoading) return <Spinner />;
   if (isError) return <p>Something went wrong.</p>;
 
@@ -28,8 +30,8 @@ export default function BeachesPage() {
       </div>
 
       <div className="grid md:grid-cols-4 gap-6">
-        {data &&
-          data.map((beach) => <BeachCard key={beach.id} beach={beach} />)}
+        {beaches &&
+          beaches.map((beach) => <BeachCard key={beach.id} beach={beach} />)}
       </div>
     </div>
   );
