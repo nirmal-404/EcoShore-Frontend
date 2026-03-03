@@ -1,8 +1,3 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
-
-export default function Event() {
-  const { user } = useSelector((state) => state.auth);
-
+export default function EventPage() {
   return <div>events</div>;
 }

@@ -1,8 +1,4 @@
-import axios from 'axios';
-
-const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000',
-});
+import API from '@/api/index.js';
 
 // Attach token automatically
 export const setAuthToken = (token) => {
@@ -21,7 +17,6 @@ export const loginUser = async (email, password) => {
 
 // Register request
 export const registerUser = async (email, password) => {
-  // role is handled by backend default or can be sent as 'volunteer'
   const response = await API.post('/auth/register', {
     email,
     password,
@@ -34,5 +29,3 @@ export const getMe = async () => {
   const res = await API.get('/auth/me');
   return res.data; // { user, token }
 };
-
-export default API;

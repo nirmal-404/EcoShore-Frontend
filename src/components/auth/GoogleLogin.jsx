@@ -4,7 +4,8 @@ import { LogIn } from 'lucide-react';
 
 export default function GoogleLogin({ text = 'Continue with Google' }) {
   const handleLogin = () => {
-    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+    const backendUrl =
+      import.meta.env.VITE_API_URL || 'http://localhost:4000/api/';
 
     window.location.href = `${backendUrl}/auth/google`;
   };
