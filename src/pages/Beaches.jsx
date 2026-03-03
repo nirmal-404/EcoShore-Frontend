@@ -1,9 +1,37 @@
 import { useBeaches } from '@/hooks/beaches.js';
 import Spinner from '@/components/common/LoadingSpinner.jsx';
 import BeachCard from '@/components/beach/BeachCard.jsx';
+import CommonForm from '@/components/common/Form.jsx';
+import { beachFormControls } from '@/config/index.js';
+import { useState } from 'react';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import ImageUpload from '@/components/common/ImageUpload.jsx';
+
+const initialFormData = {
+  image: null,
+  name: '',
+  country: '',
+  city: '',
+  description: '',
+};
 
 export default function BeachesPage() {
   const { data, isLoading, isError } = useBeaches();
+  const beaches = data?.data || [];
+
+  const [formData, setFormData] = useState(initialFormData);
+  const [openAddBeachDialog, setOpenAddBeachDialog] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState('');
+  const [imageLoadingState, setImageLoadingState] = useState(false);
+  const [currentEditedId, setCurrentEditedId] = useState(null);
 
   if (isLoading) return <Spinner />;
   if (isError) return <p>Something went wrong.</p>;
@@ -14,6 +42,12 @@ export default function BeachesPage() {
         No beaches are currently registered in the system.
       </div>
     );
+  }
+
+  function onSubmit(event) {
+    event.preventDefault();
+    //   TODO: implement beach add
+    console.log('Beach add function: not implemented.');
   }
 
   return (
@@ -28,9 +62,51 @@ export default function BeachesPage() {
       </div>
 
       <div className="grid md:grid-cols-4 gap-6">
-        {data &&
-          data.map((beach) => <BeachCard key={beach.id} beach={beach} />)}
+        {beaches &&
+          beaches.map((beach) => <BeachCard key={beach.id} beach={beach} />)}
       </div>
+
+      <Button
+        onClick={() => setOpenAddBeachDialog(true)}
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg flex items-center justify-center"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
+
+      <Sheet
+        open={openAddBeachDialog}
+        onOpenChange={() => {
+          setOpenAddBeachDialog(false);
+          setCurrentEditedId(null);
+          setFormData(initialFormData);
+        }}
+      >
+        <SheetContent side="right" className="overflow-auto">
+          <SheetHeader>
+            <SheetTitle>
+              {currentEditedId !== null ? 'Edit Beach' : 'Add New Beach'}
+            </SheetTitle>
+          </SheetHeader>
+          <ImageUpload
+            imageFile={imageFile}
+            setImageFile={setImageFile}
+            uploadedImageUrl={uploadedImageUrl}
+            setUploadedImageUrl={setUploadedImageUrl}
+            imageLoadingState={imageLoadingState}
+            setImageLoadingState={setImageLoadingState}
+            isEditMode={currentEditedId !== null}
+          />
+          <div className="py-6">
+            <CommonForm
+              formControls={beachFormControls}
+              buttonText={'Add Beach'}
+              formData={formData}
+              setFormData={setFormData}
+              onSubmit={onSubmit}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
