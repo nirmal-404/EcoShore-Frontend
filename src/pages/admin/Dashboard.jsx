@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import {
   Shield,
   Check,
@@ -18,68 +16,21 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('events');
-  const queryClient = useQueryClient();
 
   // Queries
-  const { data: events } = useQuery({
-    queryKey: ['admin-events'],
-    queryFn: async () =>
-      (await axios.get('http://localhost:4000/api/events')).data,
-  });
-  const { data: requests } = useQuery({
-    queryKey: ['admin-requests'],
-    queryFn: async () =>
-      (
-        await axios.get('http://localhost:4000/api/organizer/requests', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        })
-      ).data,
-  });
-  const { data: beaches } = useQuery({
-    queryKey: ['admin-beaches'],
-    queryFn: async () =>
-      (await axios.get('http://localhost:4000/api/beaches')).data,
-  });
-  const { data: analytics } = useQuery({
-    queryKey: ['admin-analytics'],
-    queryFn: async () =>
-      (await axios.get('http://localhost:4000/api/waste/analytics')).data,
-  });
+  const requests = []
+  const beaches = []
 
-  // Normalize events response to an array - some API responses wrap the array
-  const eventsList = Array.isArray(events)
-    ? events
-    : (events?.data ?? events?.events ?? []);
+  const eventsList = []
   const pendingEvents = eventsList.filter((e) => e.status === 'pending');
 
   // Mutations
-  const approveEvent = useMutation({
-    mutationFn: async ({ id, status }) =>
-      axios.patch(
-        `http://localhost:4000/api/events/${id}/approve`,
-        { status },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        }
-      ),
-    onSuccess: () => queryClient.invalidateQueries(['admin-events']),
-  });
+  const approveEvent = ''
 
-  const approveOrganizer = useMutation({
-    mutationFn: async ({ id, status }) =>
-      axios.patch(
-        `http://localhost:4000/api/organizer/requests/${id}`,
-        { status },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        }
-      ),
-    onSuccess: () => queryClient.invalidateQueries(['admin-requests']),
-  });
+  const approveOrganizer = ''
 
   return (
     <div className="container mx-auto px-6 py-12">
