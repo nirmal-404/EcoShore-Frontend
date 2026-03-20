@@ -4,6 +4,7 @@ import BeachCard from '@/components/beach/BeachCard.jsx';
 import CommonForm from '@/components/common/Form.jsx';
 import { beachFormControls } from '@/config/index.js';
 import { useState } from 'react';
+import { useSelector } from 'react-redux';
 import {
   Sheet,
   SheetContent,
@@ -15,7 +16,6 @@ import { Plus } from 'lucide-react';
 import ImageUpload from '@/components/common/ImageUpload.jsx';
 
 const initialFormData = {
-  image: null,
   name: '',
   country: '',
   city: '',
@@ -23,6 +23,7 @@ const initialFormData = {
 };
 
 export default function BeachesPage() {
+  const { user } = useSelector((state) => state.auth);
   const { data, isLoading, isError } = useBeaches();
   const { mutate: addBeach, isPending: isAdding } = useAddBeach();
 
@@ -49,8 +50,28 @@ export default function BeachesPage() {
   function onSubmit(event) {
     event.preventDefault();
 
+    const {
+      name,
+      description,
+      address,
+      city,
+      country,
+      lat = 1,
+      lon = 1,
+    } = formData;
+
     const payload = {
-      ...formData,
+      name,
+      description,
+      location: {
+        address,
+        city,
+        country,
+        coordinates: {
+          type: "Point",
+          coordinates: [lon, lat],
+        },
+      },
       image: uploadedImageUrl,
     };
 
@@ -87,7 +108,7 @@ export default function BeachesPage() {
 
       <Button
         onClick={() => setOpenAddBeachDialog(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg flex items-center justify-center"
+        className={`fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg flex items-center justify-center ${user.role != "admin" ? 'invisible' : ''}`}
       >
         <Plus className="h-6 w-6" />
       </Button>

@@ -18,12 +18,23 @@ export const useAddBeach = () => {
 
   return useMutation({
     mutationFn: async (newBeach) => {
-      const { response } = await API.post('/beaches', newBeach);
-      return response;
+      const { data } = await API.post('/beaches', newBeach);
+      return data;
     },
-    onSuccess: (newBeach) => {
-      queryClient.setQueryData(['beaches'], (old = []) => [...old, newBeach]);
-    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['beaches'])
+      // const newBeach = response.data.beach;
+      // queryClient.setQueryData(['beaches'], (old) => {
+      //   if (!old || !old.data) {
+      //     return { data: [newBeach] };
+      //   }
+
+      //   return {
+      //     ...old,
+      //     data: [...old.data, newBeach],
+      //   };
+      // });
+    }
   });
 };
 
