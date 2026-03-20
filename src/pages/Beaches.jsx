@@ -1,4 +1,4 @@
-import { useBeaches } from '@/hooks/beaches.js';
+import { useBeaches, useAddBeach } from '@/hooks/beaches.js';
 import Spinner from '@/components/common/LoadingSpinner.jsx';
 import BeachCard from '@/components/beach/BeachCard.jsx';
 import CommonForm from '@/components/common/Form.jsx';
@@ -24,6 +24,8 @@ const initialFormData = {
 
 export default function BeachesPage() {
   const { data, isLoading, isError } = useBeaches();
+  const { mutate: addBeach, isPending: isAdding } = useAddBeach();
+
   const beaches = data?.data || [];
 
   const [formData, setFormData] = useState(initialFormData);
@@ -36,7 +38,7 @@ export default function BeachesPage() {
   if (isLoading) return <Spinner />;
   if (isError) return <p>Something went wrong.</p>;
 
-  if (data.length === 0) {
+  if (beaches.length === 0) {
     return (
       <div className="col-span-full text-center py-20 text-muted-foreground bg-secondary/20 rounded-2xl border border-dashed border-border">
         No beaches are currently registered in the system.
@@ -46,7 +48,24 @@ export default function BeachesPage() {
 
   function onSubmit(event) {
     event.preventDefault();
-    //   TODO: implement beach add
+
+    const payload = {
+      ...formData,
+      image: uploadedImageUrl,
+    };
+
+    addBeach(payload, {
+      onSuccess: () => {
+        setFormData(initialFormData);
+        setImageFile(null);
+        setUploadedImageUrl('');
+        setOpenAddBeachDialog(false);
+      },
+      onError: (error) => {
+        console.error('Failed to add beach:', error);
+      },
+    });
+
     console.log('Beach add function: not implemented.');
   }
 
@@ -99,6 +118,7 @@ export default function BeachesPage() {
           <div className="py-6">
             <CommonForm
               formControls={beachFormControls}
+              isBtnDisabled={isAdding}
               buttonText={'Add Beach'}
               formData={formData}
               setFormData={setFormData}

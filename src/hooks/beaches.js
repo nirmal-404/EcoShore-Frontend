@@ -21,8 +21,8 @@ export const useAddBeach = () => {
       const { response } = await API.post('/beaches', newBeach);
       return response;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['beaches'] });
+    onSuccess: (newBeach) => {
+      queryClient.setQueryData(['beaches'], (old = []) => [...old, newBeach]);
     },
   });
 };
@@ -36,8 +36,12 @@ export const useEditBeach = () => {
       const { response } = await API.put(`/beaches/${id}`, updatedData);
       return response;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['beaches'] });
+    onSuccess: (updatedBeach) => {
+      queryClient.setQueryData(['beaches'], (old = []) =>
+        old.map((beach) =>
+          beach.id === updatedBeach.id ? updatedBeach : beach
+        )
+      );
     },
   });
 };
