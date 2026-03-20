@@ -23,7 +23,7 @@ export const useAddBeach = () => {
     },
     onSuccess: (newBeach) => {
       queryClient.setQueryData(['beaches'], (old = []) => [...old, newBeach]);
-    }
+    },
   });
 };
 
@@ -42,6 +42,6 @@ export const useEditBeach = () => {
           beach.id === updatedBeach.id ? updatedBeach : beach
         )
       );
-    }
+    },
   });
 };
