@@ -68,7 +68,7 @@ export default function BeachesPage() {
         city,
         country,
         coordinates: {
-          type: "Point",
+          type: 'Point',
           coordinates: [lon, lat],
         },
       },
@@ -108,7 +108,7 @@ export default function BeachesPage() {
 
       <Button
         onClick={() => setOpenAddBeachDialog(true)}
-        className={`fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg flex items-center justify-center ${user.role != "admin" ? 'invisible' : ''}`}
+        className={`fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg flex items-center justify-center ${user.role != 'admin' ? 'invisible' : ''}`}
       >
         <Plus className="h-6 w-6" />
       </Button>

@@ -22,7 +22,7 @@ export const useAddBeach = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['beaches'])
+      queryClient.invalidateQueries(['beaches']);
       // const newBeach = response.data.beach;
       // queryClient.setQueryData(['beaches'], (old) => {
       //   if (!old || !old.data) {
@@ -34,7 +34,7 @@ export const useAddBeach = () => {
       //     data: [...old.data, newBeach],
       //   };
       // });
-    }
+    },
   });
 };
 

@@ -9,9 +9,7 @@ export default function Layout() {
       <div className="flex-1 overflow-auto min-h-0">
         <Outlet />
       </div>
-      <ReactQueryDevtools
-        initialIsOpen={true}
-      />
+      <ReactQueryDevtools initialIsOpen={true} />
     </div>
   );
 }
