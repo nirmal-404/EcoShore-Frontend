@@ -19,7 +19,7 @@ export default function AuthProvider({ children }) {
 
       getMe()
         .then((data) => {
-          dispatch(setUser({ user: data.user }));
+          dispatch(setUser({ user: data.user, token }));
         })
         .catch(() => {
           dispatch(logout());
