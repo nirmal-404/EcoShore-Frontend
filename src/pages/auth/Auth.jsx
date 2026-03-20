@@ -15,12 +15,12 @@ export default function Login() {
 
   const { user } = useSelector((state) => state.auth);
 
-  const redirectByRole = (role) => {
-    if (role === 'admin') navigate('/admin', { replace: true });
-    else if (role === 'organizer') navigate('/organizer', { replace: true });
-    else if (role === 'volunteer') navigate('/volunteer', { replace: true });
-    else navigate('/', { replace: true });
-  };
+  // const redirectByRole = (role) => {
+  //   if (role === 'admin') navigate('/admin', { replace: true });
+  //   else if (role === 'organizer') navigate('/organizer', { replace: true });
+  //   else if (role === 'volunteer') navigate('/volunteer', { replace: true });
+  //   else navigate('/', { replace: true });
+  // };
 
   // 🔥 GOOGLE CALLBACK HANDLER
   useEffect(() => {
@@ -42,7 +42,8 @@ export default function Login() {
   // 🚫 Prevent logged-in users from seeing login
   useEffect(() => {
     if (user) {
-      redirectByRole(user.role);
+      // redirectByRole(user.role);
+      navigate('/', { replace: true })
     }
   }, [user]);
 
