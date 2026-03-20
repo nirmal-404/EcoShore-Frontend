@@ -43,7 +43,7 @@ export default function Login() {
   useEffect(() => {
     if (user) {
       // redirectByRole(user.role);
-      navigate('/', { replace: true })
+      navigate('/', { replace: true });
     }
   }, [user]);
 
