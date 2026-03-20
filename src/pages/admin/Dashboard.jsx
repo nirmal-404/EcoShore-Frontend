@@ -21,16 +21,16 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('events');
 
   // Queries
-  const requests = []
-  const beaches = []
+  const requests = [];
+  const beaches = [];
 
-  const eventsList = []
+  const eventsList = [];
   const pendingEvents = eventsList.filter((e) => e.status === 'pending');
 
   // Mutations
-  const approveEvent = ''
+  const approveEvent = '';
 
-  const approveOrganizer = ''
+  const approveOrganizer = '';
 
   return (
     <div className="container mx-auto px-6 py-12">
