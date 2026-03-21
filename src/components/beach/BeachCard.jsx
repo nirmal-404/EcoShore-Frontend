@@ -1,9 +1,9 @@
-import { Info, MapPin } from 'lucide-react';
+import { Trash2, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { Waves } from 'lucide-react';
 import React from 'react';
 
-function BeachCard({ beach }) {
+function BeachCard({ beach, onDelete }) {
   return (
     <div className="group p-6 rounded-2xl border border-border bg-card hover:border-primary/30 hover:shadow-xl transition-all h-full flex flex-col justify-between">
       <div>
@@ -25,9 +25,10 @@ function BeachCard({ beach }) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 group-hover:text-primary"
+          className="h-8 text-red-500 hover:text-red-600"
+          onClick={() => onDelete(beach.id, beach.name)}
         >
-          <Info className="w-4 h-4" />
+          <Trash2 className="w-4 h-4" />
         </Button>
       </div>
     </div>
