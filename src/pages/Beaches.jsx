@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import ImageUpload from '@/components/common/ImageUpload.jsx';
 import CustomAlert from '@/components/common/Alert';
-import { toast } from "sonner"
+import { toast } from 'sonner';
 
 const initialFormData = {
   name: '',
@@ -48,7 +48,9 @@ export default function BeachesPage() {
   const [imageLoadingState, setImageLoadingState] = useState(false);
   const [currentEditedId, setCurrentEditedId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertDialogConfig, setAlertDialogConfig] = useState(initialAletDialogState);
+  const [alertDialogConfig, setAlertDialogConfig] = useState(
+    initialAletDialogState
+  );
 
   if (isLoading) return <Spinner />;
   if (isBechFetchError) return <p>Something went wrong.</p>;
@@ -63,7 +65,7 @@ export default function BeachesPage() {
 
   function onSubmit(event) {
     event.preventDefault();
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     const {
       name,
       description,
@@ -94,11 +96,11 @@ export default function BeachesPage() {
         setFormData(initialFormData);
         setImageFile(null);
         setUploadedImageUrl('');
-        setIsSubmitting(false)
+        setIsSubmitting(false);
         setOpenAddBeachDialog(false);
       },
       onError: (error) => {
-        setIsSubmitting(false)
+        setIsSubmitting(false);
         console.error('Failed to add beach:', error);
       },
     });
@@ -116,10 +118,10 @@ export default function BeachesPage() {
       action: () => {
         deleteBeach(id, {
           onSuccess: () => {
-            toast.success("Beach deleted successfully");
+            toast.success('Beach deleted successfully');
           },
           onError: (error) => {
-            toast.error("Beach deletion failed", error?.message);
+            toast.error('Beach deletion failed', error?.message);
           },
         });
 
@@ -141,7 +143,9 @@ export default function BeachesPage() {
 
       <div className="grid md:grid-cols-4 gap-6">
         {beaches &&
-          beaches.map((beach) => <BeachCard key={beach.id} beach={beach} onDelete={handleDelete} />)}
+          beaches.map((beach) => (
+            <BeachCard key={beach.id} beach={beach} onDelete={handleDelete} />
+          ))}
       </div>
 
       <Button
@@ -178,11 +182,15 @@ export default function BeachesPage() {
             <CommonForm
               formControls={beachFormControls}
               isBtnDisabled={isSubmitting}
-              buttonText={currentEditedId
-                ? isSubmitting
-                  ? 'Saving Changes...' : 'Edit Beach'
-                : isSubmitting
-                  ? 'Adding Beach...' : 'Add Beach'}
+              buttonText={
+                currentEditedId
+                  ? isSubmitting
+                    ? 'Saving Changes...'
+                    : 'Edit Beach'
+                  : isSubmitting
+                    ? 'Adding Beach...'
+                    : 'Add Beach'
+              }
               formData={formData}
               setFormData={setFormData}
               onSubmit={onSubmit}
