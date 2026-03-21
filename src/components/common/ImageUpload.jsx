@@ -15,7 +15,8 @@ function ImageUpload({
   isCustomStyling = false,
 }) {
   const inputRef = useRef(null);
-  const { mutate: uploadImage, isLoading: imageLoadingState } = useUploadImage();
+  const { mutate: uploadImage, isLoading: imageLoadingState } =
+    useUploadImage();
 
   useEffect(() => {
     if (imageFile) {
