@@ -56,3 +56,17 @@ export const useEditBeach = () => {
     },
   });
 };
+
+export const useDeleteBeach = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id) => {
+      await API.delete(`/beaches/${id}`);
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['beaches']);
+    },
+  });
+};

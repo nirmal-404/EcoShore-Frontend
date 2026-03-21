@@ -1,4 +1,4 @@
-import { useBeaches, useAddBeach } from '@/hooks/beaches.js';
+import { useBeaches, useAddBeach, useDeleteBeach } from '@/hooks/beaches.js';
 import Spinner from '@/components/common/LoadingSpinner.jsx';
 import BeachCard from '@/components/beach/BeachCard.jsx';
 import CommonForm from '@/components/common/Form.jsx';
@@ -14,6 +14,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import ImageUpload from '@/components/common/ImageUpload.jsx';
+import CustomAlert from '@/components/common/Alert';
+import { toast } from "sonner"
 
 const initialFormData = {
   name: '',
@@ -22,10 +24,20 @@ const initialFormData = {
   description: '',
 };
 
+const initialAletDialogState = {
+  open: false,
+  title: '',
+  description: '',
+  closeBtnTxt: '',
+  okBtnTxt: '',
+  action: null,
+};
+
 export default function BeachesPage() {
   const { user } = useSelector((state) => state.auth);
-  const { data, isLoading, isError } = useBeaches();
-  const { mutate: addBeach, isPending: isAdding } = useAddBeach();
+  const { data, isLoading, isError: isBechFetchError } = useBeaches();
+  const { mutate: addBeach } = useAddBeach();
+  const { mutate: deleteBeach } = useDeleteBeach();
 
   const beaches = data?.data || [];
 
@@ -35,9 +47,11 @@ export default function BeachesPage() {
   const [uploadedImageUrl, setUploadedImageUrl] = useState('');
   const [imageLoadingState, setImageLoadingState] = useState(false);
   const [currentEditedId, setCurrentEditedId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [alertDialogConfig, setAlertDialogConfig] = useState(initialAletDialogState);
 
   if (isLoading) return <Spinner />;
-  if (isError) return <p>Something went wrong.</p>;
+  if (isBechFetchError) return <p>Something went wrong.</p>;
 
   if (beaches.length === 0) {
     return (
@@ -49,7 +63,7 @@ export default function BeachesPage() {
 
   function onSubmit(event) {
     event.preventDefault();
-
+    setIsSubmitting(true)
     const {
       name,
       description,
@@ -80,15 +94,39 @@ export default function BeachesPage() {
         setFormData(initialFormData);
         setImageFile(null);
         setUploadedImageUrl('');
+        setIsSubmitting(false)
         setOpenAddBeachDialog(false);
       },
       onError: (error) => {
+        setIsSubmitting(false)
         console.error('Failed to add beach:', error);
       },
     });
 
     console.log('Beach add function: not implemented.');
   }
+
+  const handleDelete = (id, name) => {
+    setAlertDialogConfig({
+      open: true,
+      title: 'Are you sure?',
+      description: `Delete ${name}? This action cannot be undone.`,
+      closeBtnTxt: 'Cancel',
+      okBtnTxt: 'Delete',
+      action: () => {
+        deleteBeach(id, {
+          onSuccess: () => {
+            toast.success("Beach deleted successfully");
+          },
+          onError: (error) => {
+            toast.error("Beach deletion failed", error?.message);
+          },
+        });
+
+        setAlertDialogConfig(initialAletDialogState);
+      },
+    });
+  };
 
   return (
     <div className="container mx-auto px-6 py-12">
@@ -103,7 +141,7 @@ export default function BeachesPage() {
 
       <div className="grid md:grid-cols-4 gap-6">
         {beaches &&
-          beaches.map((beach) => <BeachCard key={beach.id} beach={beach} />)}
+          beaches.map((beach) => <BeachCard key={beach.id} beach={beach} onDelete={handleDelete} />)}
       </div>
 
       <Button
@@ -139,8 +177,12 @@ export default function BeachesPage() {
           <div className="py-6">
             <CommonForm
               formControls={beachFormControls}
-              isBtnDisabled={isAdding}
-              buttonText={'Add Beach'}
+              isBtnDisabled={isSubmitting}
+              buttonText={currentEditedId
+                ? isSubmitting
+                  ? 'Saving Changes...' : 'Edit Beach'
+                : isSubmitting
+                  ? 'Adding Beach...' : 'Add Beach'}
               formData={formData}
               setFormData={setFormData}
               onSubmit={onSubmit}
@@ -148,6 +190,18 @@ export default function BeachesPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <CustomAlert
+        openAlertDialog={alertDialogConfig.open}
+        setOpenAlertDialog={(val) =>
+          setAlertDialogConfig((prev) => ({ ...prev, open: val }))
+        }
+        title={alertDialogConfig.title}
+        description={alertDialogConfig.description}
+        closeBtnTxt={alertDialogConfig.closeBtnTxt}
+        okBtnTxt={alertDialogConfig.okBtnTxt}
+        action={alertDialogConfig.action}
+      />
     </div>
   );
 }
