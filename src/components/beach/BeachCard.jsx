@@ -41,7 +41,7 @@ function BeachCard({ beach, onDelete, onEdit }) {
             <MapPin className="w-3 h-3 mr-1 text-primary" />
             {beach.location?.city || 'View on Map'}
           </div>
-          {user?.role && user?.role === 'admin' &&
+          {user?.role && user?.role === 'admin' && (
             <div className="flex gap-1">
               <Button
                 variant="ghost"
@@ -59,8 +59,8 @@ function BeachCard({ beach, onDelete, onEdit }) {
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
-            </div>}
-
+            </div>
+          )}
         </div>
       </div>
     </div>
