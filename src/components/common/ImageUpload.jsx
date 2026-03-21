@@ -1,70 +1,58 @@
 import { FileIcon, UploadCloudIcon, XIcon } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import axios from 'axios';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useRef, useEffect } from 'react';
+import { useUploadImage } from '@/hooks/uploads';
 
 function ImageUpload({
   imageFile,
   setImageFile,
-  imageLoadingState,
-  uploadedImageUrl,
+  // uploadedImageUrl,
   setUploadedImageUrl,
-  setImageLoadingState,
   isEditMode,
   isCustomStyling = false,
 }) {
   const inputRef = useRef(null);
+  const { mutate: uploadImage, isLoading: imageLoadingState } = useUploadImage();
+
+  useEffect(() => {
+    if (imageFile) {
+      uploadImage(imageFile, {
+        onSuccess: (url) => setUploadedImageUrl(url),
+      });
+    }
+  }, [imageFile]);
 
   function handleImageFileChange(event) {
-    const selectedFile = event.target.files?.[0];
-    if (selectedFile) setImageFile(selectedFile);
+    const file = event.target.files?.[0];
+    if (file) setImageFile(file);
   }
 
-  function handleDragOver(event) {
-    event.preventDefault();
+  function handleDragOver(e) {
+    e.preventDefault();
   }
 
-  function handleDrop(event) {
-    event.preventDefault();
-    const droppedFile = event.dataTransfer.files?.[0];
-    if (droppedFile) setImageFile(droppedFile);
+  function handleDrop(e) {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) setImageFile(file);
   }
 
   function handleRemoveImage() {
     setImageFile(null);
-    if (inputRef.current) {
-      inputRef.current.value = '';
-    }
+    setUploadedImageUrl(null);
+    if (inputRef.current) inputRef.current.value = '';
   }
 
-  async function uploadImageToCloudinary() {
-    setImageLoadingState(true);
-    const data = new FormData();
-    data.append('my_file', imageFile);
-    const response = await axios.post(
-      `${import.meta.env.VITE_API_URL}/upload-file`,
-      data
-    );
-
-    if (response?.data?.success) {
-      setUploadedImageUrl(response.data.result.url);
-      setImageLoadingState(false);
-    }
-  }
-  useEffect(() => {
-    if (imageFile !== null) uploadImageToCloudinary();
-  }, [imageFile]);
   return (
     <div className={`w-full ${isCustomStyling ? '' : 'max-w-md mx-auto'}`}>
       <label className="text-lg font-semibold mb-2 block">Upload Image</label>
       <div
         onDragOver={handleDragOver}
         onDrop={handleDrop}
-        className={`${isEditMode ? 'opacity-60' : ''} 
-                    border-2 border-dashed rounded-lg p-4`}
+        className={`${isEditMode ? 'opacity-60' : ''} border-2 border-dashed rounded-lg p-4`}
       >
         <Input
           id="image-upload"
@@ -74,6 +62,7 @@ function ImageUpload({
           onChange={handleImageFileChange}
           disabled={isEditMode}
         />
+
         {!imageFile ? (
           <Label
             htmlFor="image-upload"
