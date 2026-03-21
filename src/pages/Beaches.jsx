@@ -130,6 +130,19 @@ export default function BeachesPage() {
     });
   };
 
+  const handleEdit = (beach) => {
+    setCurrentEditedId(beach.id)
+    setOpenAddBeachDialog(true)
+
+    const patchdata = {
+      name: beach.name,
+      address: beach.location.address,
+      country: beach.location.country,
+      city: beach.location.city,
+      description: beach.description
+    }
+    setFormData(patchdata)
+  }
   return (
     <div className="container mx-auto px-6 py-12">
       <div className="mb-12">
@@ -144,17 +157,17 @@ export default function BeachesPage() {
       <div className="grid md:grid-cols-4 gap-6">
         {beaches &&
           beaches.map((beach) => (
-            <BeachCard key={beach.id} beach={beach} onDelete={handleDelete} />
+            <BeachCard key={beach.id} beach={beach} onDelete={handleDelete} onEdit={handleEdit} />
           ))}
       </div>
-
-      <Button
-        onClick={() => setOpenAddBeachDialog(true)}
-        className={`fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg flex items-center justify-center ${user.role != 'admin' ? 'invisible' : ''}`}
-      >
-        <Plus className="h-6 w-6" />
-      </Button>
-
+      {user?.role && user?.role === 'admin' &&
+        <Button
+          onClick={() => setOpenAddBeachDialog(true)}
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg flex items-center justify-center"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      }
       <Sheet
         open={openAddBeachDialog}
         onOpenChange={() => {
@@ -169,6 +182,7 @@ export default function BeachesPage() {
               {currentEditedId !== null ? 'Edit Beach' : 'Add New Beach'}
             </SheetTitle>
           </SheetHeader>
+          {currentEditedId !== null}
           <ImageUpload
             imageFile={imageFile}
             setImageFile={setImageFile}
