@@ -1,18 +1,26 @@
-import { Calendar, MapPin, Users, Clock, Tag, Pencil, Trash2 } from 'lucide-react';
+import {
+  Calendar,
+  MapPin,
+  Users,
+  Clock,
+  Tag,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { Badge } from '@/components/ui/badge.jsx';
 import { useSelector } from 'react-redux';
 import { format } from 'date-fns';
 import { useState } from 'react';
 
-function EventCard({ event, onDelete, onEdit, onJoin, onLeave,  }) {
+function EventCard({ event, onDelete, onEdit, onJoin, onLeave }) {
   const { user } = useSelector((state) => state.auth);
 
   const isVolunteer = event.volunteers?.includes(user?._id);
   const volunteerCount = event.volunteers?.length || 0;
   const isFull = volunteerCount >= event.maxVolunteers;
-  const [isLeaving, setIsLeaving] = useState(false)
-  const [isJoing, setIsJoining] = useState(false)
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [isJoing, setIsJoining] = useState(false);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -56,9 +64,7 @@ function EventCard({ event, onDelete, onEdit, onJoin, onLeave,  }) {
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
                 <Calendar className="w-5 h-5" />
               </div>
-              <Badge
-                className={`${getStatusColor(event.status)} border`}
-              >
+              <Badge className={`${getStatusColor(event.status)} border`}>
                 {event.status}
               </Badge>
             </div>
@@ -73,7 +79,9 @@ function EventCard({ event, onDelete, onEdit, onJoin, onLeave,  }) {
           <div className="space-y-2 mb-4">
             <div className="flex items-center text-xs text-muted-foreground">
               <MapPin className="w-3 h-3 mr-2 text-primary" />
-              <span className="font-medium">{event.beachId?.name || 'Beach'}</span>
+              <span className="font-medium">
+                {event.beachId?.name || 'Beach'}
+              </span>
             </div>
 
             <div className="flex items-center text-xs text-muted-foreground">
@@ -155,7 +163,11 @@ function EventCard({ event, onDelete, onEdit, onJoin, onLeave,  }) {
                   onClick={() => onJoin(event._id)}
                   disabled={isFull || event.status !== 'UPCOMING'}
                 >
-                  {isFull ? 'Event Full' : isJoing ? 'Joining Event...' : 'Join Event'}
+                  {isFull
+                    ? 'Event Full'
+                    : isJoing
+                      ? 'Joining Event...'
+                      : 'Join Event'}
                 </Button>
               )}
             </div>

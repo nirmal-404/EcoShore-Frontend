@@ -272,9 +272,7 @@ export default function EventsPage() {
               }
               formData={formData}
               setFormData={setFormData}
-              onSubmit={
-                currentEditedId ? onEventEditSubmit : onEventAddSubmit
-              }
+              onSubmit={currentEditedId ? onEventEditSubmit : onEventAddSubmit}
             />
           </div>
         </SheetContent>
