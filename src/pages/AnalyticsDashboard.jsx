@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { getHeatmapData } from '@/api/heatmapApi';
+import { getActiveCarbonConfig } from '@/api/carbonConfigApi';
+import HeatmapTracker from '@/components/analytics/HeatmapTracker';
 import {
   LineChart,
   Line,
@@ -16,6 +18,7 @@ import { AlertCircle, Waves, TrendingUp, AlertTriangle, ShieldCheck } from 'luci
 
 const AnalyticsDashboard = () => {
   const [data, setData] = useState(null);
+  const [carbonConfig, setCarbonConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -23,11 +26,19 @@ const AnalyticsDashboard = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await getHeatmapData();
+        const [res, carbonRes] = await Promise.all([
+          getHeatmapData(),
+          getActiveCarbonConfig().catch(() => null)
+        ]);
+
         if (res?.success) {
           setData(res.data.heatmap);
         } else {
           setError(res?.message || 'Failed to fetch predictions');
+        }
+
+        if (carbonRes?.success && carbonRes.data?.config) {
+          setCarbonConfig(carbonRes.data.config);
         }
       } catch (err) {
         setError(err.message || 'An error occurred while fetching data');
@@ -39,9 +50,9 @@ const AnalyticsDashboard = () => {
   }, []);
 
   // Compute top level KPIs and format chart data
-  const { kpis, chartData, highestRiskBeach } = useMemo(() => {
+  const { kpis, chartData, highestRiskBeach, leaderboard, rawBeaches } = useMemo(() => {
     if (!data || !data.predictions || data.predictions.length === 0) {
-      return { kpis: null, chartData: [], highestRiskBeach: null };
+      return { kpis: null, chartData: [], highestRiskBeach: null, leaderboard: [], rawBeaches: [] };
     }
 
     const { predictions, beachCount } = data;
@@ -96,6 +107,9 @@ const AnalyticsDashboard = () => {
     // Get up to 5 beaches correctly formatted to prevent overcrowded charts
     const topBeaches = predictions.slice(0, 5).map(b => b.beachName);
 
+    // Sort beaches by currentSeverityScore for leaderboard
+    const leaderboard = [...predictions].sort((a, b) => b.currentSeverityScore - a.currentSeverityScore);
+
     return {
       kpis: {
         beachCount,
@@ -107,7 +121,9 @@ const AnalyticsDashboard = () => {
           name: peakRiskBeach,
           score: maxRiskScore.toFixed(1)
       },
-      topBeaches
+      topBeaches,
+      leaderboard,
+      rawBeaches: predictions
     };
   }, [data]);
 
@@ -270,6 +286,87 @@ const AnalyticsDashboard = () => {
             <p className="text-gray-500 dark:text-gray-400 text-lg">No predictions available at the moment. Please check the backend ML service.</p>
           </div>
         )}
+
+        {/* Layout Grid for Leaderboard & Carbon Config */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Severity Ranking Leaderboard */}
+          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-xl shadow-emerald-500/5 border border-gray-100 dark:border-gray-700">
+             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Current Severity Rankings</h3>
+             <div className="overflow-x-auto">
+               <table className="w-full text-sm text-left">
+                 <thead className="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-700/50 dark:text-gray-400 rounded-lg">
+                   <tr>
+                     <th className="px-4 py-3 rounded-l-lg">Rank</th>
+                     <th className="px-4 py-3">Beach Name</th>
+                     <th className="px-4 py-3">Severity Score</th>
+                     <th className="px-4 py-3 rounded-r-lg">Risk Level</th>
+                   </tr>
+                 </thead>
+                 <tbody>
+                   {leaderboard?.slice(0, 10).map((beach, idx) => (
+                     <tr key={beach.beachId} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
+                       <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">#{idx+1}</td>
+                       <td className="px-4 py-3 font-semibold">{beach.beachName}</td>
+                       <td className="px-4 py-3">{beach.currentSeverityScore?.toFixed(2)}</td>
+                       <td className="px-4 py-3">
+                         <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                           beach.currentSeverityLevel === 'CRITICAL' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                           beach.currentSeverityLevel === 'HIGH' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                           beach.currentSeverityLevel === 'MODERATE' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                           'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                         }`}>
+                           {beach.currentSeverityLevel}
+                         </span>
+                       </td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+             </div>
+          </div>
+
+          {/* Carbon Config Panel */}
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-800 dark:to-gray-900 rounded-3xl p-6 shadow-xl text-white relative flex flex-col justify-between">
+            <div>
+              <h3 className="text-xl font-bold mb-2">Active Carbon Config</h3>
+              <p className="text-gray-400 text-sm mb-6">Current environmental parameters used by the EcoShore measurement system.</p>
+              
+              {carbonConfig ? (
+                <div className="space-y-4">
+                  <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/5">
+                    <p className="text-sm text-gray-300">Emission Factor</p>
+                    <p className="text-3xl font-black text-emerald-400 tracking-tight">{carbonConfig.emissionFactor}</p>
+                  </div>
+                  <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/5">
+                    <p className="text-sm text-gray-300">Config Name</p>
+                    <p className="text-lg font-semibold">{carbonConfig.name}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                      <p className="text-xs text-gray-400">Version</p>
+                      <p className="text-sm font-medium">v{carbonConfig.version}</p>
+                    </div>
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                      <p className="text-xs text-gray-400">Status</p>
+                      <p className="text-sm font-medium text-emerald-400">Active</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white/5 p-6 rounded-2xl text-center border border-white/5">
+                  <p className="text-gray-400 text-sm">No active carbon configuration found.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Map Section */}
+        {rawBeaches && rawBeaches.length > 0 && (
+          <HeatmapTracker beaches={rawBeaches} />
+        )}
+
 
       </div>
     </div>
