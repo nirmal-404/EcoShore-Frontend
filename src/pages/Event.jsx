@@ -191,11 +191,11 @@ export default function EventsPage() {
   };
 
   const handleJoin = (eventId) => {
-    setLoadingEventIds(prev => new Set(prev).add(eventId));
+    setLoadingEventIds((prev) => new Set(prev).add(eventId));
 
     joinEvent(eventId, {
       onSuccess: () => {
-        setLoadingEventIds(prev => {
+        setLoadingEventIds((prev) => {
           const next = new Set(prev);
           next.delete(eventId);
           return next;
@@ -203,7 +203,7 @@ export default function EventsPage() {
         toast.success('Successfully joined the event');
       },
       onError: (error) => {
-        setLoadingEventIds(prev => {
+        setLoadingEventIds((prev) => {
           const next = new Set(prev);
           next.delete(eventId);
           return next;
@@ -214,11 +214,11 @@ export default function EventsPage() {
   };
 
   const handleLeave = (eventId) => {
-    setLoadingEventIds(prev => new Set(prev).add(eventId));
+    setLoadingEventIds((prev) => new Set(prev).add(eventId));
 
     leaveEvent(eventId, {
       onSuccess: () => {
-        setLoadingEventIds(prev => {
+        setLoadingEventIds((prev) => {
           const next = new Set(prev);
           next.delete(eventId);
           return next;
@@ -226,7 +226,7 @@ export default function EventsPage() {
         toast.success('Successfully left the event');
       },
       onError: (error) => {
-        setLoadingEventIds(prev => {
+        setLoadingEventIds((prev) => {
           const next = new Set(prev);
           next.delete(eventId);
           return next;
