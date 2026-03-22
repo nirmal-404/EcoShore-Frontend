@@ -1,4 +1,9 @@
-import { useBeaches, useAddBeach, useDeleteBeach, useEditBeach } from '@/hooks/beaches.js';
+import {
+  useBeaches,
+  useAddBeach,
+  useDeleteBeach,
+  useEditBeach,
+} from '@/hooks/beaches.js';
 import Spinner from '@/components/common/LoadingSpinner.jsx';
 import BeachCard from '@/components/beach/BeachCard.jsx';
 import CommonForm from '@/components/common/Form.jsx';
@@ -105,7 +110,7 @@ export default function BeachesPage() {
         console.error('Failed to add beach:', error);
       },
     });
-  }
+  };
 
   const handleDelete = (id, name) => {
     setAlertDialogConfig({
@@ -139,14 +144,14 @@ export default function BeachesPage() {
       country: beach.location.country,
       city: beach.location.city,
       description: beach.description,
-      image: beach.image
+      image: beach.image,
     };
 
     setFormData(patchdata);
   };
 
   const onBeachEditSubmitSubmit = (event) => {
-    event.preventDefault()
+    event.preventDefault();
 
     setIsSubmitting(true);
     const {
@@ -173,21 +178,24 @@ export default function BeachesPage() {
       },
     };
 
-    editBeach({ id: currentEditedId, updatedData: payload }, {
-      onSuccess: () => {
-        setFormData(initialFormData);
-        setImageFile(null);
-        setUploadedImageUrl('');
-        setIsSubmitting(false);
-        setOpenAddBeachDialog(false);
-        toast.success('Beach updated successfully',);
-      },
-      onError: (error) => {
-        setIsSubmitting(false);
-        toast.error('Beach update failed', error?.message);
-      },
-    });
-  }
+    editBeach(
+      { id: currentEditedId, updatedData: payload },
+      {
+        onSuccess: () => {
+          setFormData(initialFormData);
+          setImageFile(null);
+          setUploadedImageUrl('');
+          setIsSubmitting(false);
+          setOpenAddBeachDialog(false);
+          toast.success('Beach updated successfully');
+        },
+        onError: (error) => {
+          setIsSubmitting(false);
+          toast.error('Beach update failed', error?.message);
+        },
+      }
+    );
+  };
 
   return (
     <div className="container mx-auto px-6 py-12">
@@ -258,7 +266,11 @@ export default function BeachesPage() {
               }
               formData={formData}
               setFormData={setFormData}
-              onSubmit={currentEditedId ? onBeachEditSubmitSubmit : onBeachAddSubmitSubmit}
+              onSubmit={
+                currentEditedId
+                  ? onBeachEditSubmitSubmit
+                  : onBeachAddSubmitSubmit
+              }
             />
           </div>
         </SheetContent>
