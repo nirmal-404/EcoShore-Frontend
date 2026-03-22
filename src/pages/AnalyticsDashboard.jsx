@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { getHeatmapData } from '@/api/heatmapApi';
 import { getActiveCarbonConfig } from '@/api/carbonConfigApi';
+import { getDashboardOverview, getWasteByPlasticType } from '@/api/analyticsApi';
 import HeatmapTracker from '@/components/analytics/HeatmapTracker';
 import {
   LineChart,
@@ -14,11 +15,13 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { AlertCircle, Waves, TrendingUp, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { AlertCircle, Waves, TrendingUp, AlertTriangle, ShieldCheck, Database, MapPin, BarChart3, Activity } from 'lucide-react';
 
 const AnalyticsDashboard = () => {
   const [data, setData] = useState(null);
   const [carbonConfig, setCarbonConfig] = useState(null);
+  const [globalStats, setGlobalStats] = useState(null);
+  const [plasticRanking, setPlasticRanking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -26,9 +29,11 @@ const AnalyticsDashboard = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [res, carbonRes] = await Promise.all([
+        const [res, carbonRes, dashboardRes, plasticRes] = await Promise.all([
           getHeatmapData(),
-          getActiveCarbonConfig().catch(() => null)
+          getActiveCarbonConfig().catch(() => null),
+          getDashboardOverview().catch(() => null),
+          getWasteByPlasticType().catch(() => null)
         ]);
 
         if (res?.success) {
@@ -39,6 +44,14 @@ const AnalyticsDashboard = () => {
 
         if (carbonRes?.success && carbonRes.data?.config) {
           setCarbonConfig(carbonRes.data.config);
+        }
+
+        if (dashboardRes?.success && dashboardRes.data?.dashboard?.summary) {
+          setGlobalStats(dashboardRes.data.dashboard.summary);
+        }
+
+        if (plasticRes?.success && plasticRes.data?.plasticTypeData) {
+          setPlasticRanking(plasticRes.data.plasticTypeData);
         }
       } catch (err) {
         setError(err.message || 'An error occurred while fetching data');
@@ -177,41 +190,44 @@ const AnalyticsDashboard = () => {
         {/* KPI Section */}
         {kpis && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl shadow-emerald-500/5 border border-gray-100 dark:border-gray-700 hover:scale-[1.02] transition-transform duration-300">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Analyzed Beaches</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{kpis.beachCount}</p>
-                </div>
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
-                  <Waves className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
+            {/* KPI 1: Total Plastics Collected */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-xl shadow-emerald-500/5 border border-gray-100 dark:border-gray-700 flex items-center space-x-4">
+            <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl">
+              <Database className="w-8 h-8" />
             </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Plastics Collected</p>
+              <h3 className="text-3xl font-black text-gray-900 dark:text-white">
+                 {globalStats ? `${globalStats.totalWasteCollected.toLocaleString()} kg` : '---'}
+              </h3>
+            </div>
+          </div>
 
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl shadow-emerald-500/5 border border-gray-100 dark:border-gray-700 hover:scale-[1.02] transition-transform duration-300">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Avg Risk Score</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{kpis.averageRisk}</p>
-                </div>
-                <div className="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-xl">
-                  <TrendingUp className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                </div>
-              </div>
+          {/* KPI 2: Total Beaches Cleaned */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-xl shadow-orange-500/5 border border-gray-100 dark:border-gray-700 flex items-center space-x-4">
+            <div className="p-4 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 rounded-2xl">
+              <MapPin className="w-8 h-8" />
             </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Beaches Cleaned</p>
+              <h3 className="text-3xl font-black text-gray-900 dark:text-white">
+                {globalStats ? globalStats.totalBeaches : '---'}
+              </h3>
+            </div>
+          </div>
 
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl shadow-emerald-500/5 border border-gray-100 dark:border-gray-700 hover:scale-[1.02] transition-transform duration-300">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">High Risk Days Detected</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{kpis.highRiskCount}</p>
-                </div>
-                <div className="p-3 bg-red-50 dark:bg-red-900/30 rounded-xl">
-                  <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
-                </div>
-              </div>
+          {/* KPI 3: Total Events Done */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-xl shadow-blue-500/5 border border-gray-100 dark:border-gray-700 flex items-center space-x-4">
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-2xl">
+              <BarChart3 className="w-8 h-8" />
             </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Events Done</p>
+              <h3 className="text-3xl font-black text-gray-900 dark:text-white">
+                {globalStats ? globalStats.totalCleanups : '---'}
+              </h3>
+            </div>
+          </div>
           </div>
         )}
 
@@ -291,8 +307,18 @@ const AnalyticsDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Severity Ranking Leaderboard */}
-          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-xl shadow-emerald-500/5 border border-gray-100 dark:border-gray-700">
-             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Current Severity Rankings</h3>
+            <div className="lg:col-span-12 bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-xl shadow-indigo-500/5 border border-gray-100 dark:border-gray-700">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">AI Actionable Insights</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
+                    * The AI model calculates its predictive result dynamically by combining total waste volume trends, historical tourist footprint, and seasonal weather/monsoon rain impact.
+                  </p>
+                </div>
+                <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400">
+                  <Activity className="w-6 h-6" />
+                </div>
+              </div>
              <div className="overflow-x-auto">
                <table className="w-full text-sm text-left">
                  <thead className="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-700/50 dark:text-gray-400 rounded-lg">
@@ -326,11 +352,35 @@ const AnalyticsDashboard = () => {
              </div>
           </div>
 
+          {/* Plastics Type Ranking */}
+          <div className="lg:col-span-3 bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-xl shadow-emerald-500/5 border border-gray-100 dark:border-gray-700">
+             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Plastics Collected Ranking</h3>
+             <div className="space-y-4 mt-6">
+               {(plasticRanking || []).slice(0, 5).map((plastic, idx) => (
+                 <div key={plastic.plasticType} className="flex flex-col">
+                   <div className="flex justify-between text-sm mb-1">
+                     <span className="font-semibold text-gray-800 dark:text-gray-200">{idx+1}. {plastic.plasticType}</span>
+                     <span className="text-gray-500 dark:text-gray-400">{plastic.totalWeight.toFixed(1)} kg</span>
+                   </div>
+                   <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
+                     <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${Math.min((plastic.totalWeight / (plasticRanking[0]?.totalWeight || 1)) * 100, 100)}%` }}></div>
+                   </div>
+                 </div>
+               ))}
+               {!plasticRanking?.length && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No plastic data available.</p>
+               )}
+             </div>
+          </div>
+        </div>
+
+        {/* Carbon Config & Map Layout Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Carbon Config Panel */}
-          <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-800 dark:to-gray-900 rounded-3xl p-6 shadow-xl text-white relative flex flex-col justify-between">
+          <div className="lg:col-span-1 bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-800 dark:to-gray-900 rounded-3xl p-6 shadow-xl text-white relative flex flex-col justify-between">
             <div>
               <h3 className="text-xl font-bold mb-2">Active Carbon Config</h3>
-              <p className="text-gray-400 text-sm mb-6">Current environmental parameters used by the EcoShore measurement system.</p>
+              <p className="text-gray-400 text-sm mb-4">Current environmental parameters used by the EcoShore measurement system.</p>
               
               {carbonConfig ? (
                 <div className="space-y-4">
@@ -352,6 +402,11 @@ const AnalyticsDashboard = () => {
                       <p className="text-sm font-medium text-emerald-400">Active</p>
                     </div>
                   </div>
+                  <div className="pt-2">
+                    <p className="text-xs text-gray-400 leading-tight">
+                       * Carbon Config offset is calculated securely by assuming every kg of specific plastic prevented directly equals conserving fuel emissions, mapping perfectly to preserving 2 adult trees cleanly planted.
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div className="bg-white/5 p-6 rounded-2xl text-center border border-white/5">
@@ -360,12 +415,14 @@ const AnalyticsDashboard = () => {
               )}
             </div>
           </div>
-        </div>
 
-        {/* Map Section */}
-        {rawBeaches && rawBeaches.length > 0 && (
-          <HeatmapTracker beaches={rawBeaches} />
-        )}
+          {/* Map Section */}
+          <div className="lg:col-span-2">
+            {rawBeaches && rawBeaches.length > 0 && (
+              <HeatmapTracker beaches={rawBeaches} />
+            )}
+          </div>
+        </div>
 
 
       </div>
