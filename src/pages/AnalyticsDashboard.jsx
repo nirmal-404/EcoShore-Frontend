@@ -88,14 +88,29 @@ export default function AnalyticsDashboard() {
         if (!isMounted) return;
 
         if (heatmapRes?.success) setData(heatmapRes.data.heatmap);
-        else setError('Failed to load predictive map data');
+        // Don't set a hard error if heatmap fails — other sections can still render
 
         if (carbonRes?.success) setCarbonConfig(carbonRes.data.config);
         if (dashRes?.success) setGlobalStats(dashRes.data.dashboard.summary);
-        if (plasticRes?.success) setPlasticRanking(plasticRes.data.plasticTypeData);
-        if (severityRes?.success) setSeverityRanking(severityRes.data.ranking);
-        if (carbonSumRes?.success) setCarbonSummary(carbonSumRes.data.summary);
-        if (trendRes?.success) setTrendPrediction(trendRes.data.prediction);
+        if (plasticRes?.success) setPlasticRanking(plasticRes.data.plasticTypeData || []);
+        if (severityRes?.success) setSeverityRanking(severityRes.data.ranking || []);
+
+        // Carbon offset summary — guard against null response
+        if (carbonSumRes?.success && carbonSumRes.data?.summary) {
+          const s = carbonSumRes.data.summary;
+          // Backend returns either the aggregate object or a zero-fill default
+          setCarbonSummary({
+            totalCarbonOffset: s.totalCarbonOffset ?? 0,
+            totalWasteWeight: s.totalWasteWeight ?? 0,
+            averageCarbonPerKg: s.averageCarbonPerKg ?? 0,
+          });
+        }
+
+        // Trend prediction — the inner `prediction` object can itself have success:false
+        // (e.g. "Insufficient data for prediction"). Only use it when both layers succeed.
+        if (trendRes?.success && trendRes.data?.prediction?.success === true) {
+          setTrendPrediction(trendRes.data.prediction);
+        }
 
       } catch (err) {
         if (isMounted) setError(err.message || 'Error fetching analytics dashboard');
@@ -108,77 +123,46 @@ export default function AnalyticsDashboard() {
     return () => { isMounted = false; };
   }, []);
 
-  // Compute top level KPIs and format chart data
-  const { kpis, chartData, highestRiskBeach, rawBeaches } = useMemo(() => {
+  // Compute chart data and highest-risk beach from heatmap predictions
+  const { chartData, highestRiskBeach, rawBeaches } = useMemo(() => {
     if (!data || !data.predictions || data.predictions.length === 0) {
-      return { kpis: null, chartData: [], highestRiskBeach: null, leaderboard: [], rawBeaches: [] };
+      return { chartData: [], highestRiskBeach: null, rawBeaches: [] };
     }
 
-    const { predictions, beachCount } = data;
+    const { predictions } = data;
     
-    let totalRisk = 0;
-    let predictionCount = 0;
-    let highRiskCount = 0;
     let maxRiskScore = -1;
     let peakRiskBeach = null;
 
-    // We want to format the data for a multi-line chart (dates on X-axis, beaches as lines)
-    // Structure: [{ date: '2026-03-22', 'Galle Face': 45, 'Unawatuna': 20, ... }]
+    // Format data for a multi-line chart: [{ date, 'Beach A': score, 'Beach B': score }]
     const dateMap = {};
 
     predictions.forEach(beachItem => {
       const bName = beachItem.beachName || 'Unknown Beach';
-      
       let maxRiskyForBeach = -1;
 
       const forecastData = beachItem.forecast || [];
       forecastData.forEach(p => {
-        // Build chart structure
-        if (!dateMap[p.date]) {
-          dateMap[p.date] = { date: p.date };
-        }
+        if (!dateMap[p.date]) dateMap[p.date] = { date: p.date };
         dateMap[p.date][bName] = p.riskScore;
 
-        // KPI aggregates
-        totalRisk += p.riskScore;
-        predictionCount++;
-        
-        if (p.riskLevel === 'HIGH' || p.riskLevel === 'SEVERE') {
-          highRiskCount++;
-        }
-
-        if (p.riskScore > maxRiskyForBeach) {
-            maxRiskyForBeach = p.riskScore;
-        }
+        if (p.riskScore > maxRiskyForBeach) maxRiskyForBeach = p.riskScore;
       });
 
       if (maxRiskyForBeach > maxRiskScore) {
-          maxRiskScore = maxRiskyForBeach;
-          peakRiskBeach = bName;
+        maxRiskScore = maxRiskyForBeach;
+        peakRiskBeach = bName;
       }
     });
 
-    const averageRisk = predictionCount > 0 ? (totalRisk / predictionCount).toFixed(1) : 0;
-    
-    // Convert dateMap to sorted array
     const sortedChartData = Object.values(dateMap).sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Get up to 5 beaches correctly formatted to prevent overcrowded charts
-    const topBeaches = predictions.slice(0, 5).map(b => b.beachName);
-
     return {
-      kpis: {
-
-        beachCount,
-        averageRisk,
-        highRiskCount,
-      },
       chartData: sortedChartData,
       highestRiskBeach: {
-          name: peakRiskBeach,
-          score: maxRiskScore.toFixed(1)
+        name: peakRiskBeach,
+        score: maxRiskScore >= 0 ? maxRiskScore.toFixed(1) : '0',
       },
-      topBeaches,
       rawBeaches: predictions
     };
   }, [data]);
@@ -236,7 +220,7 @@ export default function AnalyticsDashboard() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-6">
         <div className="flex flex-col items-center gap-4 text-emerald-600 dark:text-emerald-400">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-current"></div>
-          <p className="font-medium animate-pulse">Loading predictive insights...</p>
+          <p className="font-medium animate-pulse">Loading analytics dashboard...</p>
         </div>
       </div>
     );
@@ -292,10 +276,9 @@ export default function AnalyticsDashboard() {
           </div>
         </div>
 
-        {/* KPI Section */}
-        {kpis && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* KPI 1: Total Plastics Collected */}
+        {/* KPI Section — always renders; shows '---' placeholders when data hasn't loaded */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* KPI 1: Total Plastics Collected */}
           <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-xl shadow-emerald-500/5 border border-gray-100 dark:border-gray-700 flex items-center space-x-4">
             <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl">
               <Database className="w-8 h-8" />
@@ -303,7 +286,7 @@ export default function AnalyticsDashboard() {
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Plastics Collected</p>
               <h3 className="text-3xl font-black text-gray-900 dark:text-white">
-                 {globalStats ? `${globalStats.totalWasteCollected.toLocaleString()} kg` : '---'}
+                {globalStats?.totalWasteCollected != null ? `${Number(globalStats.totalWasteCollected).toLocaleString()} kg` : '---'}
               </h3>
             </div>
           </div>
@@ -316,7 +299,7 @@ export default function AnalyticsDashboard() {
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Beaches Cleaned</p>
               <h3 className="text-3xl font-black text-gray-900 dark:text-white">
-                {globalStats ? globalStats.totalBeaches : '---'}
+                {globalStats?.totalBeaches ?? '---'}
               </h3>
             </div>
           </div>
@@ -329,12 +312,11 @@ export default function AnalyticsDashboard() {
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Events Done</p>
               <h3 className="text-3xl font-black text-gray-900 dark:text-white">
-                {globalStats ? globalStats.totalCleanups : '---'}
+                {globalStats?.totalCleanups ?? '---'}
               </h3>
             </div>
           </div>
-          </div>
-        )}
+        </div>
 
         {/* Actionable AI Insight */}
         {highestRiskBeach && (
