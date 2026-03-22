@@ -15,6 +15,7 @@ import AdminDashboard from '@/pages/admin/Dashboard';
 import OraganizerPanel from '@/pages/OrganizerPanel';
 import VolunteerDashboard from '@/pages/volunteer/Dashboard';
 import CollectorDashboard from '@/pages/collector/Dashboard';
+import AnalyticsDashboard from '@/pages/AnalyticsDashboard';
 
 function App() {
   return (
@@ -28,6 +29,11 @@ function App() {
             <Route path="/beaches" element={<Beaches />} />
             <Route path="/community" element={<Community />} />
             <Route path="/contact" element={<Contact />} />
+            
+            {/* Protected Analytics under Layout for all authenticated roles */}
+            <Route element={<PrivateRoute allowedRoles={[]} />}>
+              <Route path="/analytics" element={<AnalyticsDashboard />} />
+            </Route>
           </Route>
 
           {/* Auth pages without navbar */}
