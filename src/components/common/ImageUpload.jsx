@@ -67,7 +67,7 @@ function ImageUpload({
         {!imageFile ? (
           <Label
             htmlFor="image-upload"
-            className={`${isEditMode ? 'cursor-not-allowed' : ''} flex flex-col items-center justify-center h-32 cursor-pointer`}
+            className={`${isEditMode ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} flex flex-col items-center justify-center h-32`}
           >
             <UploadCloudIcon className="w-10 h-10 text-muted-foreground mb-2" />
             <span>Drag & drop or click to upload image</span>
