@@ -1,4 +1,4 @@
-import { useBeaches, useAddBeach, useDeleteBeach } from '@/hooks/beaches.js';
+import { useBeaches, useAddBeach, useDeleteBeach, useEditBeach } from '@/hooks/beaches.js';
 import Spinner from '@/components/common/LoadingSpinner.jsx';
 import BeachCard from '@/components/beach/BeachCard.jsx';
 import CommonForm from '@/components/common/Form.jsx';
@@ -37,6 +37,7 @@ export default function BeachesPage() {
   const { user } = useSelector((state) => state.auth);
   const { data, isLoading, isError: isBechFetchError } = useBeaches();
   const { mutate: addBeach } = useAddBeach();
+  const { mutate: editBeach } = useEditBeach();
   const { mutate: deleteBeach } = useDeleteBeach();
 
   const beaches = data?.data || [];
@@ -63,7 +64,7 @@ export default function BeachesPage() {
     );
   }
 
-  function onSubmit(event) {
+  const onBeachAddSubmitSubmit = (event) => {
     event.preventDefault();
     setIsSubmitting(true);
     const {
@@ -138,9 +139,56 @@ export default function BeachesPage() {
       country: beach.location.country,
       city: beach.location.city,
       description: beach.description,
+      image: beach.image
     };
+
     setFormData(patchdata);
   };
+
+  const onBeachEditSubmitSubmit = (event) => {
+    event.preventDefault()
+
+    setIsSubmitting(true);
+    const {
+      name,
+      description,
+      address,
+      city,
+      country,
+      lat = 1,
+      lon = 1,
+    } = formData;
+
+    const payload = {
+      name,
+      description,
+      location: {
+        address,
+        city,
+        country,
+        coordinates: {
+          type: 'Point',
+          coordinates: [lon, lat],
+        },
+      },
+    };
+
+    editBeach({ id: currentEditedId, updatedData: payload }, {
+      onSuccess: () => {
+        setFormData(initialFormData);
+        setImageFile(null);
+        setUploadedImageUrl('');
+        setIsSubmitting(false);
+        setOpenAddBeachDialog(false);
+        toast.success('Beach updated successfully',);
+      },
+      onError: (error) => {
+        setIsSubmitting(false);
+        toast.error('Beach update failed', error?.message);
+      },
+    });
+  }
+
   return (
     <div className="container mx-auto px-6 py-12">
       <div className="mb-12">
@@ -210,7 +258,7 @@ export default function BeachesPage() {
               }
               formData={formData}
               setFormData={setFormData}
-              onSubmit={onSubmit}
+              onSubmit={currentEditedId ? onBeachEditSubmitSubmit : onBeachAddSubmitSubmit}
             />
           </div>
         </SheetContent>
