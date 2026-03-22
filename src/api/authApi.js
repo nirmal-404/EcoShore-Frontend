@@ -15,10 +15,13 @@ export const loginUser = async (email, password) => {
   return response.data; // { user, token }
 };
 
-// Register request
-export const registerUser = async (email, password) => {
+// Register request — accepts full form data object from registerFormControls
+export const registerUser = async (formData) => {
+  const { name, email, phoneNumber, password } = formData;
   const response = await API.post('/auth/register', {
+    name,
     email,
+    phoneNumber,
     password,
     role: 'volunteer',
   });
