@@ -1,69 +1,115 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { getHeatmapData } from '@/api/heatmapApi';
-import { getActiveCarbonConfig } from '@/api/carbonConfigApi';
-import { getDashboardOverview, getWasteByPlasticType } from '@/api/analyticsApi';
-import HeatmapTracker from '@/components/analytics/HeatmapTracker';
 import {
   LineChart,
   Line,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
+  BarChart,
+  Bar,
   Legend,
 } from 'recharts';
-import { AlertCircle, Waves, TrendingUp, AlertTriangle, ShieldCheck, Database, MapPin, BarChart3, Activity } from 'lucide-react';
+import {
+  AlertCircle,
+  Activity,
+  MapPin,
+  Database,
+  BarChart3,
+  Leaf,
+  ShieldCheck,
+  Server,
+  Download,
+  CheckCircle2,
+  XCircle,
+  TrendingUp,
+} from 'lucide-react';
+import HeatmapTracker from '@/components/analytics/HeatmapTracker';
+import { getHeatmapData, getBeachPrediction } from '@/api/heatmapApi';
+import { getActiveCarbonConfig } from '@/api/carbonConfigApi';
+import {
+  getDashboardOverview,
+  getWasteByPlasticType,
+  getCarbonOffsetSummary,
+  getSeverityRanking,
+  getTrendPrediction,
+  exportAnalyticsJSON,
+  exportAnalyticsCSV,
+  getMLHealth,
+} from '@/api/analyticsApi';
 
-const AnalyticsDashboard = () => {
+export default function AnalyticsDashboard() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Data States
   const [data, setData] = useState(null);
   const [carbonConfig, setCarbonConfig] = useState(null);
   const [globalStats, setGlobalStats] = useState(null);
-  const [plasticRanking, setPlasticRanking] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [plasticRanking, setPlasticRanking] = useState([]);
+  
+  // Phase 6 States
+  const [mlHealth, setMlHealth] = useState(true);
+  const [severityRanking, setSeverityRanking] = useState([]);
+  const [carbonSummary, setCarbonSummary] = useState(null);
+  const [trendPrediction, setTrendPrediction] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [selectedBeachHeatmap, setSelectedBeachHeatmap] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    let isMounted = true;
+
+    const fetchAllData = async () => {
       try {
         setLoading(true);
-        const [res, carbonRes, dashboardRes, plasticRes] = await Promise.all([
-          getHeatmapData(),
+
+        const health = await getMLHealth();
+        if (isMounted) setMlHealth(health);
+
+        const [
+          heatmapRes,
+          carbonRes,
+          dashRes,
+          plasticRes,
+          severityRes,
+          carbonSumRes,
+          trendRes,
+        ] = await Promise.all([
+          getHeatmapData().catch(() => null),
           getActiveCarbonConfig().catch(() => null),
           getDashboardOverview().catch(() => null),
-          getWasteByPlasticType().catch(() => null)
+          getWasteByPlasticType().catch(() => null),
+          getSeverityRanking(10).catch(() => null),
+          getCarbonOffsetSummary().catch(() => null),
+          getTrendPrediction().catch(() => null),
         ]);
 
-        if (res?.success) {
-          setData(res.data.heatmap);
-        } else {
-          setError(res?.message || 'Failed to fetch predictions');
-        }
+        if (!isMounted) return;
 
-        if (carbonRes?.success && carbonRes.data?.config) {
-          setCarbonConfig(carbonRes.data.config);
-        }
+        if (heatmapRes?.success) setData(heatmapRes.data.heatmap);
+        else setError('Failed to load predictive map data');
 
-        if (dashboardRes?.success && dashboardRes.data?.dashboard?.summary) {
-          setGlobalStats(dashboardRes.data.dashboard.summary);
-        }
+        if (carbonRes?.success) setCarbonConfig(carbonRes.data.config);
+        if (dashRes?.success) setGlobalStats(dashRes.data.dashboard.summary);
+        if (plasticRes?.success) setPlasticRanking(plasticRes.data.plasticTypeData);
+        if (severityRes?.success) setSeverityRanking(severityRes.data.ranking);
+        if (carbonSumRes?.success) setCarbonSummary(carbonSumRes.data.summary);
+        if (trendRes?.success) setTrendPrediction(trendRes.data.prediction);
 
-        if (plasticRes?.success && plasticRes.data?.plasticTypeData) {
-          setPlasticRanking(plasticRes.data.plasticTypeData);
-        }
       } catch (err) {
-        setError(err.message || 'An error occurred while fetching data');
+        if (isMounted) setError(err.message || 'Error fetching analytics dashboard');
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
-    fetchData();
+
+    fetchAllData();
+    return () => { isMounted = false; };
   }, []);
 
   // Compute top level KPIs and format chart data
-  const { kpis, chartData, highestRiskBeach, leaderboard, rawBeaches } = useMemo(() => {
+  const { kpis, chartData, highestRiskBeach, rawBeaches } = useMemo(() => {
     if (!data || !data.predictions || data.predictions.length === 0) {
       return { kpis: null, chartData: [], highestRiskBeach: null, leaderboard: [], rawBeaches: [] };
     }
@@ -120,11 +166,9 @@ const AnalyticsDashboard = () => {
     // Get up to 5 beaches correctly formatted to prevent overcrowded charts
     const topBeaches = predictions.slice(0, 5).map(b => b.beachName);
 
-    // Sort beaches by currentSeverityScore for leaderboard
-    const leaderboard = [...predictions].sort((a, b) => b.currentSeverityScore - a.currentSeverityScore);
-
     return {
       kpis: {
+
         beachCount,
         averageRisk,
         highRiskCount,
@@ -135,10 +179,57 @@ const AnalyticsDashboard = () => {
           score: maxRiskScore.toFixed(1)
       },
       topBeaches,
-      leaderboard,
       rawBeaches: predictions
     };
   }, [data]);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+  const handleExport = async (format) => {
+    try {
+      setIsExporting(true);
+      const res = format === 'csv' ? await exportAnalyticsCSV() : await exportAnalyticsJSON();
+      
+      if (res?.success) {
+        if (format === 'json') {
+          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res.data.exportData, null, 2));
+          const dl = document.createElement('a');
+          dl.setAttribute("href", dataStr);
+          dl.setAttribute("download", `ecoshore_analytics_${new Date().toISOString().split('T')[0]}.json`);
+          document.body.appendChild(dl);
+          dl.click();
+          dl.remove();
+        } else if (format === 'csv') {
+          const headers = res.data.headers.join(',');
+          const rows = res.data.data.map(obj => Object.values(obj).join(',')).join('\n');
+          const csvContent = "data:text/csv;charset=utf-8," + headers + '\n' + rows;
+          const encodedUri = encodeURI(csvContent);
+          const link = document.createElement("a");
+          link.setAttribute("href", encodedUri);
+          link.setAttribute("download", `ecoshore_analytics_${new Date().toISOString().split('T')[0]}.csv`);
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+        }
+      }
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('Failed to export analytics data. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleBeachClick = async (beachId) => {
+    try {
+      if (!beachId) return;
+      const res = await getBeachPrediction(beachId);
+      if (res?.success) {
+        setSelectedBeachHeatmap(res.data.prediction);
+      }
+    } catch (err) {
+      console.error('Failed to load specific beach prediction:', err);
+    }
+  };
 
   if (loading) {
     return (
@@ -169,21 +260,35 @@ const AnalyticsDashboard = () => {
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Header Config */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-4xl bg-gradient-to-r from-emerald-600 to-teal-400 bg-clip-text text-transparent">
-              AI Prediction Dashboard
+            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-4xl bg-gradient-to-r from-emerald-600 to-teal-400 bg-clip-text text-transparent flex items-center gap-3">
+              Analytics Dashboard
+              <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${mlHealth ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                {mlHealth ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                ML Service: {mlHealth ? 'Online' : 'Offline'}
+              </span>
             </h1>
             <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
-              7-day risk forecasting powered by real-time ML models and current beach conditions.
+              Complete overview of environmental impact, global statistics, and AI forecasting.
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 rounded-full shadow-sm border border-gray-100 dark:border-gray-700">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-            </span>
-            Live Updates Active
+          
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => handleExport('csv')} 
+              disabled={isExporting}
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all disabled:opacity-50"
+            >
+              <Download className="w-4 h-4" /> CSV Report
+            </button>
+            <button 
+              onClick={() => handleExport('json')} 
+              disabled={isExporting}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-semibold rounded-xl shadow-md hover:bg-emerald-700 transition-all disabled:opacity-50"
+            >
+              <Server className="w-4 h-4" /> JSON Export
+            </button>
           </div>
         </div>
 
@@ -270,7 +375,7 @@ const AnalyticsDashboard = () => {
                     tickLine={false}
                     axisLine={false}
                   />
-                  <Tooltip 
+                  <RechartsTooltip 
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', backgroundColor: 'rgba(255, 255, 255, 0.95)' }}
                     itemStyle={{ color: '#1f2937', fontWeight: 500 }}
                   />
@@ -330,23 +435,31 @@ const AnalyticsDashboard = () => {
                    </tr>
                  </thead>
                  <tbody>
-                   {leaderboard?.slice(0, 10).map((beach, idx) => (
-                     <tr key={beach.beachId} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
-                       <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">#{idx+1}</td>
-                       <td className="px-4 py-3 font-semibold">{beach.beachName}</td>
-                       <td className="px-4 py-3">{beach.currentSeverityScore?.toFixed(2)}</td>
+                   {(severityRanking || []).map((beach, idx) => (
+                     <tr 
+                         key={beach.beachId || beach.name} 
+                         onClick={() => handleBeachClick(beach.beachId)}
+                         className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors cursor-pointer group" 
+                         title="Click to view detailed predictive insights"
+                     >
+                       <td className="px-4 py-3 font-medium text-gray-900 dark:text-white group-hover:text-emerald-500 transition-colors">#{idx+1}</td>
+                       <td className="px-4 py-3 font-semibold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{beach.name} <span className="text-xs font-normal text-gray-400 ml-1">({beach.city})</span></td>
+                       <td className="px-4 py-3">{beach.severityScore?.toFixed(2)}</td>
                        <td className="px-4 py-3">
                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                           beach.currentSeverityLevel === 'CRITICAL' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                           beach.currentSeverityLevel === 'HIGH' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                           beach.currentSeverityLevel === 'MODERATE' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                           beach.severityLevel === 'CRITICAL' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                           beach.severityLevel === 'HIGH' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                           beach.severityLevel === 'MODERATE' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
                            'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                          }`}>
-                           {beach.currentSeverityLevel}
+                           {beach.severityLevel}
                          </span>
                        </td>
                      </tr>
                    ))}
+                   {(!severityRanking || severityRanking.length === 0) && (
+                     <tr><td colSpan="4" className="text-center py-4 text-gray-500">No severity metrics computed yet.</td></tr>
+                   )}
                  </tbody>
                </table>
              </div>
@@ -376,58 +489,136 @@ const AnalyticsDashboard = () => {
 
         {/* Carbon Config & Map Layout Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Carbon Config Panel */}
+          {/* Carbon Config & Summary Panel */}
           <div className="lg:col-span-1 bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-800 dark:to-gray-900 rounded-3xl p-6 shadow-xl text-white relative flex flex-col justify-between">
             <div>
-              <h3 className="text-xl font-bold mb-2">Active Carbon Config</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold">Carbon Offset Impact</h3>
+                <Leaf className="text-emerald-400 w-6 h-6" />
+              </div>
+              
+              {carbonSummary && (
+                <div className="mb-6 bg-emerald-900/40 p-4 rounded-2xl border border-emerald-500/20">
+                  <p className="text-sm text-emerald-100 mb-1">Total Carbon Offset</p>
+                  <h4 className="text-4xl font-black text-emerald-400">{carbonSummary.totalCarbonOffset.toLocaleString()} <span className="text-lg font-semibold text-emerald-200">kg CO₂</span></h4>
+                  
+                  <div className="flex gap-4 mt-3">
+                    <div>
+                      <p className="text-xs text-emerald-200/60">Waste Processed</p>
+                      <p className="font-semibold text-emerald-100">{carbonSummary.totalWasteWeight.toLocaleString()} kg</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-emerald-200/60">Avg Offset</p>
+                      <p className="font-semibold text-emerald-100">{carbonSummary.averageCarbonPerKg.toFixed(2)} kg/kg</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <p className="text-gray-400 text-sm mb-4">Current environmental parameters used by the EcoShore measurement system.</p>
               
               {carbonConfig ? (
                 <div className="space-y-4">
-                  <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/5">
+                  <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
                     <p className="text-sm text-gray-300">Emission Factor</p>
-                    <p className="text-3xl font-black text-emerald-400 tracking-tight">{carbonConfig.emissionFactor}</p>
-                  </div>
-                  <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/5">
-                    <p className="text-sm text-gray-300">Config Name</p>
-                    <p className="text-lg font-semibold">{carbonConfig.name}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                      <p className="text-xs text-gray-400">Version</p>
-                      <p className="text-sm font-medium">v{carbonConfig.version}</p>
-                    </div>
-                    <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                      <p className="text-xs text-gray-400">Status</p>
-                      <p className="text-sm font-medium text-emerald-400">Active</p>
-                    </div>
-                  </div>
-                  <div className="pt-2">
-                    <p className="text-xs text-gray-400 leading-tight">
-                       * Carbon Config offset is calculated securely by assuming every kg of specific plastic prevented directly equals conserving fuel emissions, mapping perfectly to preserving 2 adult trees cleanly planted.
-                    </p>
+                    <p className="text-xl font-bold tracking-tight">{carbonConfig.emissionFactor}</p>
+                    <p className="text-xs text-gray-500 mt-1">Config: {carbonConfig.name} (v{carbonConfig.version})</p>
                   </div>
                 </div>
               ) : (
-                <div className="bg-white/5 p-6 rounded-2xl text-center border border-white/5">
+                <div className="bg-white/5 p-4 rounded-2xl text-center border border-white/5">
                   <p className="text-gray-400 text-sm">No active carbon configuration found.</p>
                 </div>
               )}
             </div>
+            <div className="pt-4 border-t border-white/10 mt-4">
+              <p className="text-xs text-gray-400 leading-tight">
+                 * Carbon offset equivalents assume every 10kg prevented equals 1 tree planted.
+              </p>
+            </div>
           </div>
 
-          {/* Map Section */}
-          <div className="lg:col-span-2">
+          {/* Map & Trend Prediction Section Layout */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Waste Volume Trend Chart */}
+            {trendPrediction && trendPrediction.predictions && (
+               <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <TrendingUp className="text-blue-500" />
+                    Statistical Waste Volume Forecast (Next 3 Months)
+                  </h3>
+                  <div className="h-[250px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={trendPrediction.predictions}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" className="opacity-50 dark:opacity-20" />
+                        <XAxis dataKey="date" tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
+                        <RechartsTooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} contentStyle={{ borderRadius: '12px' }} />
+                        <Bar name="Predicted Waste Volume (kg)" dataKey="predictedWeight" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                        <Bar name="Expected Carbon Offset (kg CO2)" dataKey="predictedCarbonOffset" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+               </div>
+            )}
+
+            {/* Map Tracker */}
             {rawBeaches && rawBeaches.length > 0 && (
               <HeatmapTracker beaches={rawBeaches} />
             )}
           </div>
         </div>
 
-
       </div>
+
+      {/* Modal for Specific Beach Prediction */}
+      {selectedBeachHeatmap && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm transition-opacity">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-100 dark:border-gray-700 transform transition-all">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <MapPin className="text-emerald-500" />
+                {selectedBeachHeatmap.beachName || 'Beach Insight'}
+              </h3>
+              <button onClick={() => setSelectedBeachHeatmap(null)} className="p-2 bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                <XCircle className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 font-medium">
+                Detailed 7-day risk breakdown for {selectedBeachHeatmap.beachName}. Current severity score is dynamically calculated through recent ML projections.
+              </p>
+              
+              {selectedBeachHeatmap.forecast && selectedBeachHeatmap.forecast.length > 0 ? (
+                <div className="h-[250px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={selectedBeachHeatmap.forecast}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" className="opacity-50 dark:opacity-20" />
+                      <XAxis dataKey="date" tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
+                      <RechartsTooltip contentStyle={{ borderRadius: '12px' }} />
+                      <Line type="monotone" name="Predicted Risk Score" dataKey="riskScore" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500">No forecast data available for this specific beach.</div>
+              )}
+            </div>
+            
+            <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 text-right">
+              <button 
+                onClick={() => setSelectedBeachHeatmap(null)}
+                className="px-6 py-2 bg-emerald-600 text-white font-bold rounded-xl shadow-md hover:bg-emerald-700 transition"
+              >
+                Close Insight
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
-
-export default AnalyticsDashboard;
