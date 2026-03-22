@@ -104,8 +104,6 @@ export default function BeachesPage() {
         console.error('Failed to add beach:', error);
       },
     });
-
-    console.log('Beach add function: not implemented.');
   }
 
   const handleDelete = (id, name) => {
