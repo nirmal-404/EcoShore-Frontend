@@ -12,9 +12,7 @@ export const useUploadImage = () => {
         formData
       );
 
-      console.log(data);
-
-      if (!data?.data?.success) {
+      if (!data?.success) {
         throw new Error('Image upload failed');
       }
 
