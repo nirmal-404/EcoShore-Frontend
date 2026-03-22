@@ -102,6 +102,9 @@ export default function Navbar() {
           <NavLink to="/" end className={navLinkClass}>
             Home
           </NavLink>
+          <NavLink to="/analytics" className={navLinkClass}>
+            Analytics
+          </NavLink>
           <NavLink to="/events" className={navLinkClass}>
             Events
           </NavLink>
