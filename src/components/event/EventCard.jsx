@@ -11,16 +11,13 @@ import { Button } from '@/components/ui/button.jsx';
 import { Badge } from '@/components/ui/badge.jsx';
 import { useSelector } from 'react-redux';
 import { format } from 'date-fns';
-import { useState } from 'react';
 
-function EventCard({ event, onDelete, onEdit, onJoin, onLeave }) {
+function EventCard({ event, onDelete, onEdit, onJoin, onLeave, isLoading }) {
   const { user } = useSelector((state) => state.auth);
 
-  const isVolunteer = event.volunteers?.includes(user?._id);
+  const isJoinedVolunteer = event.volunteers?.includes(user?._id);
   const volunteerCount = event.volunteers?.length || 0;
   const isFull = volunteerCount >= event.maxVolunteers;
-  const [isLeaving, setIsLeaving] = useState(false);
-  const [isJoing, setIsJoining] = useState(false);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -147,14 +144,14 @@ function EventCard({ event, onDelete, onEdit, onJoin, onLeave }) {
             </div>
           ) : user ? (
             <div className="w-full">
-              {isVolunteer ? (
+              {isJoinedVolunteer ? (
                 <Button
                   variant="outline"
                   size="sm"
                   className="w-full h-8"
                   onClick={() => onLeave(event._id)}
                 >
-                  {isLeaving ? 'Leaving Event...' : 'Leave event'}
+                  {isLoading ? 'Leaving Event...' : 'Leave event'}
                 </Button>
               ) : (
                 <Button
@@ -165,7 +162,7 @@ function EventCard({ event, onDelete, onEdit, onJoin, onLeave }) {
                 >
                   {isFull
                     ? 'Event Full'
-                    : isJoing
+                    : isLoading
                       ? 'Joining Event...'
                       : 'Join Event'}
                 </Button>

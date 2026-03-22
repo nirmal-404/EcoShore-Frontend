@@ -61,6 +61,8 @@ export default function EventsPage() {
     initialAlertDialogState
   );
 
+  const [loadingEventIds, setLoadingEventIds] = useState(new Set());
+
   if (isLoading) return <Spinner />;
   if (isError) return <p>Something went wrong.</p>;
 
@@ -189,22 +191,46 @@ export default function EventsPage() {
   };
 
   const handleJoin = (eventId) => {
+    setLoadingEventIds(prev => new Set(prev).add(eventId));
+
     joinEvent(eventId, {
       onSuccess: () => {
+        setLoadingEventIds(prev => {
+          const next = new Set(prev);
+          next.delete(eventId);
+          return next;
+        });
         toast.success('Successfully joined the event');
       },
       onError: (error) => {
+        setLoadingEventIds(prev => {
+          const next = new Set(prev);
+          next.delete(eventId);
+          return next;
+        });
         toast.error('Failed to join event', error?.message);
       },
     });
   };
 
   const handleLeave = (eventId) => {
+    setLoadingEventIds(prev => new Set(prev).add(eventId));
+
     leaveEvent(eventId, {
       onSuccess: () => {
+        setLoadingEventIds(prev => {
+          const next = new Set(prev);
+          next.delete(eventId);
+          return next;
+        });
         toast.success('Successfully left the event');
       },
       onError: (error) => {
+        setLoadingEventIds(prev => {
+          const next = new Set(prev);
+          next.delete(eventId);
+          return next;
+        });
         toast.error('Failed to leave event', error?.message);
       },
     });
@@ -230,6 +256,7 @@ export default function EventsPage() {
             onEdit={handleEdit}
             onJoin={handleJoin}
             onLeave={handleLeave}
+            isLoading={loadingEventIds.has(event._id)}
           />
         ))}
       </div>
