@@ -9,6 +9,7 @@ export const useBeaches = () => {
       const { data } = await API.get('/beaches');
       return data;
     },
+    staleTime: 1000 * 60 * 5,
   });
 };
 
@@ -44,15 +45,23 @@ export const useEditBeach = () => {
 
   return useMutation({
     mutationFn: async ({ id, updatedData }) => {
-      const { response } = await API.put(`/beaches/${id}`, updatedData);
-      return response;
+      const { data } = await API.put(`/beaches/${id}`, updatedData);
+      return data;
     },
-    onSuccess: (updatedBeach) => {
-      queryClient.setQueryData(['beaches'], (old = []) =>
-        old.map((beach) =>
-          beach.id === updatedBeach.id ? updatedBeach : beach
-        )
-      );
+    onSuccess: (response) => {
+      const updatedBeach = response.data.beach;
+      queryClient.setQueryData(['beaches'], (old) => {
+        if (!old || !old.data) {
+          return { data: [updatedBeach] };
+        }
+
+        return {
+          ...old,
+          data: old.data.map((beach) =>
+            beach.id === updatedBeach.id ? updatedBeach : beach
+          ),
+        };
+      });
     },
   });
 };
