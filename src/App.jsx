@@ -15,6 +15,7 @@ import AdminDashboard from '@/pages/admin/Dashboard';
 import OraganizerPanel from '@/pages/OrganizerPanel';
 import VolunteerDashboard from '@/pages/volunteer/Dashboard';
 import CollectorDashboard from '@/pages/collector/Dashboard';
+import AgentDashboard from '@/pages/agent/Dashboard';
 import AnalyticsDashboard from '@/pages/AnalyticsDashboard';
 
 function App() {
@@ -70,11 +71,18 @@ function App() {
             <Route path="/collector" element={<CollectorDashboard />} />
           </Route>
 
+          {/* Agent */}
+          <Route
+            element={<PrivateRoute allowedRoles={['agent', 'admin']} />}
+          >
+            <Route path="/agent" element={<AgentDashboard />} />
+          </Route>
+
           {/* Chat */}
           <Route
             element={
               <PrivateRoute
-                allowedRoles={['volunteer', 'organizer', 'admin', 'collector']}
+                allowedRoles={['volunteer', 'organizer', 'admin', 'collector', 'agent']}
               />
             }
           >
