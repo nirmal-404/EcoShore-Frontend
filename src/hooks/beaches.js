@@ -9,6 +9,7 @@ export const useBeaches = () => {
       const { data } = await API.get('/beaches');
       return data;
     },
+    staleTime: 1000 * 60 * 5,
   });
 };
 
@@ -18,11 +19,22 @@ export const useAddBeach = () => {
 
   return useMutation({
     mutationFn: async (newBeach) => {
-      const { response } = await API.post('/beaches', newBeach);
-      return response;
+      const { data } = await API.post('/beaches', newBeach);
+      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['beaches'] });
+      queryClient.invalidateQueries(['beaches']);
+      // const newBeach = response.data.beach;
+      // queryClient.setQueryData(['beaches'], (old) => {
+      //   if (!old || !old.data) {
+      //     return { data: [newBeach] };
+      //   }
+
+      //   return {
+      //     ...old,
+      //     data: [...old.data, newBeach],
+      //   };
+      // });
     },
   });
 };
@@ -33,11 +45,37 @@ export const useEditBeach = () => {
 
   return useMutation({
     mutationFn: async ({ id, updatedData }) => {
-      const { response } = await API.put(`/beaches/${id}`, updatedData);
-      return response;
+      const { data } = await API.put(`/beaches/${id}`, updatedData);
+      return data;
+    },
+    onSuccess: (response) => {
+      const updatedBeach = response.data.beach;
+      queryClient.setQueryData(['beaches'], (old) => {
+        if (!old || !old.data) {
+          return { data: [updatedBeach] };
+        }
+
+        return {
+          ...old,
+          data: old.data.map((beach) =>
+            beach.id === updatedBeach.id ? updatedBeach : beach
+          ),
+        };
+      });
+    },
+  });
+};
+
+export const useDeleteBeach = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id) => {
+      await API.delete(`/beaches/${id}`);
+      return id;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['beaches'] });
+      queryClient.invalidateQueries(['beaches']);
     },
   });
 };

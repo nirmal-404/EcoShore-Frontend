@@ -1,72 +1,94 @@
-import React, { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { registerUser, setAuthToken } from '@/api/authApi';
-import { useDispatch } from 'react-redux';
-import { setUser } from '@/store/authSlice';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import CommonForm from '@/components/common/Form.jsx';
 import GoogleLogin from '@/components/auth/GoogleLogin';
+import { registerFormControls } from '@/config/index.js';
+import { useSignup } from '@/hooks/auth.js';
+
+const initialFormData = {
+  name: '',
+  email: '',
+  phoneNumber: '',
+  password: '',
+  confirmPassword: '',
+};
 
 export default function Register() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
+  const [formData, setFormData] = useState(initialFormData);
 
-  const mutation = useMutation({
-    mutationFn: () => registerUser(email, password),
-    onSuccess: (data) => {
-      setAuthToken(data.token);
-      dispatch(setUser(data));
-      navigate('/', { replace: true });
-    },
-  });
+  const { mutate: signup, isPending, isError, error } = useSignup();
 
-  const handleSubmit = (e) => {
+  function onSubmit(e) {
     e.preventDefault();
-    mutation.mutate();
-  };
+
+    // Client-side password match validation before hitting the API
+    if (formData.password !== formData.confirmPassword) {
+      alert('Passwords do not match!');
+      return;
+    }
+
+    signup(formData);
+  }
 
   return (
-    <div style={{ textAlign: 'center', marginTop: 50 }}>
-      <h1>Register (Volunteer)</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden transition-colors duration-300">
 
-      <form onSubmit={handleSubmit}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <br />
-        <br />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <br />
-        <br />
-        <button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? 'Registering...' : 'Register'}
-        </button>
-      </form>
+      {/* Decorative background blobs */}
+      <div className="absolute top-0 -right-10 w-96 h-96 bg-emerald-400 opacity-20 dark:opacity-10 rounded-full blur-3xl mix-blend-multiply" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-400 opacity-20 dark:opacity-10 rounded-full blur-3xl mix-blend-multiply delay-1000" />
 
-      {mutation.isError && (
-        <p style={{ color: 'red' }}>
-          {mutation.error.response?.data?.error || 'Registration failed'}
-        </p>
-      )}
+      <div className="max-w-md w-full relative z-10">
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/20 dark:border-gray-700/50">
 
-      <p style={{ margin: '12px 0' }}>or</p>
+          <div className="p-8 sm:p-10">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">Join EcoShore</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Create a new volunteer account</p>
+            </div>
 
-      <GoogleLogin />
+            {/* CommonForm replaces the hand-rolled inputs */}
+            <CommonForm
+              formControls={registerFormControls}
+              formData={formData}
+              setFormData={setFormData}
+              onSubmit={onSubmit}
+              isBtnDisabled={isPending}
+              buttonText={isPending ? 'Creating Account...' : 'Create Account'}
+            />
 
-      <p style={{ marginTop: 20 }}>
-        Already have an account? <Link to="/login">Login</Link>
-      </p>
+            {isError && (
+              <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl text-center">
+                <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                  {error?.response?.data?.error || 'Registration failed. Please try again.'}
+                </p>
+              </div>
+            )}
+
+            {/* Divider */}
+            <div className="mt-8">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">or sign up with</span>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-center w-full">
+                <GoogleLogin />
+              </div>
+            </div>
+
+            <p className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
+              Already have an account?{' '}
+              <Link to="/login" className="font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors">
+                Sign in
+              </Link>
+            </p>
+          </div>
+
+        </div>
+      </div>
     </div>
   );
 }

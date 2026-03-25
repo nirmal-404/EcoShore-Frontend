@@ -1,9 +1,15 @@
-import { useBeaches } from '@/hooks/beaches.js';
+import {
+  useBeaches,
+  useAddBeach,
+  useDeleteBeach,
+  useEditBeach,
+} from '@/hooks/beaches.js';
 import Spinner from '@/components/common/LoadingSpinner.jsx';
 import BeachCard from '@/components/beach/BeachCard.jsx';
 import CommonForm from '@/components/common/Form.jsx';
 import { beachFormControls } from '@/config/index.js';
 import { useState } from 'react';
+import { useSelector } from 'react-redux';
 import {
   Sheet,
   SheetContent,
@@ -13,17 +19,32 @@ import {
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import ImageUpload from '@/components/common/ImageUpload.jsx';
+import CustomAlert from '@/components/common/Alert';
+import { toast } from 'sonner';
 
 const initialFormData = {
-  image: null,
   name: '',
   country: '',
   city: '',
   description: '',
 };
 
+const initialAletDialogState = {
+  open: false,
+  title: '',
+  description: '',
+  closeBtnTxt: '',
+  okBtnTxt: '',
+  action: null,
+};
+
 export default function BeachesPage() {
-  const { data, isLoading, isError } = useBeaches();
+  const { user } = useSelector((state) => state.auth);
+  const { data, isLoading, isError: isBechFetchError } = useBeaches();
+  const { mutate: addBeach } = useAddBeach();
+  const { mutate: editBeach } = useEditBeach();
+  const { mutate: deleteBeach } = useDeleteBeach();
+
   const beaches = data?.data || [];
 
   const [formData, setFormData] = useState(initialFormData);
@@ -32,11 +53,15 @@ export default function BeachesPage() {
   const [uploadedImageUrl, setUploadedImageUrl] = useState('');
   const [imageLoadingState, setImageLoadingState] = useState(false);
   const [currentEditedId, setCurrentEditedId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [alertDialogConfig, setAlertDialogConfig] = useState(
+    initialAletDialogState
+  );
 
   if (isLoading) return <Spinner />;
-  if (isError) return <p>Something went wrong.</p>;
+  if (isBechFetchError) return <p>Something went wrong.</p>;
 
-  if (data.length === 0) {
+  if (beaches.length === 0) {
     return (
       <div className="col-span-full text-center py-20 text-muted-foreground bg-secondary/20 rounded-2xl border border-dashed border-border">
         No beaches are currently registered in the system.
@@ -44,11 +69,133 @@ export default function BeachesPage() {
     );
   }
 
-  function onSubmit(event) {
+  const onBeachAddSubmitSubmit = (event) => {
     event.preventDefault();
-    //   TODO: implement beach add
-    console.log('Beach add function: not implemented.');
-  }
+    setIsSubmitting(true);
+    const {
+      name,
+      description,
+      address,
+      city,
+      country,
+      lat = 1,
+      lon = 1,
+    } = formData;
+
+    const payload = {
+      name,
+      description,
+      location: {
+        address,
+        city,
+        country,
+        coordinates: {
+          type: 'Point',
+          coordinates: [lon, lat],
+        },
+      },
+      image: uploadedImageUrl,
+    };
+
+    addBeach(payload, {
+      onSuccess: () => {
+        setFormData(initialFormData);
+        setImageFile(null);
+        setUploadedImageUrl('');
+        setIsSubmitting(false);
+        setOpenAddBeachDialog(false);
+      },
+      onError: (error) => {
+        setIsSubmitting(false);
+        console.error('Failed to add beach:', error);
+      },
+    });
+  };
+
+  const handleDelete = (id, name) => {
+    setAlertDialogConfig({
+      open: true,
+      title: 'Are you sure?',
+      description: `Delete ${name}? This action cannot be undone.`,
+      closeBtnTxt: 'Cancel',
+      okBtnTxt: 'Delete',
+      action: () => {
+        deleteBeach(id, {
+          onSuccess: () => {
+            toast.success('Beach deleted successfully');
+          },
+          onError: (error) => {
+            toast.error('Beach deletion failed', error?.message);
+          },
+        });
+
+        setAlertDialogConfig(initialAletDialogState);
+      },
+    });
+  };
+
+  const handleEdit = (beach) => {
+    setCurrentEditedId(beach.id);
+    setOpenAddBeachDialog(true);
+
+    const patchdata = {
+      name: beach.name,
+      address: beach.location.address,
+      country: beach.location.country,
+      city: beach.location.city,
+      description: beach.description,
+      image: beach.image,
+    };
+
+    setFormData(patchdata);
+  };
+
+  const onBeachEditSubmitSubmit = (event) => {
+    event.preventDefault();
+
+    setIsSubmitting(true);
+    const {
+      name,
+      description,
+      address,
+      city,
+      country,
+      lat = 1,
+      lon = 1,
+    } = formData;
+
+    const payload = {
+      name,
+      description,
+      location: {
+        address,
+        city,
+        country,
+        coordinates: {
+          type: 'Point',
+          coordinates: [lon, lat],
+        },
+      },
+    };
+
+    editBeach(
+      { id: currentEditedId, updatedData: payload },
+      {
+        onSuccess: () => {
+          setFormData(initialFormData);
+          setImageFile(null);
+          setUploadedImageUrl('');
+          setIsSubmitting(false);
+          setOpenAddBeachDialog(false);
+          toast.success('Beach updated successfully');
+        },
+        onError: (error) => {
+          setIsSubmitting(false);
+          toast.error('Beach update failed', error?.message);
+        },
+      }
+    );
+  };
 
   return (
     <div className="container mx-auto px-6 py-12">
@@ -63,16 +210,23 @@ export default function BeachesPage() {
 
       <div className="grid md:grid-cols-4 gap-6">
         {beaches &&
-          beaches.map((beach) => <BeachCard key={beach.id} beach={beach} />)}
+          beaches.map((beach) => (
+            <BeachCard
+              key={beach.id}
+              beach={beach}
+              onDelete={handleDelete}
+              onEdit={handleEdit}
+            />
+          ))}
       </div>
-
-      <Button
-        onClick={() => setOpenAddBeachDialog(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg flex items-center justify-center"
-      >
-        <Plus className="h-6 w-6" />
-      </Button>
-
+      {user?.role && user?.role === 'admin' && (
+        <Button
+          onClick={() => setOpenAddBeachDialog(true)}
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg flex items-center justify-center"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
       <Sheet
         open={openAddBeachDialog}
         onOpenChange={() => {
@@ -87,6 +241,7 @@ export default function BeachesPage() {
               {currentEditedId !== null ? 'Edit Beach' : 'Add New Beach'}
             </SheetTitle>
           </SheetHeader>
+          {currentEditedId !== null}
           <ImageUpload
             imageFile={imageFile}
             setImageFile={setImageFile}
@@ -99,14 +254,39 @@ export default function BeachesPage() {
           <div className="py-6">
             <CommonForm
               formControls={beachFormControls}
-              buttonText={'Add Beach'}
+              isBtnDisabled={isSubmitting}
+              buttonText={
+                currentEditedId
+                  ? isSubmitting
+                    ? 'Saving Changes...'
+                    : 'Edit Beach'
+                  : isSubmitting
+                    ? 'Adding Beach...'
+                    : 'Add Beach'
+              }
               formData={formData}
               setFormData={setFormData}
-              onSubmit={onSubmit}
+              onSubmit={
+                currentEditedId
+                  ? onBeachEditSubmitSubmit
+                  : onBeachAddSubmitSubmit
+              }
             />
           </div>
         </SheetContent>
       </Sheet>
+
+      <CustomAlert
+        openAlertDialog={alertDialogConfig.open}
+        setOpenAlertDialog={(val) =>
+          setAlertDialogConfig((prev) => ({ ...prev, open: val }))
+        }
+        title={alertDialogConfig.title}
+        description={alertDialogConfig.description}
+        closeBtnTxt={alertDialogConfig.closeBtnTxt}
+        okBtnTxt={alertDialogConfig.okBtnTxt}
+        action={alertDialogConfig.action}
+      />
     </div>
   );
 }
