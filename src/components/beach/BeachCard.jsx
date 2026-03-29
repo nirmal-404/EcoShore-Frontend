@@ -1,10 +1,10 @@
-import { Trash2, MapPin, Pencil } from 'lucide-react';
+import { Trash2, MapPin, Pencil, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { Waves } from 'lucide-react';
 import React from 'react';
 import { useSelector } from 'react-redux';
 
-function BeachCard({ beach, onDelete, onEdit }) {
+function BeachCard({ beach, onDelete, onEdit, onManageAgents }) {
   const { user } = useSelector((state) => state.auth);
 
   return (
@@ -34,6 +34,29 @@ function BeachCard({ beach, onDelete, onEdit }) {
             {beach.description ||
               'A beautiful beach location prioritized for cleanup efforts.'}
           </p>
+          
+          {/* Assigned Agents Section */}
+           {user?.role && (user?.role === 'admin' || user?.role === 'organizer') &&(
+          <div className="mt-4 p-3 bg-secondary/30 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="w-4 h-4 text-primary" />
+              <span className="text-xs font-semibold text-muted-foreground">
+                Assigned Agents ({beach.assignedAgents?.length || 0}/2)
+              </span>
+            </div>
+            {beach.assignedAgents && beach.assignedAgents.length > 0 ? (
+              <div className="space-y-1">
+                {beach.assignedAgents.map((agent) => (
+                  <div key={agent._id} className="text-x  s text-foreground">
+                    • {agent.name}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">No agents assigned</p>
+            )}
+          </div>
+           )}
         </div>
 
         <div className="flex items-center justify-between mt-auto">
@@ -43,6 +66,15 @@ function BeachCard({ beach, onDelete, onEdit }) {
           </div>
           {user?.role && user?.role === 'admin' && (
             <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-green-500 hover:text-green-600"
+                onClick={() => onManageAgents(beach)}
+                title="Manage Agents"
+              >
+                <Users className="w-4 h-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
