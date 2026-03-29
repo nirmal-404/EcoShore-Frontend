@@ -110,10 +110,11 @@ export default function Login() {
               <Code2 className="w-4 h-4" />
               Testing Quick Logins
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               <button onClick={() => handleQuickLogin('admin@gmail.com', 'admin')} className="py-2 px-3 text-xs font-semibold rounded-xl bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 transition-colors" title="Log in as Admin">Admin</button>
               <button onClick={() => handleQuickLogin('organizer@gmail.com', 'organizer')} className="py-2 px-3 text-xs font-semibold rounded-xl bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 transition-colors" title="Log in as Organizer">Organizer</button>
               <button onClick={() => handleQuickLogin('volunteer@gmail.com', 'volunteer')} className="py-2 px-3 text-xs font-semibold rounded-xl bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 transition-colors" title="Log in as Volunteer">Volunteer</button>
+              <button onClick={() => handleQuickLogin('agent@gmail.com', 'AgentPassword123')} className="py-2 px-3 text-xs font-semibold rounded-xl bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 transition-colors" title="Log in as Agent">Agent</button>
             </div>
           </div>
           {/* ============================================================== */}

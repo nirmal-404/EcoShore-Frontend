@@ -52,7 +52,11 @@ export default function Home() {
                     ? '/admin'
                     : user.role === 'organizer'
                       ? '/organizer'
-                      : '/volunteer'
+                      : user.role === 'agent'
+                        ? '/agent'
+                        : user.role === 'collector'
+                          ? '/collector'
+                          : '/volunteer'
                 }
                 className="px-8 py-4 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 transition-all transform hover:scale-105 shadow-lg shadow-primary/20 flex items-center"
               >
