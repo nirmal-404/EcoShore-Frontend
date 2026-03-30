@@ -62,13 +62,13 @@ export function CommentSection({ postId }) {
     <div className="px-4 pb-3">
       {/* Comment list */}
       {isLoading ? (
-        <p className="text-xs text-gray-400 py-2 text-center">Loading comments…</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 py-2 text-center">Loading comments…</p>
       ) : (
         <div className="space-y-2 mb-3">
           {comments.length === 0 && (
-            <div className="flex flex-col items-center py-4 gap-1 text-gray-400">
+            <div className="flex flex-col items-center py-4 gap-1 text-gray-400 dark:text-gray-500">
               <MessageCircle className="w-7 h-7 opacity-30" />
-              <p className="text-xs">No comments yet — be first!</p>
+              <p className="text-xs">No comments</p>
             </div>
           )}
           {comments.map((c) => {
@@ -84,13 +84,13 @@ export function CommentSection({ postId }) {
                 </div>
                 {/* Bubble */}
                 <div className="relative flex-1">
-                  <div className="bg-[#f0f2f5] rounded-2xl rounded-tl-sm px-3 py-2 inline-block max-w-full">
-                    <p className="text-[13px] font-semibold text-gray-900 leading-none mb-0.5">
+                  <div className="bg-[#f0f2f5] dark:bg-gray-800 rounded-2xl rounded-tl-sm px-3 py-2 inline-block max-w-full">
+                    <p className="text-[13px] font-semibold text-gray-900 dark:text-white leading-none mb-0.5">
                       {c.authorId?.name}
                     </p>
-                    <p className="text-[13px] text-gray-800 whitespace-pre-wrap break-words">{c.text}</p>
+                    <p className="text-[13px] text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">{c.text}</p>
                   </div>
-                  <p className="text-[11px] text-gray-400 ml-3 mt-0.5">{timeAgo(c.createdAt)}</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 ml-3 mt-0.5">{timeAgo(c.createdAt)}</p>
                   {isOwner && (
                     <button
                       onClick={() => deleteMutation.mutate(c._id)}
@@ -123,7 +123,7 @@ export function CommentSection({ postId }) {
               onKeyDown={handleKeyDown}
               placeholder="Write a comment…"
               disabled={addMutation.isPending}
-              className="w-full bg-[#f0f2f5] rounded-full pl-4 pr-10 py-2 text-[13px] text-gray-800 outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-blue-200 transition"
+              className="w-full bg-[#f0f2f5] dark:bg-gray-800 rounded-full pl-4 pr-10 py-2 text-[13px] text-gray-800 dark:text-gray-200 outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-700 transition"
             />
             <button
               onClick={() => content.trim() && addMutation.mutate({ text: content })}

@@ -1,33 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getUserChatGroups } from '@/api/chatApi';
 import { useSelector } from 'react-redux';
-import { Users, Loader2, Plus, MessageSquare, Search } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CreateGroupModal } from './CreateGroupModal';
+import { getUserChatGroups } from '@/api/chatApi';
 
-const TYPE_TABS = ['All', 'Event', 'Volunteer', 'Organizer'];
-
-function avatarColor(name = '') {
-  const palette = ['#605DFF', '#FF6B6B', '#FFB347', '#4ECDC4', '#A78BFA', '#34D399', '#F472B6'];
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h + name.charCodeAt(i)) % palette.length;
-  return palette[h];
-}
-
-function typeLabel(type) {
-  if (type === 'EVENT_GROUP') return 'Event';
-  if (type === 'ORGANIZER_PRIVATE') return 'Organizer';
-  return 'Volunteer';
-}
-
-export function GroupList({ selectedGroupId, onSelectGroup }) {
+export function GroupList({ selectedGroupId, onSelectGroup, searchTerm = '', chatFilter = 'all' }) {
   const { user } = useSelector((s) => s.auth);
-  const [showCreate, setShowCreate] = useState(false);
-  const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState('All');
-
-  const canCreateGroup = user?.role === 'organizer' || user?.role === 'admin';
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['chat-groups'],
@@ -36,136 +15,134 @@ export function GroupList({ selectedGroupId, onSelectGroup }) {
 
   let groups = data?.data || [];
 
-  // Filter by tab
-  if (activeTab !== 'All') {
-    groups = groups.filter((g) => typeLabel(g.type) === activeTab);
+  // Search filter
+  if (searchTerm.trim()) {
+    groups = groups.filter((g) =>
+      g.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   }
 
-  // Filter by search
-  if (search.trim()) {
-    groups = groups.filter((g) => g.name?.toLowerCase().includes(search.toLowerCase()));
+  // Filter by unread and favorites
+  if (chatFilter === 'unread') {
+    groups = groups.filter((g) => (g.unreadCount || 0) > 0);
+  } else if (chatFilter === 'favorites') {
+    // Could add favorites logic here if available in group data
+    groups = groups.filter((g) => g.isFavorite === true);
   }
 
   return (
-    <div className="flex flex-col h-full bg-white border-r border-gray-100">
-      {/* Header */}
-      <div className="px-5 pt-5 pb-3 shrink-0">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[18px] font-bold text-gray-900 flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-[#605DFF]" />
-            My Chats
-          </h2>
-          {canCreateGroup && (
+    <div className="flex flex-col h-full bg-white dark:bg-gray-800">
+      {/* Chat List */}
+      <div className="flex-1 overflow-y-auto px-1">
+
+        {isLoading && (
+          <div className="flex justify-center py-10">
+            <Loader2 className="animate-spin text-blue-600" />
+          </div>
+        )}
+
+        {error && (
+          <p className="text-center text-red-500 py-4">
+            Failed to load chats
+          </p>
+        )}
+
+        {!isLoading && groups.length === 0 && (
+          <p className="text-center text-gray-500 py-6">
+            No chats available
+          </p>
+        )}
+
+        {groups.map((group) => {
+          const isSelected = selectedGroupId === group._id;
+
+          const lastMessage = group.lastMessage?.text || "No messages yet";
+          const lastTime = group.lastMessage?.createdAt;
+          const unread = group.unreadCount || 0;
+
+          // Avatar color generator
+          const colors = [
+            'bg-blue-500',
+            'bg-green-500',
+            'bg-purple-500',
+            'bg-pink-500',
+            'bg-yellow-500',
+          ];
+
+          let hash = 0;
+          for (let i = 0; i < group.name.length; i++) {
+            hash = group.name.charCodeAt(i) + ((hash << 5) - hash);
+          }
+          const bg = colors[Math.abs(hash) % colors.length];
+
+          return (
             <button
-              onClick={() => setShowCreate((v) => !v)}
-              title="Create new group"
+              key={group._id}
+              onClick={() => onSelectGroup(group._id)}
               className={cn(
-                'w-8 h-8 rounded-full flex items-center justify-center transition-all',
-                showCreate
-                  ? 'bg-[#605DFF] text-white shadow'
-                  : 'bg-gray-100 text-gray-500 hover:bg-[#605DFF]/10 hover:text-[#605DFF]'
+                'w-full flex items-center gap-3 px-3 py-3 mx-1 transition-all duration-200 rounded-xl border border-transparent',
+                isSelected
+                  ? 'bg-blue-50 dark:bg-blue-900/50 border-blue-200 dark:border-blue-800'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
               )}
             >
-              <Plus className="w-4 h-4" />
-            </button>
-          )}
-        </div>
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-gray-100 rounded-full pl-9 pr-4 py-2 text-[14px] text-gray-700 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-[#605DFF]/30 transition"
-          />
-        </div>
-      </div>
+              {/* Avatar */}
+              <div className="relative">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold ${bg}`}>
+                  {group.name?.charAt(0)?.toUpperCase()}
+                </div>
 
-      {/* Tabs */}
-      <div className="flex gap-4 px-5 pb-2 shrink-0 border-b border-gray-100">
-        {TYPE_TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={cn(
-              'text-[13px] font-semibold pb-2 border-b-2 transition-colors',
-              activeTab === tab
-                ? 'text-[#605DFF] border-[#605DFF]'
-                : 'text-gray-400 border-transparent hover:text-gray-600'
-            )}
-          >
-            {tab}
-            {tab === 'All' && (data?.data?.length ?? 0) > 0 && (
-              <span className="ml-1.5 bg-[#605DFF] text-white text-[10px] font-bold rounded-full px-1.5 py-0.5">
-                {data.data.length}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Create Group Panel */}
-      <CreateGroupModal isOpen={showCreate} onClose={() => setShowCreate(false)} />
-
-      {/* List */}
-      <div className="flex-1 overflow-y-auto py-1">
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-7 h-7 animate-spin text-[#605DFF]/60" />
-          </div>
-        ) : error ? (
-          <div className="text-center text-sm text-red-500 p-4">Failed to load groups.</div>
-        ) : groups.length === 0 ? (
-          <div className="text-center p-8 mt-4">
-            <div className="w-14 h-14 rounded-full bg-[#605DFF]/10 flex items-center justify-center mx-auto mb-3">
-              <Users className="w-7 h-7 text-[#605DFF]/40" />
-            </div>
-            <p className="text-sm font-medium text-gray-500">
-              {search ? 'No results found' : canCreateGroup ? 'Create a group to start.' : 'Join an event to get added.'}
-            </p>
-          </div>
-        ) : (
-          groups.map((group) => {
-            const isSelected = selectedGroupId === group._id;
-            const bg = avatarColor(group.name);
-            return (
-              <button
-                key={group._id}
-                onClick={() => onSelectGroup(group._id)}
-                className={cn(
-                  'w-full text-left px-4 py-3 flex items-center gap-3 transition-all',
-                  isSelected ? 'bg-[#605DFF]/8 border-l-[3px] border-[#605DFF]' : 'hover:bg-gray-50 border-l-[3px] border-transparent'
+                {/* Online indicator */}
+                {group.isOnline && (
+                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
                 )}
-              >
-                {/* Avatar */}
-                <div
-                  className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-[15px] text-white shrink-0 shadow-sm"
-                  style={{ background: bg }}
-                >
-                  {group.name?.charAt(0)?.toUpperCase() || '?'}
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+
+                {/* Top row */}
+                <div className="flex justify-between items-center">
+                  <p className={cn(
+                    "text-sm font-semibold truncate",
+                    isSelected
+                      ? "text-blue-600"
+                      : "text-gray-900 dark:text-white"
+                  )}>
+                    {group.name}
+                  </p>
+
+                  {/* Time */}
+                  {lastTime && (
+                    <span className="text-xs text-gray-400">
+                      {new Date(lastTime).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  )}
                 </div>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className={cn('font-semibold text-[14px] truncate', isSelected ? 'text-[#605DFF]' : 'text-gray-900')}>
-                      {group.name}
-                    </span>
-                    <span className="text-[11px] text-gray-400 shrink-0 ml-2">
-                      {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <p className="text-[12px] text-gray-400 truncate mt-0.5">
-                    {group.members?.length ?? 0} members · {typeLabel(group.type)}
+                {/* Bottom row */}
+                <div className="flex justify-between items-center mt-1">
+
+                  {/* Last message */}
+                  <p className="text-xs text-gray-500 truncate">
+                    {lastMessage}
                   </p>
+
+                  {/* Unread badge */}
+                  {unread > 0 && (
+                    <span className="ml-2 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                      {unread}
+                    </span>
+                  )}
                 </div>
-              </button>
-            );
-          })
-        )}
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

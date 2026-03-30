@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { sendMessage } from '@/api/chatApi';
-import { Send, Plus, Mic } from 'lucide-react';
+import { Send, Plus } from 'lucide-react';
 
 export function MessageInput({ groupId }) {
   const [text, setText] = useState('');
@@ -32,46 +32,38 @@ export function MessageInput({ groupId }) {
   if (!groupId) return null;
 
   return (
-    <div className="shrink-0 px-4 py-3 bg-white border-t border-gray-100">
-      <div className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1.5">
-        {/* Plus / attachment */}
+    <div className="shrink-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex items-center gap-3 p-4">
+        {/* Attachment button */}
         <button
           type="button"
-          className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-[#605DFF] transition shrink-0"
-          title="Attach"
+          className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition flex-shrink-0"
+          title="Attach file"
         >
           <Plus className="w-5 h-5" />
         </button>
 
-        {/* Text input */}
-        <input
-          type="text"
+        {/* Message input */}
+        <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Write your message..."
+          placeholder="Aa"
           disabled={isPending}
-          className="flex-1 bg-transparent text-[14px] text-gray-800 placeholder:text-gray-400 outline-none py-1.5"
+          rows="1"
+          className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-2xl px-4 py-2.5 text-sm resize-none outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition"
+          style={{ maxHeight: '100px' }}
         />
 
-        {/* Mic (cosmetic) */}
-        <button
-          type="button"
-          className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-[#605DFF] transition shrink-0"
-          title="Voice message"
-        >
-          <Mic className="w-4 h-4" />
-        </button>
-
-        {/* Send */}
+        {/* Send button */}
         <button
           type="button"
           onClick={handleSubmit}
           disabled={!text.trim() || isPending}
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-[#605DFF] text-white disabled:bg-gray-300 hover:bg-[#4e4bcc] transition shadow-sm shrink-0"
-          title="Send"
+          className="p-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white rounded-full transition flex-shrink-0 flex items-center justify-center"
+          title="Send message"
         >
-          <Send className="w-4 h-4 ml-0.5" />
+          <Send className="w-5 h-5" />
         </button>
       </div>
     </div>

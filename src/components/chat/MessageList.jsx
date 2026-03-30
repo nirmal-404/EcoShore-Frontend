@@ -2,13 +2,16 @@ import React, { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getMessages } from '@/api/chatApi';
 import { useSelector } from 'react-redux';
-import { Loader2, CheckCheck } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 function avatarColor(name = '') {
-  const palette = ['#605DFF', '#FF6B6B', '#FFB347', '#4ECDC4', '#A78BFA', '#34D399', '#F472B6'];
+  const colors = [
+    'bg-blue-500', 'bg-emerald-500', 'bg-violet-500',
+    'bg-rose-500', 'bg-amber-500', 'bg-cyan-500', 'bg-pink-500',
+  ];
   let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h + name.charCodeAt(i)) % palette.length;
-  return palette[h];
+  for (let i = 0; i < name.length; i++) h = (h + name.charCodeAt(i)) % colors.length;
+  return colors[h];
 }
 
 function groupByDate(messages) {
@@ -16,7 +19,7 @@ function groupByDate(messages) {
   let currentDate = null;
   messages.forEach((msg) => {
     const d = new Date(msg.createdAt).toLocaleDateString(undefined, {
-      day: 'numeric', month: 'long', year: 'numeric',
+      day: 'numeric', month: 'short', year: 'numeric',
     });
     if (d !== currentDate) {
       currentDate = d;
@@ -51,8 +54,8 @@ export function MessageList({ groupId }) {
 
   if (isLoading && messages.length === 0) {
     return (
-      <div className="flex-1 flex justify-center items-center bg-[#f5f6fa]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#605DFF]" />
+      <div className="w-full h-full flex justify-center items-center bg-white dark:bg-gray-800">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     );
   }
@@ -62,21 +65,20 @@ export function MessageList({ groupId }) {
   return (
     <div
       ref={scrollRef}
-      className="flex-1 overflow-y-auto px-6 py-4 bg-[#f5f6fa] flex flex-col gap-0.5"
-      style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #e8eaf0 1px, transparent 0)', backgroundSize: '24px 24px' }}
+      className="w-full h-full overflow-y-auto overflow-x-hidden px-4 md:px-6 py-4 bg-white dark:bg-gray-800 flex flex-col gap-4"
     >
       {messages.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <p className="bg-white px-5 py-2.5 rounded-full text-sm text-gray-500 shadow-sm border border-gray-200">
-            No messages yet. Say hello! 👋
-          </p>
+        <div className="flex items-center justify-center py-12">
+          <div className="bg-gray-100 dark:bg-gray-700 px-6 py-3 rounded-full text-sm text-gray-600 dark:text-gray-300 shadow-sm border border-gray-200 dark:border-gray-600">
+            No messages yet. Start the conversation! 👋
+          </div>
         </div>
       ) : (
         items.map((item, idx) => {
           if (item.type === 'date') {
             return (
-              <div key={`date-${idx}`} className="flex items-center justify-center my-4">
-                <span className="bg-white/80 backdrop-blur-sm text-[11px] text-gray-400 font-medium px-4 py-1 rounded-full shadow-sm border border-gray-200">
+              <div key={`date-${idx}`} className="flex items-center justify-center my-2">
+                <span className="bg-gray-100 dark:bg-gray-700 text-xs text-gray-600 dark:text-gray-300 font-medium px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-600">
                   {item.label}
                 </span>
               </div>
@@ -100,39 +102,36 @@ export function MessageList({ groupId }) {
           return (
             <div
               key={msg._id || msg.id || idx}
-              className={`flex items-end gap-2 ${isMine ? 'flex-row-reverse' : 'flex-row'} ${isFirstInGroup ? 'mt-3' : 'mt-0.5'}`}
+              className={`flex items-end gap-2 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}
             >
-              {/* Other user avatar */}
+              {/* Avatar */}
               {!isMine && isFirstInGroup && (
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0 shadow-sm mb-1"
-                  style={{ background: avatarColor(senderName || '') }}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${avatarColor(senderName || '')}`}
                 >
                   {(senderName || 'U').slice(0, 2).toUpperCase()}
                 </div>
               )}
               {!isMine && !isFirstInGroup && <div className="w-8 shrink-0" />}
 
-              <div className={`flex flex-col max-w-[65%] ${isMine ? 'items-end' : 'items-start'}`}>
-                {/* Sender name for others */}
+              <div className={`flex flex-col max-w-xs lg:max-w-md ${isMine ? 'items-end' : 'items-start'}`}>
+                {/* Sender name */}
                 {!isMine && isFirstInGroup && (
-                  <span className="text-[11px] text-gray-400 font-semibold ml-1 mb-1">
+                  <span className="text-xs text-gray-600 dark:text-gray-400 font-semibold ml-1 mb-1">
                     {senderName || 'User'}
                   </span>
                 )}
 
-                {/* Bubble */}
+                {/* Message bubble */}
                 <div
-                  className={`relative px-4 py-2.5 text-[14px] leading-relaxed shadow-sm ${isMine
-                      ? 'bg-[#605DFF] text-white rounded-2xl rounded-br-sm'
-                      : 'bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-bl-sm'
-                    }`}
+                  className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed break-words ${isMine
+                      ? 'bg-blue-600 dark:bg-blue-500 text-white rounded-br-none'
+                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-bl-none'
+                    } shadow-sm`}
                 >
-                  <span className="whitespace-pre-wrap break-words">{msg.text}</span>
-                  {/* Inline timestamp + tick */}
-                  <span className={`flex items-center gap-0.5 mt-1 ${isMine ? 'justify-end' : 'justify-end'}`}>
-                    <span className={`text-[10px] ${isMine ? 'text-white/60' : 'text-gray-400'}`}>{timeStr}</span>
-                    {isMine && <CheckCheck className="w-3 h-3 text-white/60" />}
+                  <p className="whitespace-pre-wrap">{msg.text}</p>
+                  <span className={`text-xs mt-1 block ${isMine ? 'text-blue-100 dark:text-blue-200' : 'text-gray-400 dark:text-gray-500'}`}>
+                    {timeStr}
                   </span>
                 </div>
               </div>

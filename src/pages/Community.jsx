@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { getPosts } from '@/api/communityApi';
 import { getUserChatGroups } from '@/api/chatApi';
 import { PostCard } from '@/components/community/PostCard';
 import { CreatePostModal } from '@/components/community/CreatePostModal';
+import ChatApp from '@/pages/chat/ChatApp';
 import { Loader2, Users, MessageSquare, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 
 /* ── helpers ─────────────────────────────────────────────────────── */
@@ -17,57 +18,38 @@ function avatarColor(name = '') {
 }
 
 /* ── Left sidebar (profile card) ────────────────────────────────── */
-function LeftSidebar({ user }) {
+function LeftSidebar({ user, onOpenChat }) {
   return (
     <aside className="hidden lg:flex flex-col gap-4">
-      {user ? (
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold ${avatarColor(user.name)}`}>
-              {user.name?.slice(0, 2).toUpperCase() || '??'}
-            </div>
-            <div>
-              <p className="font-semibold text-sm text-gray-900">{user.name}</p>
-              <p className="text-xs text-gray-500">Community Member</p>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow p-4 text-center">
-          <p className="text-sm text-gray-500 mb-3">
-            <a href="/login" className="text-blue-600 font-semibold hover:underline">Log in</a> to see your profile.
-          </p>
-        </div>
-      )}
-
-      <div className="bg-white rounded-lg shadow p-4 space-y-2">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4 space-y-2">
+        <button
+          onClick={onOpenChat}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition w-full text-left"
+        >
+          <span className="text-lg">💬</span>
+          Group Chats
+        </button>
         {[
-          { icon: '🌊', label: 'Community Feed', href: '#' },
-          { icon: '💬', label: 'Group Chats', href: '/chat' },
           { icon: '🗓️', label: 'Events', href: '/events' },
           { icon: '🏖️', label: 'Beaches', href: '/beaches' },
         ].map((item) => (
-          <a
+          <Link
             key={item.label}
-            href={item.href}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 text-sm font-medium hover:bg-gray-100 transition"
+            to={item.href}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition"
           >
             <span className="text-lg">{item.icon}</span>
             {item.label}
-          </a>
+          </Link>
         ))}
       </div>
 
-      <div className="bg-white rounded-lg shadow p-4 text-center">
-        <p className="text-xs text-gray-400 font-medium">
-          EchoShore · Privacy · Terms · Cookies · &copy; {new Date().getFullYear()}
-        </p>
-      </div>
+
     </aside>
   );
 }
 
-/* ── Right sidebar (Trending / Groups / Contacts) ──────────── */
+/* ── Right sidebar (Profile View) ──────────── */
 function RightSidebar({ user }) {
   const navigate = useNavigate();
   const { data, isLoading } = useQuery({
@@ -77,101 +59,51 @@ function RightSidebar({ user }) {
   });
   const groups = data?.data || [];
 
-  // Mock trending data
-  const trending = [
-    { tag: '#DESIGNSYSTEM', title: 'The Architectural Blueprint', posts: '1.2k posts today' },
-    { tag: '#GROWTH', title: 'Community Engagement 101', posts: '850 posts today' },
-    { tag: '#TECHTRENDS', title: 'React 19 Server Components', posts: '2.4k posts today' },
-  ];
-
-  // Mock contacts
-  const contacts = [
-    { id: 1, name: 'Mark Verdes', role: 'Product Designer' },
-    { id: 2, name: 'Lydia Frost', role: 'Engineer' },
-  ];
-
-  // Mock recent activity
-  const activity = [
-    { type: 'joined', user: 'You', action: 'joined the Typography Masters community' },
-    { type: 'liked', user: 'Elena R.', action: 'liked your post from 3 hours ago' },
-  ];
-
   return (
     <aside className="hidden lg:flex flex-col gap-6">
-      {/* TRENDING NOW */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-gray-900 text-sm tracking-wide">TRENDING NOW</h3>
-          <a href="#" className="text-blue-600 text-xs font-medium hover:underline">SEE ALL</a>
-        </div>
-
-        <div className="space-y-4">
-          {trending.map((item, idx) => (
-            <button
-              key={idx}
-              className="w-full text-left hover:bg-gray-50 p-2 rounded transition"
-            >
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                {item.tag}
-              </p>
-              <p className="text-sm font-bold text-gray-900 mb-1">{item.title}</p>
-              <p className="text-xs text-gray-500">{item.posts}</p>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* CONNECT */}
+      {/* PROFILE VIEW */}
       {user && (
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-gray-900 text-sm tracking-wide">CONNECT</h3>
-            <a href="#" className="text-blue-600 text-xs font-medium hover:underline">VIEW ALL</a>
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
+          <div className="text-center mb-6">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold ${avatarColor(user.name)} mx-auto mb-3`}>
+              {user.name?.slice(0, 2).toUpperCase() || '??'}
+            </div>
+            <h3 className="font-bold text-lg text-gray-900 dark:text-white">{user.name}</h3>
+            {user.role && (
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 mt-1">{user.role}</p>
+            )}
           </div>
 
-          <div className="space-y-3">
-            {contacts.map((contact) => (
-              <div key={contact.id} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${avatarColor(contact.name)}`}>
-                    {contact.name?.slice(0, 1).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{contact.name}</p>
-                    <p className="text-xs text-gray-500">{contact.role}</p>
-                  </div>
-                </div>
-                <button className="text-xs font-semibold text-gray-600 hover:text-blue-600 transition px-2 py-1">
-                  Follow
-                </button>
-              </div>
-            ))}
+          <div className="grid grid-cols-3 gap-4 text-center border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">0</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Posts</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">0</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Followers</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">0</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Following</p>
+            </div>
           </div>
+
+          <button
+            onClick={() => navigate('/profile')}
+            className="w-full mt-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition"
+          >
+            View Profile
+          </button>
         </div>
       )}
 
-      {/* RECENT ACTIVITY */}
-      {user && (
-        <div className="bg-white rounded-lg shadow p-4">
-          <h3 className="font-bold text-gray-900 text-sm tracking-wide mb-4">RECENT ACTIVITY</h3>
-          <div className="space-y-3">
-            {activity.map((item, idx) => (
-              <div key={idx} className="flex gap-3 text-sm">
-                <span className="text-blue-600 font-semibold text-xs mt-1">●</span>
-                <p className="text-gray-700">
-                  <span className="font-semibold text-gray-900">{item.user}</span>
-                  {' '}{item.action}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
 
       {!user && (
-        <div className="bg-white rounded-lg shadow p-4 text-center">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4 text-center">
           <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-          <p className="text-sm text-gray-600 font-medium mb-3">Connect with your community</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-3">Connect with your community</p>
           <a href="/login" className="block w-full py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition">
             Log In
           </a>
@@ -187,6 +119,7 @@ function RightSidebar({ user }) {
 /* ══════ Main Community Page ════════════════════════════════════ */
 export default function Community() {
   const [page, setPage] = useState(1);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const { user } = useSelector((s) => s.auth);
 
   const { data, isLoading, error } = useQuery({
@@ -199,13 +132,15 @@ export default function Community() {
   const pagination = data?.data?.pagination || { page: 1, pages: 1 };
 
   return (
-    <div className="min-h-screen bg-gray-100 pt-16">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-950 pt-4">
       {/* ── Three-column layout ── */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] gap-6 items-start">
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] gap-6">
 
           {/* Left sidebar */}
-          <LeftSidebar user={user} />
+          <div className="sticky top-4 h-fit">
+            <LeftSidebar user={user} onOpenChat={() => setIsChatOpen(true)} />
+          </div>
 
           {/* Center feed */}
           <main className="space-y-4 min-w-0">
@@ -262,9 +197,14 @@ export default function Community() {
           </main>
 
           {/* Right sidebar */}
-          <RightSidebar user={user} />
+          <div className="sticky top-4 h-fit">
+            <RightSidebar user={user} />
+          </div>
         </div>
       </div>
+
+      {/* Chat Modal */}
+      <ChatApp isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </div>
   );
 }

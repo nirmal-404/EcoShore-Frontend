@@ -1,138 +1,176 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getChatGroupById } from '@/api/chatApi';
-import { Loader2, PanelLeftOpen, Share2, Search, MoreHorizontal, Waves } from 'lucide-react';
+import { MessageCircle, X, Search, Plus } from 'lucide-react';
+import { useSelector } from 'react-redux';
 import { GroupList } from '@/components/chat/GroupList';
 import { MessageList } from '@/components/chat/MessageList';
 import { MessageInput } from '@/components/chat/MessageInput';
 
-function avatarColor(name = '') {
-  const palette = ['#605DFF', '#FF6B6B', '#FFB347', '#4ECDC4', '#A78BFA', '#34D399', '#F472B6'];
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h + name.charCodeAt(i)) % palette.length;
-  return palette[h];
-}
-
-export default function ChatApp() {
+export default function ChatApp({ isOpen: externalIsOpen, onClose: externalOnClose, showFloatingButton = true }) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [chatFilter, setChatFilter] = useState('all');
+  const { user } = useSelector((s) => s.auth);
 
-  const { data: activeGroupData, isLoading: isLoadingGroup } = useQuery({
-    queryKey: ['chat-group-details', selectedGroupId],
-    queryFn: () => getChatGroupById(selectedGroupId),
-    enabled: !!selectedGroupId,
-  });
+  // Use external state if provided, otherwise use internal state
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
+  const setIsOpen = externalOnClose ? (val) => {
+    if (!val) externalOnClose();
+  } : setInternalIsOpen;
 
-  const activeGroup = activeGroupData?.data;
+  const currentUser = {
+    _id: user?._id || 'current-user',
+    name: user?.name || 'You',
+    email: user?.email || 'user@company.com',
+  };
 
-  const handleSelectGroup = (id) => {
-    setSelectedGroupId(id);
-    setSidebarOpen(false);
+  const handleClose = () => {
+    setIsOpen(false);
+  };
+
+  const handleSelectGroup = (groupId) => {
+    setSelectedGroupId(groupId);
   };
 
   return (
-    <div className="flex h-full overflow-hidden relative bg-[#f5f6fa]">
-      {/* Mobile sidebar backdrop */}
-      {sidebarOpen && (
+    <>
+      {/* Floating Button - only show if showFloatingButton is true */}
+      {showFloatingButton && (
+        <button
+          onClick={() => setInternalIsOpen(true)}
+          className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 group"
+          title="Open Messages"
+        >
+          <MessageCircle size={24} className="group-hover:rotate-12 transition-transform" />
+        </button>
+      )}
+
+      {/* Modal Backdrop */}
+      {isOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/30 backdrop-blur-sm md:hidden"
-          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity"
+          onClick={handleClose}
         />
       )}
 
-      {/* ── Left Sidebar ── */}
-      <div
-        className={[
-          'w-[320px] flex-shrink-0 flex flex-col',
-          'md:relative md:translate-x-0 md:z-auto',
-          sidebarOpen
-            ? 'fixed top-[60px] bottom-0 left-0 z-30 translate-x-0 shadow-2xl'
-            : 'fixed top-[60px] bottom-0 left-0 z-30 -translate-x-full md:translate-x-0',
-        ].join(' ')}
-      >
-        <GroupList selectedGroupId={selectedGroupId} onSelectGroup={handleSelectGroup} />
-      </div>
-
-      {/* ── Main Chat Area ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {selectedGroupId && activeGroup ? (
-          <>
-            {/* Chat Header */}
-            <div className="h-[64px] flex items-center justify-between px-5 bg-white border-b border-gray-100 shrink-0 shadow-sm">
-              <div className="flex items-center gap-3 min-w-0">
-                {/* Mobile toggle */}
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="md:hidden p-2 rounded-lg text-gray-400 hover:bg-gray-100 transition -ml-1 mr-1 shrink-0"
-                >
-                  <PanelLeftOpen className="w-5 h-5" />
-                </button>
-
-                {/* Group avatar */}
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-base shrink-0 shadow-sm"
-                  style={{ background: avatarColor(activeGroup.name) }}
-                >
-                  {activeGroup.name?.charAt(0)?.toUpperCase() || '?'}
-                </div>
-
-                <div className="min-w-0">
-                  <h2 className="font-bold text-[15px] text-gray-900 leading-tight truncate">
-                    {activeGroup.name}
-                  </h2>
-                  <p className="text-[12px] text-gray-400 mt-0.5 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                    {activeGroup.members?.length || 0} members
-                  </p>
-                </div>
-              </div>
-
-              {/* Right action icons — matching reference */}
-              <div className="flex items-center gap-1 shrink-0">
-                <button className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition">
-                  <Share2 className="w-4 h-4" />
-                </button>
-                <button className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition">
-                  <Search className="w-4 h-4" />
-                </button>
-                <button className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition">
-                  <MoreHorizontal className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Messages */}
-            <MessageList groupId={selectedGroupId} />
-
-            {/* Input */}
-            <MessageInput groupId={selectedGroupId} />
-          </>
-        ) : (
-          /* Empty state */
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#f5f6fa]">
+      {/* Modal Window */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+          onClick={(e) => e.target === e.currentTarget && handleClose()}
+        >
+          <div className="w-full max-w-5xl h-[90vh] sm:h-[85vh] rounded-2xl shadow-2xl overflow-hidden bg-white dark:bg-gray-900 flex flex-col sm:flex-row border border-gray-100 dark:border-gray-800">
+            {/* Close Button */}
             <button
-              onClick={() => setSidebarOpen(true)}
-              className="md:hidden absolute top-4 left-4 p-2 rounded-lg text-gray-400 hover:bg-white transition"
+              onClick={handleClose}
+              className="absolute top-4 right-4 z-10 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
-              <PanelLeftOpen className="w-5 h-5" />
+              <X size={24} className="text-gray-600 dark:text-gray-400" />
             </button>
 
-            <div
-              className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 shadow-lg"
-              style={{ background: 'linear-gradient(135deg,#605DFF,#9b89ff)' }}
-            >
-              <Waves className="w-10 h-10 text-white" />
+            {/* Left Sidebar - Conversations List */}
+            <div className="w-full sm:w-96 bg-white dark:bg-gray-800 flex flex-col border-r border-gray-200 dark:border-gray-700 min-h-0">
+              {/* Header */}
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Chats</h2>
+                <button
+                  className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-blue-600 dark:text-blue-400"
+                  title="Start new chat"
+                >
+                  <Plus size={20} />
+                </button>
+              </div>
+
+              {/* Search Bar */}
+              <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <div className="relative">
+                  <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Filter Tabs */}
+              <div className="px-2 py-3 border-b border-gray-200 dark:border-gray-700 flex gap-1 bg-white dark:bg-gray-800">
+                <button
+                  onClick={() => setChatFilter('all')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+                    chatFilter === 'all'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setChatFilter('unread')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+                    chatFilter === 'unread'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  Unread
+                </button>
+                <button
+                  onClick={() => setChatFilter('favorites')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+                    chatFilter === 'favorites'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  Favorites
+                </button>
+              </div>
+
+              {/* Group List */}
+              <div className="flex-1 overflow-y-auto min-h-0">
+                <GroupList
+                  selectedGroupId={selectedGroupId}
+                  onSelectGroup={handleSelectGroup}
+                  searchTerm={searchTerm}
+                  chatFilter={chatFilter}
+                />
+              </div>
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to EcoChat</h2>
-            <p className="max-w-sm text-gray-500 text-[15px] leading-relaxed">
-              Select a group from the sidebar to coordinate cleanups, share updates, and connect with fellow volunteers.
-            </p>
-            <p className="text-xs text-gray-400 mt-6 md:hidden">
-              Tap <span className="font-semibold">☰</span> to browse your groups
-            </p>
+
+            {/* Right Side - Chat Window */}
+            <div className="flex-1 min-h-0 bg-white dark:bg-gray-900 flex flex-col">
+              {selectedGroupId ? (
+                <>
+                  {/* Messages Container */}
+                  <div className="flex-1 min-h-0 overflow-hidden bg-white dark:bg-gray-900">
+                    <MessageList groupId={selectedGroupId} />
+                  </div>
+
+                  {/* Message Input */}
+                  <div className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 shadow-sm">
+                    <MessageInput groupId={selectedGroupId} />
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-center px-6 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+                  <div className="p-4 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-4">
+                    <MessageCircle className="text-blue-600 dark:text-blue-400" size={40} />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Select a group to chat
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm">
+                    Choose a group from the list to start your conversation and coordinate cleanup efforts.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 }
