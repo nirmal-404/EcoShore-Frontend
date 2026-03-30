@@ -3,7 +3,6 @@ import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '@/store/authSlice';
 import {
   Waves,
-  MessageSquare,
   LogOut,
   User,
   LayoutDashboard,
@@ -23,10 +22,9 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 const navLinkClass = ({ isActive }) =>
-  `text-sm font-medium transition-colors relative pb-0.5 ${
-    isActive
-      ? 'text-primary after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-primary after:rounded-full'
-      : 'text-foreground/70 hover:text-foreground'
+  `text-sm font-medium transition-colors relative pb-0.5 ${isActive
+    ? 'text-primary after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-primary after:rounded-full'
+    : 'text-foreground/70 hover:text-foreground'
   }`;
 
 const ROLE_META = {
@@ -78,11 +76,11 @@ export default function Navbar() {
   const roleMeta = ROLE_META[role] || null;
   const initials = user?.name
     ? user.name
-        .split(' ')
-        .map((n) => n[0])
-        .slice(0, 2)
-        .join('')
-        .toUpperCase()
+      .split(' ')
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase()
     : 'U';
 
   return (
@@ -114,15 +112,6 @@ export default function Navbar() {
           <NavLink to="/community" className={navLinkClass}>
             Community
           </NavLink>
-
-          {user && (
-            <NavLink to="/chat" className={navLinkClass}>
-              <span className="flex items-center gap-1.5">
-                <MessageSquare className="w-4 h-4" />
-                Chat
-              </span>
-            </NavLink>
-          )}
         </div>
       </div>
 
@@ -233,24 +222,6 @@ export default function Navbar() {
                       </Link>
                     </DropdownMenuItem>
 
-                    <DropdownMenuItem
-                      asChild
-                      className="rounded-xl px-3 py-2.5 cursor-pointer"
-                    >
-                      <Link to="/chat" className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-                          <MessageSquare className="w-4 h-4 text-foreground" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">
-                            Group Chats
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            Open your chat groups
-                          </p>
-                        </div>
-                      </Link>
-                    </DropdownMenuItem>
 
                     <DropdownMenuSeparator className="my-1.5 mx-2" />
                   </>

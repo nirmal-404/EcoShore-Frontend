@@ -1,282 +1,269 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { getPosts } from '@/api/communityApi';
 import { getUserChatGroups } from '@/api/chatApi';
-import { useSelector } from 'react-redux';
 import { PostCard } from '@/components/community/PostCard';
 import { CreatePostModal } from '@/components/community/CreatePostModal';
-import {
-  Loader2,
-  Users,
-  MessageSquare,
-  BookOpen,
-  ArrowRight,
-  Waves,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Loader2, Users, MessageSquare, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const TYPE_BADGE = {
-  GLOBAL_VOLUNTEER: {
-    label: 'Volunteer',
-    color: 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/20',
-  },
-  ORGANIZER_PRIVATE: {
-    label: 'Organizer',
-    color: 'bg-purple-500/15 text-purple-400 border border-purple-500/20',
-  },
-  EVENT_GROUP: {
-    label: 'Event',
-    color: 'bg-blue-500/15 text-blue-400 border border-blue-500/20',
-  },
-};
+/* ── helpers ─────────────────────────────────────────────────────── */
+function avatarColor(name = '') {
+  const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-violet-500', 'bg-rose-500', 'bg-amber-500', 'bg-cyan-500', 'bg-pink-500'];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h + name.charCodeAt(i)) % colors.length;
+  return colors[h];
+}
 
-function GroupChatsTab() {
+/* ── Left sidebar (profile card) ────────────────────────────────── */
+function LeftSidebar({ user }) {
+  return (
+    <aside className="hidden lg:flex flex-col gap-4">
+      {user ? (
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold ${avatarColor(user.name)}`}>
+              {user.name?.slice(0, 2).toUpperCase() || '??'}
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-gray-900">{user.name}</p>
+              <p className="text-xs text-gray-500">Community Member</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow p-4 text-center">
+          <p className="text-sm text-gray-500 mb-3">
+            <a href="/login" className="text-blue-600 font-semibold hover:underline">Log in</a> to see your profile.
+          </p>
+        </div>
+      )}
+
+      <div className="bg-white rounded-lg shadow p-4 space-y-2">
+        {[
+          { icon: '🌊', label: 'Community Feed', href: '#' },
+          { icon: '💬', label: 'Group Chats', href: '/chat' },
+          { icon: '🗓️', label: 'Events', href: '/events' },
+          { icon: '🏖️', label: 'Beaches', href: '/beaches' },
+        ].map((item) => (
+          <a
+            key={item.label}
+            href={item.href}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 text-sm font-medium hover:bg-gray-100 transition"
+          >
+            <span className="text-lg">{item.icon}</span>
+            {item.label}
+          </a>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-lg shadow p-4 text-center">
+        <p className="text-xs text-gray-400 font-medium">
+          EchoShore · Privacy · Terms · Cookies · &copy; {new Date().getFullYear()}
+        </p>
+      </div>
+    </aside>
+  );
+}
+
+/* ── Right sidebar (Trending / Groups / Contacts) ──────────── */
+function RightSidebar({ user }) {
   const navigate = useNavigate();
-  const { user } = useSelector((state) => state.auth);
-
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['chat-groups'],
     queryFn: getUserChatGroups,
     enabled: !!user,
   });
-
   const groups = data?.data || [];
 
-  if (!user) {
-    return (
-      <div className="text-center py-14 bg-secondary/10 rounded-3xl border border-dashed border-border/60">
-        <MessageSquare className="w-14 h-14 text-muted-foreground/25 mx-auto mb-4" />
-        <h3 className="text-lg font-bold text-foreground">
-          Sign in to access group chats
-        </h3>
-        <p className="text-muted-foreground mt-2 font-medium">
-          Group chats are available for registered volunteers and organizers.
-        </p>
-      </div>
-    );
-  }
+  // Mock trending data
+  const trending = [
+    { tag: '#DESIGNSYSTEM', title: 'The Architectural Blueprint', posts: '1.2k posts today' },
+    { tag: '#GROWTH', title: 'Community Engagement 101', posts: '850 posts today' },
+    { tag: '#TECHTRENDS', title: 'React 19 Server Components', posts: '2.4k posts today' },
+  ];
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="w-8 h-8 animate-spin text-primary/60" />
-      </div>
-    );
-  }
+  // Mock contacts
+  const contacts = [
+    { id: 1, name: 'Mark Verdes', role: 'Product Designer' },
+    { id: 2, name: 'Lydia Frost', role: 'Engineer' },
+  ];
 
-  if (error) {
-    return (
-      <div className="text-center py-10 bg-destructive/5 rounded-2xl border border-destructive/10 text-destructive/80 font-medium">
-        Failed to load groups. Please try again later.
-      </div>
-    );
-  }
-
-  if (groups.length === 0) {
-    return (
-      <div className="text-center py-16 bg-secondary/5 rounded-3xl border border-dashed border-border/60">
-        <div className="w-16 h-16 rounded-full bg-primary/8 flex items-center justify-center mx-auto mb-4">
-          <MessageSquare className="w-8 h-8 text-primary/35" />
-        </div>
-        <h3 className="text-xl font-bold text-foreground">No groups yet</h3>
-        <p className="text-muted-foreground mt-2 font-medium max-w-sm mx-auto text-sm leading-relaxed">
-          Group chats are automatically created for events you join. Check back
-          after registering for a cleanup!
-        </p>
-      </div>
-    );
-  }
+  // Mock recent activity
+  const activity = [
+    { type: 'joined', user: 'You', action: 'joined the Typography Masters community' },
+    { type: 'liked', user: 'Elena R.', action: 'liked your post from 3 hours ago' },
+  ];
 
   return (
-    <div className="space-y-3 max-w-2xl mx-auto">
-      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-4">
-        {groups.length} group{groups.length !== 1 ? 's' : ''} you're part of
-      </p>
-      {groups.map((group) => {
-        const badge = TYPE_BADGE[group.type] || TYPE_BADGE.GLOBAL_VOLUNTEER;
-        return (
-          <button
-            key={group._id}
-            onClick={() => navigate('/chat')}
-            className="w-full flex items-center gap-4 p-4 bg-card/60 hover:bg-card border border-border/50 hover:border-primary/30 rounded-2xl text-left transition-all duration-200 group shadow-sm hover:shadow-md"
-          >
-            {/* Avatar */}
-            <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary/70 to-primary/40 flex items-center justify-center font-bold text-white text-lg shrink-0 shadow-inner">
-              {group.name?.charAt(0)?.toUpperCase() || '?'}
-            </div>
+    <aside className="hidden lg:flex flex-col gap-6">
+      {/* TRENDING NOW */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-gray-900 text-sm tracking-wide">TRENDING NOW</h3>
+          <a href="#" className="text-blue-600 text-xs font-medium hover:underline">SEE ALL</a>
+        </div>
 
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-foreground text-[15px] truncate">
-                {group.name}
-              </h3>
-              <div className="flex items-center gap-2 mt-1">
-                <span
-                  className={cn(
-                    'text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full',
-                    badge.color
-                  )}
-                >
-                  {badge.label}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {group.members?.length ?? 0} members
-                </span>
-                {group.description && (
-                  <span className="text-xs text-muted-foreground/60 truncate hidden sm:block">
-                    · {group.description}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Arrow */}
-            <div className="shrink-0 flex items-center gap-1 text-muted-foreground group-hover:text-primary transition-colors">
-              <span className="text-xs font-medium hidden sm:block">
-                Open Chat
-              </span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            </div>
-          </button>
-        );
-      })}
-
-      {/* CTA */}
-      <div className="pt-4 text-center">
-        <button
-          onClick={() => navigate('/chat')}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-sm hover:shadow-md hover:shadow-primary/20"
-        >
-          <MessageSquare className="w-4 h-4" />
-          Open Full Chat View
-        </button>
+        <div className="space-y-4">
+          {trending.map((item, idx) => (
+            <button
+              key={idx}
+              className="w-full text-left hover:bg-gray-50 p-2 rounded transition"
+            >
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                {item.tag}
+              </p>
+              <p className="text-sm font-bold text-gray-900 mb-1">{item.title}</p>
+              <p className="text-xs text-gray-500">{item.posts}</p>
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
+
+      {/* CONNECT */}
+      {user && (
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-gray-900 text-sm tracking-wide">CONNECT</h3>
+            <a href="#" className="text-blue-600 text-xs font-medium hover:underline">VIEW ALL</a>
+          </div>
+
+          <div className="space-y-3">
+            {contacts.map((contact) => (
+              <div key={contact.id} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${avatarColor(contact.name)}`}>
+                    {contact.name?.slice(0, 1).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{contact.name}</p>
+                    <p className="text-xs text-gray-500">{contact.role}</p>
+                  </div>
+                </div>
+                <button className="text-xs font-semibold text-gray-600 hover:text-blue-600 transition px-2 py-1">
+                  Follow
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* RECENT ACTIVITY */}
+      {user && (
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="font-bold text-gray-900 text-sm tracking-wide mb-4">RECENT ACTIVITY</h3>
+          <div className="space-y-3">
+            {activity.map((item, idx) => (
+              <div key={idx} className="flex gap-3 text-sm">
+                <span className="text-blue-600 font-semibold text-xs mt-1">●</span>
+                <p className="text-gray-700">
+                  <span className="font-semibold text-gray-900">{item.user}</span>
+                  {' '}{item.action}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!user && (
+        <div className="bg-white rounded-lg shadow p-4 text-center">
+          <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-sm text-gray-600 font-medium mb-3">Connect with your community</p>
+          <a href="/login" className="block w-full py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition">
+            Log In
+          </a>
+          <a href="/register" className="block w-full mt-2 py-2 bg-green-500 text-white text-sm font-bold rounded-lg hover:bg-green-600 transition">
+            Create Account
+          </a>
+        </div>
+      )}
+    </aside>
   );
 }
 
+/* ══════ Main Community Page ════════════════════════════════════ */
 export default function Community() {
   const [page, setPage] = useState(1);
-  const [activeTab, setActiveTab] = useState('posts');
+  const { user } = useSelector((s) => s.auth);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['community-posts', page],
     queryFn: () => getPosts({ page, limit: 10 }),
     keepPreviousData: true,
-    enabled: activeTab === 'posts',
   });
 
   const posts = data?.data?.posts || [];
   const pagination = data?.data?.pagination || { page: 1, pages: 1 };
 
-  const TABS = [
-    { id: 'posts', label: 'Posts', icon: BookOpen },
-    { id: 'groups', label: 'Group Chats', icon: MessageSquare },
-  ];
-
   return (
-    <div className="min-h-screen bg-secondary/5 pt-28 pb-16 px-4 sm:px-6">
-      <div className="max-w-3xl mx-auto space-y-8">
-        {/* Hero */}
-        <div className="text-center space-y-4 mb-8">
-          <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-2 border border-primary/20 shadow-sm text-primary">
-            <Users className="w-8 h-8" />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-foreground italic">
-            Community Hub
-          </h1>
-          <p className="text-muted-foreground text-lg max-w-xl mx-auto font-medium leading-relaxed">
-            Connect, share updates, and inspire others through environmental
-            action.
-          </p>
-        </div>
+    <div className="min-h-screen bg-gray-100 pt-16">
+      {/* ── Three-column layout ── */}
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] gap-6 items-start">
 
-        {/* Tabs */}
-        <div className="flex gap-1 p-1 bg-secondary/20 border border-border/40 rounded-2xl max-w-xs mx-auto">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  'flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-sm font-semibold transition-all duration-200',
-                  activeTab === tab.id
-                    ? 'bg-background text-foreground shadow-sm border border-border/40'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+          {/* Left sidebar */}
+          <LeftSidebar user={user} />
 
-        {/* Posts Tab */}
-        {activeTab === 'posts' && (
-          <div className="space-y-6">
+          {/* Center feed */}
+          <main className="space-y-4 min-w-0">
             {/* Create Post */}
             <CreatePostModal />
 
-            {/* Feed */}
-            <div className="space-y-6 max-w-2xl mx-auto">
-              {isLoading ? (
-                <div className="flex justify-center py-20">
-                  <Loader2 className="w-10 h-10 animate-spin text-primary" />
+            {/* Posts */}
+            {isLoading ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+              </div>
+            ) : error ? (
+              <div className="bg-white rounded-lg shadow p-8 text-center text-red-500 font-medium">
+                Failed to load posts. Please try again later.
+              </div>
+            ) : posts.length === 0 ? (
+              <div className="bg-white rounded-lg shadow p-12 text-center">
+                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MessageSquare className="w-8 h-8 text-blue-400" />
                 </div>
-              ) : error ? (
-                <div className="text-center text-destructive py-10 bg-destructive/5 rounded-2xl border border-destructive/20 font-medium">
-                  Failed to load community posts. Please try again later.
-                </div>
-              ) : posts.length === 0 ? (
-                <div className="text-center py-20 bg-muted/20 rounded-3xl border border-dashed border-border/60">
-                  <Users className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-foreground">
-                    It's quiet here...
-                  </h3>
-                  <p className="text-muted-foreground mt-2 font-medium">
-                    Be the first to share an update with the community!
-                  </p>
-                </div>
-              ) : (
-                <>
-                  {posts.map((post) => (
-                    <PostCard key={post._id} post={post} />
-                  ))}
+                <h3 className="text-lg font-bold text-gray-900 mb-1">It's quiet here…</h3>
+                <p className="text-gray-500 text-sm">Be the first to share an update with the community!</p>
+              </div>
+            ) : (
+              <>
+                {posts.map((post) => (
+                  <PostCard key={post._id} post={post} />
+                ))}
 
-                  {pagination.pages > 1 && (
-                    <div className="flex justify-center items-center gap-4 mt-10 p-4 bg-card/30 rounded-2xl backdrop-blur-sm border border-border/50 w-full">
-                      <button
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                        className="px-6 py-2 rounded-xl bg-secondary text-secondary-foreground text-sm font-bold hover:bg-secondary/80 disabled:opacity-50 transition-colors"
-                      >
-                        Previous
-                      </button>
-                      <span className="text-sm font-semibold text-muted-foreground px-4 bg-card py-2 rounded-lg border border-border/50">
-                        Page {page} of {pagination.pages}
-                      </span>
-                      <button
-                        onClick={() =>
-                          setPage((p) => Math.min(pagination.pages, p + 1))
-                        }
-                        disabled={page === pagination.pages}
-                        className="px-6 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-sm"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        )}
+                {/* Pagination */}
+                {pagination.pages > 1 && (
+                  <div className="flex items-center justify-center gap-3 py-4">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      <ChevronLeft className="w-4 h-4" /> Previous
+                    </button>
+                    <span className="text-sm font-medium text-gray-500">
+                      Page {page} of {pagination.pages}
+                    </span>
+                    <button
+                      onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
+                      disabled={page === pagination.pages}
+                      className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      Next <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </main>
 
-        {/* Group Chats Tab */}
-        {activeTab === 'groups' && <GroupChatsTab />}
+          {/* Right sidebar */}
+          <RightSidebar user={user} />
+        </div>
       </div>
     </div>
   );

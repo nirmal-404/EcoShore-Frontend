@@ -2,204 +2,202 @@ import React, { useState, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPost } from '@/api/communityApi';
 import { useSelector } from 'react-redux';
-import { Image as ImageIcon, X, Send, Upload, LogIn } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Image as ImageIcon, X, Smile, Video, MapPin, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+function avatarColor(name = '') {
+  const colors = [
+    'bg-blue-500', 'bg-emerald-500', 'bg-violet-500',
+    'bg-rose-500', 'bg-amber-500', 'bg-cyan-500', 'bg-pink-500',
+  ];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h + name.charCodeAt(i)) % colors.length;
+  return colors[h];
+}
 
 export function CreatePostModal() {
   const [content, setContent] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState([]); // File objects
-  const [previewUrls, setPreviewUrls] = useState([]); // Local blob URLs for preview
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState([]);
+  const [expanded, setExpanded] = useState(false);
   const fileInputRef = useRef(null);
-  const { user } = useSelector((state) => state.auth);
+  const textareaRef = useRef(null);
+  const { user } = useSelector((s) => s.auth);
   const queryClient = useQueryClient();
 
-  const createPostMutation = useMutation({
-    mutationFn: ({ text, files }) =>
-      createPost({ text, visibility: 'AUTHENTICATED' }, files),
+  const mutation = useMutation({
+    mutationFn: ({ text, files }) => createPost({ text, visibility: 'AUTHENTICATED' }, files),
     onSuccess: () => {
       queryClient.invalidateQueries(['community-posts']);
       setContent('');
       clearFiles();
+      setExpanded(false);
     },
   });
+
+  const isPending = mutation.isPending || mutation.isLoading;
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
-
-    // Max 5 images
     const allowed = files.slice(0, 5 - selectedFiles.length);
-    const newPreviews = allowed.map((f) => URL.createObjectURL(f));
-
-    setSelectedFiles((prev) => [...prev, ...allowed]);
-    setPreviewUrls((prev) => [...prev, ...newPreviews]);
-
-    // Reset file input so same file can be re-selected
+    const previews = allowed.map((f) => URL.createObjectURL(f));
+    setSelectedFiles((p) => [...p, ...allowed]);
+    setPreviewUrls((p) => [...p, ...previews]);
     e.target.value = '';
   };
 
-  const removeFile = (index) => {
-    URL.revokeObjectURL(previewUrls[index]);
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
+  const removeFile = (i) => {
+    URL.revokeObjectURL(previewUrls[i]);
+    setSelectedFiles((p) => p.filter((_, j) => j !== i));
+    setPreviewUrls((p) => p.filter((_, j) => j !== i));
   };
 
   const clearFiles = () => {
-    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    previewUrls.forEach((u) => URL.revokeObjectURL(u));
     setSelectedFiles([]);
     setPreviewUrls([]);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!content.trim()) return;
-    createPostMutation.mutate({ text: content, files: selectedFiles });
+  const handleSubmit = () => {
+    if (!content.trim() && selectedFiles.length === 0) return;
+    mutation.mutate({ text: content, files: selectedFiles });
   };
 
-  const isPending =
-    createPostMutation.isPending || createPostMutation.isLoading;
-
+  /* Not logged in */
   if (!user) {
     return (
-      <Card className="rounded-3xl border-border/60 shadow-sm overflow-hidden bg-card/50 backdrop-blur-sm mb-6 max-w-2xl mx-auto w-full">
-        <CardContent className="p-6 flex items-center gap-5">
-          <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-            <LogIn className="w-6 h-6 text-primary" />
-          </div>
-          <div className="flex-1">
-            <p className="font-semibold text-foreground text-[15px]">
-              Share your thoughts
-            </p>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              <Link
-                to="/login"
-                className="text-primary hover:underline font-medium"
-              >
-                Log in
-              </Link>{' '}
-              or{' '}
-              <Link
-                to="/register"
-                className="text-primary hover:underline font-medium"
-              >
-                sign up
-              </Link>{' '}
-              to post in the community.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="bg-white rounded-lg shadow px-4 py-4 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+          <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+          </svg>
+        </div>
+        <div className="flex-1 bg-gray-100 rounded-full px-5 py-2.5 text-gray-500 text-sm cursor-pointer hover:bg-gray-200 transition">
+          <Link to="/login" className="text-blue-600 font-semibold hover:underline">Log in</Link>
+          <span> or </span>
+          <Link to="/register" className="text-blue-600 font-semibold hover:underline">sign up</Link>
+          <span> to share your thoughts…</span>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="rounded-3xl border-border/60 shadow-sm overflow-hidden bg-card/50 backdrop-blur-sm mb-6 max-w-2xl mx-auto w-full">
-      <CardContent className="p-4 sm:p-6">
-        <form onSubmit={handleSubmit}>
-          <div className="flex gap-4">
-            {/* Avatar */}
-            <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary/80 to-primary-foreground/80 flex-shrink-0 flex items-center justify-center text-white font-bold text-lg shadow-inner hidden sm:flex">
-              {user.name?.charAt(0) || '?'}
-            </div>
+    <div className="bg-white rounded-lg shadow">
+      {/* Top row: avatar + prompt */}
+      <div className="px-4 pt-4 pb-3 flex items-center gap-3">
+        <div
+          className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 ${avatarColor(user.name)}`}
+        >
+          {user.name?.slice(0, 2).toUpperCase() || '??'}
+        </div>
+        <button
+          className="flex-1 bg-gray-100 text-gray-500 rounded-full px-5 py-2.5 text-sm text-left hover:bg-gray-200 transition"
+          onClick={() => {
+            setExpanded(true);
+            setTimeout(() => textareaRef.current?.focus(), 50);
+          }}
+        >
+          What&rsquo;s on your mind?
+        </button>
+      </div>
 
-            <div className="flex-1 w-full">
-              {/* Text area */}
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Share your clean-up story or environment tips..."
-                maxLength={1000}
-                className="w-full min-h-[100px] bg-secondary/20 rounded-2xl p-4 text-foreground/90 border border-border/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none text-base placeholder:text-muted-foreground/60"
-                disabled={isPending}
-              />
-              {content.length > 0 && (
-                <p className="text-[11px] text-muted-foreground/60 text-right mt-1">
-                  {content.length}/1000
-                </p>
-              )}
+      {/* Expanded compose area */}
+      {expanded && (
+        <div className="border-t border-gray-200 px-4 pt-3 pb-3">
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="What's on your mind?"
+            maxLength={1000}
+            rows={3}
+            className="w-full resize-none outline-none text-sm text-gray-800 placeholder:text-gray-400 mb-3"
+          />
 
-              {/* Image previews */}
-              {previewUrls.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {previewUrls.map((url, i) => (
-                    <div
-                      key={i}
-                      className="relative group w-20 h-20 rounded-xl overflow-hidden border border-border/50 shadow-sm"
-                    >
-                      <img
-                        src={url}
-                        alt={`preview-${i}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeFile(i)}
-                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl"
-                      >
-                        <X className="w-4 h-4 text-white" />
-                      </button>
-                    </div>
-                  ))}
-                  {selectedFiles.length < 5 && (
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-20 h-20 rounded-xl border-2 border-dashed border-border/60 flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-                    >
-                      <Upload className="w-5 h-5" />
-                    </button>
-                  )}
+          {/* Image previews */}
+          {previewUrls.length > 0 && (
+            <div
+              className={`grid gap-1 rounded-lg overflow-hidden mb-3 ${previewUrls.length === 1 ? 'grid-cols-1' :
+                  previewUrls.length === 2 ? 'grid-cols-2' :
+                    previewUrls.length >= 3 ? 'grid-cols-3' : ''
+                }`}
+            >
+              {previewUrls.map((url, i) => (
+                <div key={i} className="relative aspect-square bg-gray-100 group">
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeFile(i)}
+                    className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
                 </div>
-              )}
-
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                className="hidden"
-                onChange={handleFileChange}
-                disabled={isPending}
-              />
-
-              {/* Toolbar */}
-              <div className="flex justify-between items-center mt-3 pt-3 border-t border-border/40">
-                <Button
+              ))}
+              {selectedFiles.length < 5 && (
+                <button
                   type="button"
-                  variant="ghost"
-                  className={`text-muted-foreground hover:text-primary rounded-xl px-3 h-9 transition-colors ${previewUrls.length > 0 ? 'bg-primary/10 text-primary' : ''}`}
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={isPending || selectedFiles.length >= 5}
+                  className="aspect-square bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 transition rounded"
                 >
-                  <ImageIcon className="w-5 h-5 mr-2" />
-                  <span className="text-sm font-medium">
-                    {selectedFiles.length > 0
-                      ? `${selectedFiles.length}/5 photo${selectedFiles.length > 1 ? 's' : ''}`
-                      : 'Add Photos'}
-                  </span>
-                </Button>
-
-                <Button
-                  type="submit"
-                  disabled={!content.trim() || isPending}
-                  className="rounded-xl px-6 font-semibold shadow-sm hover:shadow-md transition-shadow"
-                >
-                  {isPending ? (
-                    <span className="animate-pulse">Posting...</span>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4 mr-2" /> Post
-                    </>
-                  )}
-                </Button>
-              </div>
+                  <ImageIcon className="w-5 h-5" />
+                </button>
+              )}
             </div>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+          )}
+        </div>
+      )}
+
+      {/* Divider */}
+      {expanded && <div className="border-t border-gray-200" />}
+
+      {/* Toolbar row */}
+      <div className="flex items-center justify-between px-4 py-2">
+        <div className="flex gap-2">
+          {/* Photo/Video */}
+          <button
+            onClick={() => { setExpanded(true); fileInputRef.current?.click(); }}
+            disabled={isPending || selectedFiles.length >= 5}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ImageIcon className="w-4 h-4 text-green-500" />
+            Add Image
+          </button>
+
+          {/* Add Tag */}
+          <button
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition font-medium text-sm"
+          >
+            <span className="text-lg">#</span>
+            Add Tag
+          </button>
+        </div>
+
+        {/* Post button */}
+        {expanded && (
+          <button
+            onClick={handleSubmit}
+            disabled={isPending || (!content.trim() && selectedFiles.length === 0)}
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold px-6 py-1.5 rounded-lg text-sm transition flex items-center gap-2"
+          >
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Post
+          </button>
+        )}
+      </div>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+        className="hidden"
+        onChange={handleFileChange}
+        disabled={isPending}
+      />
+    </div>
   );
 }
