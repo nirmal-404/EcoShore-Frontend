@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Trash2,
   ChevronDown,
+  CheckCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -62,6 +63,14 @@ const ROLE_META = {
     dashboardPath: '/collector',
     dashboardLabel: 'Waste Collection',
   },
+  agent: {
+    label: 'Agent',
+    color: 'bg-blue-500/15 text-blue-400 border border-blue-500/25',
+    gradient: 'from-blue-500 to-cyan-500',
+    icon: CheckCircle,
+    dashboardPath: '/agent',
+    dashboardLabel: 'Agent Dashboard',
+  },
 };
 
 export default function Navbar() {
@@ -102,18 +111,24 @@ export default function Navbar() {
           <NavLink to="/" end className={navLinkClass}>
             Home
           </NavLink>
-          <NavLink to="/analytics" className={navLinkClass}>
-            Analytics
-          </NavLink>
-          <NavLink to="/events" className={navLinkClass}>
-            Events
-          </NavLink>
+          {role !== 'agent' && (
+            <>
+              <NavLink to="/analytics" className={navLinkClass}>
+                Analytics
+              </NavLink>
+              <NavLink to="/events" className={navLinkClass}>
+                Events
+              </NavLink>
+            </>
+          )}
           <NavLink to="/beaches" className={navLinkClass}>
             Beaches
           </NavLink>
-          <NavLink to="/community" className={navLinkClass}>
-            Community
-          </NavLink>
+          {role !== 'agent' && (
+            <NavLink to="/community" className={navLinkClass}>
+              Community
+            </NavLink>
+          )}
 
           {user && (
             <NavLink to="/chat" className={navLinkClass}>
