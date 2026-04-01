@@ -14,7 +14,9 @@ export const getCarbonOffsetSummary = async (startDate, endDate) => {
   const params = new URLSearchParams();
   if (startDate) params.append('startDate', startDate);
   if (endDate) params.append('endDate', endDate);
-  const response = await API.get(`/analytics/carbon-offset?${params.toString()}`);
+  const response = await API.get(
+    `/analytics/carbon-offset?${params.toString()}`
+  );
   return response.data;
 };
 
@@ -26,7 +28,9 @@ export const getSeverityRanking = async (limit = 10) => {
 export const getTrendPrediction = async (beachId, months = 3) => {
   const params = new URLSearchParams({ months });
   if (beachId) params.append('beachId', beachId);
-  const response = await API.get(`/analytics/trend-prediction?${params.toString()}`);
+  const response = await API.get(
+    `/analytics/trend-prediction?${params.toString()}`
+  );
   return response.data;
 };
 

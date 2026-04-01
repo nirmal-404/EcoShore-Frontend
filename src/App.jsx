@@ -30,7 +30,7 @@ function App() {
             <Route path="/beaches" element={<Beaches />} />
             <Route path="/community" element={<Community />} />
             <Route path="/contact" element={<Contact />} />
-            
+
             {/* Protected Analytics under Layout for all authenticated roles */}
             <Route element={<PrivateRoute allowedRoles={[]} />}>
               <Route path="/analytics" element={<AnalyticsDashboard />} />
@@ -72,9 +72,7 @@ function App() {
           </Route>
 
           {/* Agent */}
-          <Route
-            element={<PrivateRoute allowedRoles={['agent', 'admin']} />}
-          >
+          <Route element={<PrivateRoute allowedRoles={['agent', 'admin']} />}>
             <Route path="/agent" element={<AgentDashboard />} />
           </Route>
 
@@ -82,7 +80,13 @@ function App() {
           <Route
             element={
               <PrivateRoute
-                allowedRoles={['volunteer', 'organizer', 'admin', 'collector', 'agent']}
+                allowedRoles={[
+                  'volunteer',
+                  'organizer',
+                  'admin',
+                  'collector',
+                  'agent',
+                ]}
               />
             }
           >
