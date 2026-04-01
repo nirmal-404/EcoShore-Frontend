@@ -46,18 +46,20 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden transition-colors duration-300">
-
       {/* Decorative background blobs */}
       <div className="absolute top-0 -left-10 w-96 h-96 bg-emerald-400 opacity-20 dark:opacity-10 rounded-full blur-3xl mix-blend-multiply" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-400 opacity-20 dark:opacity-10 rounded-full blur-3xl mix-blend-multiply delay-1000" />
 
       <div className="max-w-md w-full relative z-10">
         <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/20 dark:border-gray-700/50">
-
           <div className="p-8 sm:p-10">
             <div className="text-center mb-10">
-              <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">Welcome Back</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Sign in to continue to EcoShore</p>
+              <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">
+                Welcome Back
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Sign in to continue to EcoShore
+              </p>
             </div>
 
             {/* CommonForm replaces the hand-rolled inputs */}
@@ -73,7 +75,8 @@ export default function Login() {
             {isError && (
               <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl text-center">
                 <p className="text-sm font-medium text-red-600 dark:text-red-400">
-                  {error?.response?.data?.error || 'Login failed. Please check your credentials.'}
+                  {error?.response?.data?.error ||
+                    'Login failed. Please check your credentials.'}
                 </p>
               </div>
             )}
@@ -85,7 +88,9 @@ export default function Login() {
                   <div className="w-full border-t border-gray-200 dark:border-gray-700" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">or continue with</span>
+                  <span className="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                    or continue with
+                  </span>
                 </div>
               </div>
               <div className="mt-6 flex justify-center w-full">
@@ -95,7 +100,10 @@ export default function Login() {
 
             <p className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
               Don't have an account?{' '}
-              <Link to="/register" className="font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors">
+              <Link
+                to="/register"
+                className="font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors"
+              >
                 Create one now
               </Link>
             </p>
@@ -111,14 +119,43 @@ export default function Login() {
               Testing Quick Logins
             </div>
             <div className="grid grid-cols-4 gap-3">
-              <button onClick={() => handleQuickLogin('admin@gmail.com', 'admin')} className="py-2 px-3 text-xs font-semibold rounded-xl bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 transition-colors" title="Log in as Admin">Admin</button>
-              <button onClick={() => handleQuickLogin('organizer@gmail.com', 'organizer')} className="py-2 px-3 text-xs font-semibold rounded-xl bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 transition-colors" title="Log in as Organizer">Organizer</button>
-              <button onClick={() => handleQuickLogin('volunteer@gmail.com', 'volunteer')} className="py-2 px-3 text-xs font-semibold rounded-xl bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 transition-colors" title="Log in as Volunteer">Volunteer</button>
-              <button onClick={() => handleQuickLogin('agent@gmail.com', 'AgentPassword123')} className="py-2 px-3 text-xs font-semibold rounded-xl bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 transition-colors" title="Log in as Agent">Agent</button>
+              <button
+                onClick={() => handleQuickLogin('admin@gmail.com', 'admin')}
+                className="py-2 px-3 text-xs font-semibold rounded-xl bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 transition-colors"
+                title="Log in as Admin"
+              >
+                Admin
+              </button>
+              <button
+                onClick={() =>
+                  handleQuickLogin('organizer@gmail.com', 'organizer')
+                }
+                className="py-2 px-3 text-xs font-semibold rounded-xl bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 transition-colors"
+                title="Log in as Organizer"
+              >
+                Organizer
+              </button>
+              <button
+                onClick={() =>
+                  handleQuickLogin('volunteer@gmail.com', 'volunteer')
+                }
+                className="py-2 px-3 text-xs font-semibold rounded-xl bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 transition-colors"
+                title="Log in as Volunteer"
+              >
+                Volunteer
+              </button>
+              <button
+                onClick={() =>
+                  handleQuickLogin('agent@gmail.com', 'AgentPassword123')
+                }
+                className="py-2 px-3 text-xs font-semibold rounded-xl bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 transition-colors"
+                title="Log in as Agent"
+              >
+                Agent
+              </button>
             </div>
           </div>
           {/* ============================================================== */}
-
         </div>
       </div>
     </div>

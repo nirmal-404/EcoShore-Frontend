@@ -6,6 +6,7 @@ import {
   useJoinEvent,
   useLeaveEvent,
 } from '@/hooks/events.js';
+import { useBeaches } from '@/hooks/beaches.js';
 import Spinner from '@/components/common/LoadingSpinner.jsx';
 import EventCard from '@/components/event/EventCard.jsx';
 import CommonForm from '@/components/common/Form.jsx';
@@ -44,14 +45,38 @@ const initialAlertDialogState = {
 
 export default function EventsPage() {
   const { user } = useSelector((state) => state.auth);
-  const { data, isLoading, isError } = useEvents();
+  const {
+    data: eventsData,
+    isLoading: isEventLoading,
+    isError: isEventError,
+  } = useEvents();
+  const {
+    data: beachesData,
+    isLoading: isBeachLoading,
+    isError: isBeachError,
+  } = useBeaches();
+
   const { mutate: addEvent } = useAddEvent();
   const { mutate: editEvent } = useEditEvent();
   const { mutate: deleteEvent } = useDeleteEvent();
   const { mutate: joinEvent } = useJoinEvent();
   const { mutate: leaveEvent } = useLeaveEvent();
 
-  const events = data?.data?.events || [];
+  const beaches = beachesData?.data || [];
+  const events = eventsData?.data?.events || [];
+
+  const eventFormControlsWithBeachesData = eventFormControls.map((control) => {
+    if (control.label === 'Beach') {
+      return {
+        ...control,
+        options: beaches.map((beach) => ({
+          id: beach.id,
+          label: beach.name,
+        })),
+      };
+    }
+    return control;
+  });
 
   const [formData, setFormData] = useState(initialFormData);
   const [openAddEventDialog, setOpenAddEventDialog] = useState(false);
@@ -63,8 +88,8 @@ export default function EventsPage() {
 
   const [loadingEventIds, setLoadingEventIds] = useState(new Set());
 
-  if (isLoading) return <Spinner />;
-  if (isError) return <p>Something went wrong.</p>;
+  if (isEventLoading || isBeachLoading) return <Spinner />;
+  if (isEventError || isBeachError) return <p>Something went wrong.</p>;
 
   if (events.length === 0) {
     return (
@@ -261,7 +286,7 @@ export default function EventsPage() {
         ))}
       </div>
 
-      {user?.role === 'admin' && (
+      {user?.role === 'organizer' && (
         <Button
           onClick={() => setOpenAddEventDialog(true)}
           className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg flex items-center justify-center"
@@ -286,7 +311,7 @@ export default function EventsPage() {
           </SheetHeader>
           <div className="py-6">
             <CommonForm
-              formControls={eventFormControls}
+              formControls={eventFormControlsWithBeachesData}
               isBtnDisabled={isSubmitting}
               buttonText={
                 currentEditedId

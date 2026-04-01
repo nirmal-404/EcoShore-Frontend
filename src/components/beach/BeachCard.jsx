@@ -34,29 +34,35 @@ function BeachCard({ beach, onDelete, onEdit, onManageAgents }) {
             {beach.description ||
               'A beautiful beach location prioritized for cleanup efforts.'}
           </p>
-          
+
           {/* Assigned Agents Section */}
-           {user?.role && (user?.role === 'admin' || user?.role === 'organizer') &&(
-          <div className="mt-4 p-3 bg-secondary/30 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="w-4 h-4 text-primary" />
-              <span className="text-xs font-semibold text-muted-foreground">
-                Assigned Agents ({beach.assignedAgents?.length || 0}/2)
-              </span>
-            </div>
-            {beach.assignedAgents && beach.assignedAgents.length > 0 ? (
-              <div className="space-y-1">
-                {beach.assignedAgents.map((agent) => (
-                  <div key={agent._id} className="text-x  s text-foreground">
-                    • {agent.name}
+          {user?.role &&
+            (user?.role === 'admin' || user?.role === 'organizer') && (
+              <div className="mt-4 p-3 bg-secondary/30 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    Assigned Agents ({beach.assignedAgents?.length || 0}/2)
+                  </span>
+                </div>
+                {beach.assignedAgents && beach.assignedAgents.length > 0 ? (
+                  <div className="space-y-1">
+                    {beach.assignedAgents.map((agent) => (
+                      <div
+                        key={agent._id}
+                        className="text-x  s text-foreground"
+                      >
+                        • {agent.name}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">
+                    No agents assigned
+                  </p>
+                )}
               </div>
-            ) : (
-              <p className="text-xs text-muted-foreground italic">No agents assigned</p>
             )}
-          </div>
-           )}
         </div>
 
         <div className="flex items-center justify-between mt-auto">

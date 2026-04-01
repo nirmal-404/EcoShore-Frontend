@@ -108,6 +108,7 @@ export const eventFormControls = [
     name: 'beachId',
     componentType: 'select',
     placeholder: 'Select beach',
+    options: [],
   },
   {
     label: 'Start Date & Time',
