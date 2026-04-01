@@ -54,7 +54,7 @@ export function MessageList({ groupId }) {
 
   if (isLoading && messages.length === 0) {
     return (
-      <div className="w-full h-full flex justify-center items-center bg-white dark:bg-gray-800">
+      <div className="w-full h-full flex justify-center items-center bg-gray-900 dark:bg-gray-900">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     );
@@ -65,11 +65,11 @@ export function MessageList({ groupId }) {
   return (
     <div
       ref={scrollRef}
-      className="w-full h-full overflow-y-auto overflow-x-hidden px-4 md:px-6 py-4 bg-white dark:bg-gray-800 flex flex-col gap-4"
+      className="w-full h-full overflow-y-auto overflow-x-hidden px-4 md:px-6 py-4 bg-gray-900 dark:bg-gray-900 flex flex-col gap-4"
     >
       {messages.length === 0 ? (
         <div className="flex items-center justify-center py-12">
-          <div className="bg-gray-100 dark:bg-gray-700 px-6 py-3 rounded-full text-sm text-gray-600 dark:text-gray-300 shadow-sm border border-gray-200 dark:border-gray-600">
+          <div className="bg-gray-800 dark:bg-gray-800 px-6 py-3 rounded-full text-sm text-gray-400 dark:text-gray-400 shadow-sm border border-gray-700 dark:border-gray-700">
             No messages yet. Start the conversation! 👋
           </div>
         </div>
@@ -78,7 +78,7 @@ export function MessageList({ groupId }) {
           if (item.type === 'date') {
             return (
               <div key={`date-${idx}`} className="flex items-center justify-center my-2">
-                <span className="bg-gray-100 dark:bg-gray-700 text-xs text-gray-600 dark:text-gray-300 font-medium px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-600">
+                <span className="bg-gray-800 dark:bg-gray-800 text-xs text-gray-400 dark:text-gray-400 font-medium px-3 py-1 rounded-full shadow-sm border border-gray-700 dark:border-gray-700">
                   {item.label}
                 </span>
               </div>
@@ -117,7 +117,7 @@ export function MessageList({ groupId }) {
               <div className={`flex flex-col max-w-xs lg:max-w-md ${isMine ? 'items-end' : 'items-start'}`}>
                 {/* Sender name */}
                 {!isMine && isFirstInGroup && (
-                  <span className="text-xs text-gray-600 dark:text-gray-400 font-semibold ml-1 mb-1">
+                  <span className="text-xs text-gray-400 dark:text-gray-400 font-semibold ml-1 mb-1">
                     {senderName || 'User'}
                   </span>
                 )}
@@ -126,11 +126,11 @@ export function MessageList({ groupId }) {
                 <div
                   className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed break-words ${isMine
                       ? 'bg-blue-600 dark:bg-blue-500 text-white rounded-br-none'
-                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-bl-none'
+                      : 'bg-gray-700 dark:bg-gray-700 text-gray-100 dark:text-gray-100 rounded-bl-none border border-gray-600 dark:border-gray-600'
                     } shadow-sm`}
                 >
                   <p className="whitespace-pre-wrap">{msg.text}</p>
-                  <span className={`text-xs mt-1 block ${isMine ? 'text-blue-100 dark:text-blue-200' : 'text-gray-400 dark:text-gray-500'}`}>
+                  <span className={`text-xs mt-1 block ${isMine ? 'text-blue-100 dark:text-blue-200' : 'text-gray-400 dark:text-gray-400'}`}>
                     {timeStr}
                   </span>
                 </div>

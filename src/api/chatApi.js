@@ -58,6 +58,24 @@ export const getUsersByRole = async () => {
   };
 };
 
+/**
+ * Fetch all users for direct messaging.
+ * Calls GET /api/auth/users (excludes current user).
+ * Returns: [{_id, name, email, role}]
+ */
+export const getAllUsers = async () => {
+  try {
+    const response = await axios.get(`${AUTH_URL}/auth/users`, {
+      headers: getAuthHeaders(),
+    });
+    console.log('getAllUsers response:', response);
+    return response.data?.data || [];
+  } catch (error) {
+    console.error('getAllUsers error:', error.response?.status, error.response?.data, error.message);
+    throw error;
+  }
+};
+
 // Messages
 export const getMessages = async (groupId, params = {}) => {
   const response = await axios.get(`${BASE_URL}/groups/${groupId}/messages`, {

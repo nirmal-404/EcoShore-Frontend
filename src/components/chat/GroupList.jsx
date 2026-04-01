@@ -31,9 +31,9 @@ export function GroupList({ selectedGroupId, onSelectGroup, searchTerm = '', cha
   }
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800">
+    <div className="flex flex-col h-full bg-gray-800 dark:bg-gray-800">
       {/* Chat List */}
-      <div className="flex-1 overflow-y-auto px-1">
+      <div className="flex-1 overflow-y-auto">
 
         {isLoading && (
           <div className="flex justify-center py-10">
@@ -79,43 +79,33 @@ export function GroupList({ selectedGroupId, onSelectGroup, searchTerm = '', cha
             <button
               key={group._id}
               onClick={() => onSelectGroup(group._id)}
-              className={cn(
-                'w-full flex items-center gap-3 px-3 py-3 mx-1 transition-all duration-200 rounded-xl border border-transparent',
+              className={`w-full flex items-center gap-3 px-4 py-3 transition-colors ${
                 isSelected
-                  ? 'bg-blue-50 dark:bg-blue-900/50 border-blue-200 dark:border-blue-800'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
-              )}
+                  ? 'bg-gray-700/60 dark:bg-gray-700/60'
+                  : 'hover:bg-gray-700/40 dark:hover:bg-gray-700/40'
+              }`}
             >
-
               {/* Avatar */}
-              <div className="relative">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold ${bg}`}>
+              <div className="relative shrink-0">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-lg ${bg}`}>
                   {group.name?.charAt(0)?.toUpperCase()}
                 </div>
 
                 {/* Online indicator */}
                 {group.isOnline && (
-                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-gray-800 dark:border-gray-800 rounded-full"></span>
                 )}
               </div>
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-
-                {/* Top row */}
-                <div className="flex justify-between items-center">
-                  <p className={cn(
-                    "text-sm font-semibold truncate",
-                    isSelected
-                      ? "text-blue-600"
-                      : "text-gray-900 dark:text-white"
-                  )}>
+                {/* Top row - Name and Time */}
+                <div className="flex justify-between items-baseline gap-2">
+                  <p className="text-sm font-bold text-white truncate">
                     {group.name}
                   </p>
-
-                  {/* Time */}
                   {lastTime && (
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-400 shrink-0">
                       {new Date(lastTime).toLocaleTimeString([], {
                         hour: '2-digit',
                         minute: '2-digit',
@@ -124,21 +114,10 @@ export function GroupList({ selectedGroupId, onSelectGroup, searchTerm = '', cha
                   )}
                 </div>
 
-                {/* Bottom row */}
-                <div className="flex justify-between items-center mt-1">
-
-                  {/* Last message */}
-                  <p className="text-xs text-gray-500 truncate">
-                    {lastMessage}
-                  </p>
-
-                  {/* Unread badge */}
-                  {unread > 0 && (
-                    <span className="ml-2 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
-                      {unread}
-                    </span>
-                  )}
-                </div>
+                {/* Bottom row - Last message */}
+                <p className="text-xs text-gray-400 truncate mt-1">
+                  {lastMessage}
+                </p>
               </div>
             </button>
           );

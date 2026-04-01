@@ -143,7 +143,7 @@ export function PostCard({ post }) {
 
       {/* ── Likes, comments, shares summary ── */}
       {(likeCount > 0 || commentCount > 0 || shareCount > 0) && (
-        <div className="px-4 py-2 text-xs text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div className="px-4 py-2 text-xs text-gray-600 dark:text-gray-400 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {likeCount > 0 && (
               <span className="font-semibold">
@@ -159,15 +159,12 @@ export function PostCard({ post }) {
         </div>
       )}
 
-      {/* ── Divider ── */}
-      <div className="border-t border-gray-200 dark:border-gray-700" />
-
       {/* ── Action buttons row (Instagram style) ── */}
       <div className="flex items-center justify-between px-0 py-0">
         <button
           onClick={() => user && likeMutation.mutate()}
           disabled={!user}
-          className="flex-1 flex items-center justify-center gap-2 py-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:cursor-default border-r border-gray-200 dark:border-gray-700"
+          className="flex-1 flex items-center justify-center gap-2 py-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:cursor-default"
         >
           <Heart className={`w-5 h-5 transition ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
           <span className="text-xs font-medium">Like</span>
@@ -175,7 +172,7 @@ export function PostCard({ post }) {
 
         <button
           onClick={() => setShowComments((v) => !v)}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 transition hover:bg-gray-50 dark:hover:bg-gray-800 border-r border-gray-200 dark:border-gray-700 ${showComments ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 transition hover:bg-gray-50 dark:hover:bg-gray-800 ${showComments ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
         >
           <div className="relative inline-flex items-center">
             <MessageCircle className="w-5 h-5" />

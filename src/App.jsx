@@ -10,6 +10,7 @@ import Event from '@/pages/Event';
 import Beaches from '@/pages/Beaches';
 import Contact from '@/pages/Contact';
 import Community from '@/pages/Community';
+import ProfileView from '@/pages/ProfileView';
 import ChatApp from '@/pages/chat/ChatApp';
 import AdminDashboard from '@/pages/admin/Dashboard';
 import OraganizerPanel from '@/pages/OrganizerPanel';
@@ -29,6 +30,7 @@ function App() {
             <Route path="/beaches" element={<Beaches />} />
             <Route path="/community" element={<Community />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/profile" element={<ProfileView />} />
             
             {/* Protected Analytics under Layout for all authenticated roles */}
             <Route element={<PrivateRoute allowedRoles={[]} />}>
