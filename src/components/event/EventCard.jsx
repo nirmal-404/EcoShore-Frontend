@@ -7,6 +7,7 @@ import {
   Pencil,
   Trash2,
   Plus,
+  User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { Badge } from '@/components/ui/badge.jsx';
@@ -99,6 +100,15 @@ function EventCard({ event, onDelete, onEdit, onJoin, onLeave, isLoading }) {
                 {isFull && ' • Full'}
               </span>
             </div>
+
+            {event.agentId && (
+              <div className="flex items-center text-xs text-muted-foreground">
+                <User className="w-3 h-3 mr-2 text-primary" />
+                <span className="font-medium">
+                  Assigned: {typeof event.agentId === 'object' ? event.agentId.name : event.agentId}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Tags */}
