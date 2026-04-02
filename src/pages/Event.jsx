@@ -9,6 +9,7 @@ import {
 import { useBeaches } from '@/hooks/beaches.js';
 import Spinner from '@/components/common/LoadingSpinner.jsx';
 import EventCard from '@/components/event/EventCard.jsx';
+import EventCalendar from '@/components/event/EventCalendar.jsx';
 import CommonForm from '@/components/common/Form.jsx';
 import { eventFormControls } from '@/config/index.js';
 import { useState } from 'react';
@@ -20,7 +21,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Grid3x3, Calendar } from 'lucide-react';
 import CustomAlert from '@/components/common/Alert';
 import { toast } from 'sonner';
 
@@ -85,8 +86,8 @@ export default function EventsPage() {
   const [alertDialogConfig, setAlertDialogConfig] = useState(
     initialAlertDialogState
   );
-
   const [loadingEventIds, setLoadingEventIds] = useState(new Set());
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'calendar'
 
   if (isEventLoading || isBeachLoading) return <Spinner />;
   if (isEventError || isBeachError) return <p>Something went wrong.</p>;
@@ -263,28 +264,58 @@ export default function EventsPage() {
 
   return (
     <div className="container mx-auto px-6 py-12">
-      <div className="mb-12">
-        <h1 className="text-4xl font-bold tracking-tight mb-2 text-foreground">
-          Beach Cleanup Events
-        </h1>
-        <p className="text-muted-foreground text-lg">
-          Join community-driven initiatives to protect our coastlines.
-        </p>
+      <div className="mb-12 flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-bold tracking-tight mb-2 text-foreground">
+            Beach Cleanup Events
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Join community-driven initiatives to protect our coastlines.
+          </p>
+        </div>
+        
+        {/* View Toggle */}
+        <div className="flex gap-2">
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('grid')}
+            className="gap-2"
+          >
+            <Grid3x3 className="w-4 h-4" />
+            Grid
+          </Button>
+          <Button
+            variant={viewMode === 'calendar' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('calendar')}
+            className="gap-2"
+          >
+            <Calendar className="w-4 h-4" />
+            Calendar
+          </Button>
+        </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        {events.map((event) => (
-          <EventCard
-            key={event._id}
-            event={event}
-            onDelete={handleDelete}
-            onEdit={handleEdit}
-            onJoin={handleJoin}
-            onLeave={handleLeave}
-            isLoading={loadingEventIds.has(event._id)}
-          />
-        ))}
-      </div>
+      {/* Grid View */}
+      {viewMode === 'grid' && (
+        <div className="grid md:grid-cols-3 gap-6">
+          {events.map((event) => (
+            <EventCard
+              key={event._id}
+              event={event}
+              onDelete={handleDelete}
+              onEdit={handleEdit}
+              onJoin={handleJoin}
+              onLeave={handleLeave}
+              isLoading={loadingEventIds.has(event._id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Calendar View */}
+      {viewMode === 'calendar' && <EventCalendar events={events} />}
 
       {user?.role === 'organizer' && (
         <Button
