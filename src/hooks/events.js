@@ -99,3 +99,18 @@ export const useLeaveEvent = () => {
     },
   });
 };
+
+/* ASSIGN AGENT TO EVENT */
+export const useAssignAgent = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ eventId, agentId }) => {
+      const { data } = await API.patch(`/events/${eventId}`, { agentId });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['events']);
+    },
+  });
+};

@@ -6,14 +6,18 @@ import {
   Tag,
   Pencil,
   Trash2,
+  Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { Badge } from '@/components/ui/badge.jsx';
 import { useSelector } from 'react-redux';
 import { format } from 'date-fns';
+import { useState } from 'react';
+import AssignAgentModal from './AssignAgentModal.jsx';
 
 function EventCard({ event, onDelete, onEdit, onJoin, onLeave, isLoading }) {
   const { user } = useSelector((state) => state.auth);
+  const [isAssignAgentModalOpen, setIsAssignAgentModalOpen] = useState(false);
 
   const isJoinedVolunteer = event.volunteers?.includes(user?._id);
   const volunteerCount = event.volunteers?.length || 0;
@@ -135,6 +139,18 @@ function EventCard({ event, onDelete, onEdit, onJoin, onLeave, isLoading }) {
               <Button
                 variant="ghost"
                 size="sm"
+                className="h-8 flex-1 relative group"
+                onClick={() => setIsAssignAgentModalOpen(true)}
+                title="Assign Agent"
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <span className="text-xs">Agent</span>
+                  <Plus className="w-3 h-3" />
+                </div>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 className="h-8 flex-1 text-red-500 hover:text-red-600"
                 onClick={() => onDelete(event._id, event.title)}
               >
@@ -175,6 +191,15 @@ function EventCard({ event, onDelete, onEdit, onJoin, onLeave, isLoading }) {
           )}
         </div>
       </div>
+
+      {/* Assign Agent Modal */}
+      <AssignAgentModal
+        eventId={event._id}
+        beachId={event.beachId?._id || event.beachId}
+        eventTitle={event.title}
+        isOpen={isAssignAgentModalOpen}
+        onClose={() => setIsAssignAgentModalOpen(false)}
+      />
     </div>
   );
 }
