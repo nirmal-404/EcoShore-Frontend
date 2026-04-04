@@ -32,3 +32,23 @@ export const getMe = async () => {
   const res = await API.get('/auth/me');
   return res.data; // { user, token }
 };
+
+export const getAllUsers = async () => {
+  const res = await API.get('/auth/users/all');
+  return res.data; // { success, count, data }
+};
+
+export const activateUser = async (userId) => {
+  const res = await API.put(`/auth/users/${userId}/activate`);
+  return res.data; // { success, message, data }
+};
+
+export const deactivateUser = async (userId) => {
+  const res = await API.put(`/auth/users/${userId}/deactivate`);
+  return res.data; // { success, message, data }
+};
+
+export const deleteUser = async (userId) => {
+  const res = await API.delete(`/auth/users/${userId}/delete`);
+  return res.data; // { success, message, data }
+};

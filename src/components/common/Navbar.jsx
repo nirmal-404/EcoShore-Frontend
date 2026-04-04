@@ -138,11 +138,23 @@ export default function Navbar() {
               </span>
             </NavLink>
           )}
+           
         </div>
+        
       </div>
 
       {/* RIGHT — Auth */}
       <div className="flex items-center gap-3">
+        {role === 'admin' && (
+            <>
+            
+             <div className="me-3">
+                  <NavLink to="/usermanagement" className={navLinkClass}>
+                    Users
+                  </NavLink>
+              </div>
+            </>
+          )}
         {!token ? (
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>

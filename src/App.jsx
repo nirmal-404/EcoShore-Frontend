@@ -16,6 +16,7 @@ import OraganizerPanel from '@/pages/OrganizerPanel';
 import VolunteerDashboard from '@/pages/volunteer/Dashboard';
 import CollectorDashboard from '@/pages/collector/Dashboard';
 import AgentDashboard from '@/pages/agent/Dashboard';
+import UserManagement from '@/pages/UserManagement';
 import AnalyticsDashboard from '@/pages/AnalyticsDashboard';
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
             <Route path="/beaches" element={<Beaches />} />
             <Route path="/community" element={<Community />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/usermanagement" element={<UserManagement />} />
 
             {/* Protected Analytics under Layout for all authenticated roles */}
             <Route element={<PrivateRoute allowedRoles={[]} />}>
