@@ -16,6 +16,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
+import ManageUsers from '@/components/agent/ManageUsers';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('events');
@@ -46,7 +47,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex bg-secondary/30 p-1 rounded-2xl border border-border">
-          {['events', 'organizers', 'beaches', 'analytics'].map((tab) => (
+          {['events', 'organizers', 'beaches', 'users', 'analytics'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -175,6 +176,12 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             ))}
+        </div>
+      )}
+
+      {activeTab === 'users' && (
+        <div>
+          <ManageUsers />
         </div>
       )}
 
