@@ -37,20 +37,8 @@ export const useEditEvent = () => {
       const { data } = await API.put(`/events/${id}`, updatedData);
       return data;
     },
-    onSuccess: (response) => {
-      const updatedEvent = response.data.event;
-      queryClient.setQueryData(['events'], (old) => {
-        if (!old || !old.data) {
-          return { data: [updatedEvent] };
-        }
-
-        return {
-          ...old,
-          data: old.data.map((event) =>
-            event._id === updatedEvent._id ? updatedEvent : event
-          ),
-        };
-      });
+    onSuccess: () => {
+      queryClient.invalidateQueries(['events']);
     },
   });
 };

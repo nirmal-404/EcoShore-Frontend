@@ -91,7 +91,6 @@ export default function EventsPage() {
   const events = eventsData?.data?.events || [];
   const pagination = eventsData?.data?.pagination || { page: 1, pages: 1 };
 
-  console.log(pagination);
   const eventFormControlsWithBeachesData = eventFormControls.map((control) => {
     if (control.label === 'Beach') {
       return {
