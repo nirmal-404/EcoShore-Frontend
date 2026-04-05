@@ -7,8 +7,23 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ShieldAlert, KeyRound, User, AlertTriangle } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -16,10 +31,15 @@ export default function ProfilePage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const [passwords, setPasswords] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwords, setPasswords] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const { mutate: changePassword, isPending: isChangingPassword } = useChangePassword();
+  const { mutate: changePassword, isPending: isChangingPassword } =
+    useChangePassword();
   const { mutate: deleteAccount, isPending: isDeleting } = useDeleteAccount();
 
   const handlePasswordSubmit = (e) => {
@@ -33,15 +53,27 @@ export default function ProfilePage() {
       return;
     }
 
-    changePassword({ oldPassword: passwords.oldPassword, newPassword: passwords.newPassword }, {
-      onSuccess: () => {
-        toast.success('Password updated successfully');
-        setPasswords({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    changePassword(
+      {
+        oldPassword: passwords.oldPassword,
+        newPassword: passwords.newPassword,
       },
-      onError: (error) => {
-        toast.error(error.response?.data?.error || 'Failed to update password');
+      {
+        onSuccess: () => {
+          toast.success('Password updated successfully');
+          setPasswords({
+            oldPassword: '',
+            newPassword: '',
+            confirmPassword: '',
+          });
+        },
+        onError: (error) => {
+          toast.error(
+            error.response?.data?.error || 'Failed to update password'
+          );
+        },
       }
-    });
+    );
   };
 
   const handleDeleteAccount = () => {
@@ -53,19 +85,27 @@ export default function ProfilePage() {
       },
       onError: (error) => {
         toast.error(error.response?.data?.error || 'Failed to delete account');
-      }
+      },
     });
   };
 
   if (!user) {
-    return <div className="p-12 text-center text-muted-foreground">Loading profile...</div>;
+    return (
+      <div className="p-12 text-center text-muted-foreground">
+        Loading profile...
+      </div>
+    );
   }
 
   return (
     <div className="container max-w-4xl mx-auto py-12 px-6 space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Profile Settings</h1>
-        <p className="text-muted-foreground">Manage your account preferences and security.</p>
+        <h1 className="text-3xl font-bold tracking-tight mb-2">
+          Profile Settings
+        </h1>
+        <p className="text-muted-foreground">
+          Manage your account preferences and security.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -78,26 +118,36 @@ export default function ProfilePage() {
                   <User className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg">{user.name || 'User'}</CardTitle>
-                  <CardDescription className="uppercase text-xs font-bold tracking-wider mt-1">{user.role}</CardDescription>
+                  <CardTitle className="text-lg">
+                    {user.name || 'User'}
+                  </CardTitle>
+                  <CardDescription className="uppercase text-xs font-bold tracking-wider mt-1">
+                    {user.role}
+                  </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4 text-sm">
                 <div>
-                  <span className="text-muted-foreground block text-xs uppercase tracking-wider font-semibold mb-1">Email</span>
+                  <span className="text-muted-foreground block text-xs uppercase tracking-wider font-semibold mb-1">
+                    Email
+                  </span>
                   <p className="font-medium">{user.email}</p>
                 </div>
                 {user.phone && (
                   <div>
-                    <span className="text-muted-foreground block text-xs uppercase tracking-wider font-semibold mb-1">Phone</span>
+                    <span className="text-muted-foreground block text-xs uppercase tracking-wider font-semibold mb-1">
+                      Phone
+                    </span>
                     <p className="font-medium">{user.phone}</p>
                   </div>
                 )}
                 {user.address && (
                   <div>
-                    <span className="text-muted-foreground block text-xs uppercase tracking-wider font-semibold mb-1">Address</span>
+                    <span className="text-muted-foreground block text-xs uppercase tracking-wider font-semibold mb-1">
+                      Address
+                    </span>
                     <p className="font-medium">{user.address}</p>
                   </div>
                 )}
@@ -114,43 +164,66 @@ export default function ProfilePage() {
                 <KeyRound className="w-5 h-5 text-primary" />
                 Change Password
               </CardTitle>
-              <CardDescription>Update your password to keep your account secure.</CardDescription>
+              <CardDescription>
+                Update your password to keep your account secure.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handlePasswordSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="oldPassword">Current Password</Label>
-                  <Input 
-                    type="password" 
-                    id="oldPassword" 
-                    value={passwords.oldPassword} 
-                    onChange={e => setPasswords(p => ({...p, oldPassword: e.target.value}))} 
-                    required 
+                  <Input
+                    type="password"
+                    id="oldPassword"
+                    value={passwords.oldPassword}
+                    onChange={(e) =>
+                      setPasswords((p) => ({
+                        ...p,
+                        oldPassword: e.target.value,
+                      }))
+                    }
+                    required
                   />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="newPassword">New Password</Label>
-                    <Input 
-                      type="password" 
-                      id="newPassword" 
-                      value={passwords.newPassword} 
-                      onChange={e => setPasswords(p => ({...p, newPassword: e.target.value}))} 
-                      required 
+                    <Input
+                      type="password"
+                      id="newPassword"
+                      value={passwords.newPassword}
+                      onChange={(e) =>
+                        setPasswords((p) => ({
+                          ...p,
+                          newPassword: e.target.value,
+                        }))
+                      }
+                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                    <Input 
-                      type="password" 
-                      id="confirmPassword" 
-                      value={passwords.confirmPassword} 
-                      onChange={e => setPasswords(p => ({...p, confirmPassword: e.target.value}))} 
-                      required 
+                    <Label htmlFor="confirmPassword">
+                      Confirm New Password
+                    </Label>
+                    <Input
+                      type="password"
+                      id="confirmPassword"
+                      value={passwords.confirmPassword}
+                      onChange={(e) =>
+                        setPasswords((p) => ({
+                          ...p,
+                          confirmPassword: e.target.value,
+                        }))
+                      }
+                      required
                     />
                   </div>
                 </div>
-                <Button type="submit" disabled={isChangingPassword} className="mt-2">
+                <Button
+                  type="submit"
+                  disabled={isChangingPassword}
+                  className="mt-2"
+                >
                   {isChangingPassword ? 'Updating...' : 'Update Password'}
                 </Button>
               </form>
@@ -163,16 +236,23 @@ export default function ProfilePage() {
                 <ShieldAlert className="w-5 h-5" />
                 Danger Zone
               </CardTitle>
-              <CardDescription>Permanently delete your account and all associated personal data.</CardDescription>
+              <CardDescription>
+                Permanently delete your account and all associated personal
+                data.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Once you delete your account, there is no going back. Please be certain.
+                Once you delete your account, there is no going back. Please be
+                certain.
               </p>
-              <Button variant="destructive" onClick={(e) => {
-                e.preventDefault();
-                setIsDeleteDialogOpen(true);
-              }}>
+              <Button
+                variant="destructive"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIsDeleteDialogOpen(true);
+                }}
+              >
                 Delete Account
               </Button>
             </CardContent>
@@ -180,7 +260,10 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -188,16 +271,20 @@ export default function ProfilePage() {
               Are you absolutely sure?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete your account and remove your personal data from our active servers.
+              This action cannot be undone. This will permanently delete your
+              account and remove your personal data from our active servers.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={(e) => {
-              e.preventDefault();
-              handleDeleteAccount();
-              setIsDeleteDialogOpen(false);
-            }} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteAccount();
+                setIsDeleteDialogOpen(false);
+              }}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+            >
               {isDeleting ? 'Deleting...' : 'Yes, delete my account'}
             </AlertDialogAction>
           </AlertDialogFooter>
