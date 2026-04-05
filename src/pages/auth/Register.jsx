@@ -37,67 +37,69 @@ export default function Register({ handleLoginDialogOpen }) {
   }
 
   return (
-    <DialogContent className="sm:max-w-[425px]">
+    <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden">
       <DialogHeader>
         <DialogTitle className="sr-only">register</DialogTitle>
         <DialogDescription className="sr-only">Register Form</DialogDescription>
       </DialogHeader>
-      <div className="p-8 sm:p-10">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">
-            Join EcoShore
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Create a new volunteer account
-          </p>
-        </div>
-
-        {/* CommonForm replaces the hand-rolled inputs */}
-        <CommonForm
-          formControls={registerFormControls}
-          formData={formData}
-          setFormData={setFormData}
-          onSubmit={onSubmit}
-          isBtnDisabled={isPending}
-          buttonText={isPending ? 'Creating Account...' : 'Create Account'}
-        />
-
-        {isError && (
-          <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl text-center">
-            <p className="text-sm font-medium text-red-600 dark:text-red-400">
-              {error?.response?.data?.error ||
-                'Registration failed. Please try again.'}
+      <div className="max-h-[min(90vh,900px)] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
+        <div className="p-8 sm:p-10">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">
+              Join EcoShore
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Create a new volunteer account
             </p>
           </div>
-        )}
 
-        {/* Divider */}
-        <div className="mt-8">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+          {/* CommonForm replaces the hand-rolled inputs */}
+          <CommonForm
+            formControls={registerFormControls}
+            formData={formData}
+            setFormData={setFormData}
+            onSubmit={onSubmit}
+            isBtnDisabled={isPending}
+            buttonText={isPending ? 'Creating Account...' : 'Create Account'}
+          />
+
+          {isError && (
+            <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl text-center">
+              <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                {error?.response?.data?.error ||
+                  'Registration failed. Please try again.'}
+              </p>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                or sign up with
-              </span>
+          )}
+
+          {/* Divider */}
+          <div className="mt-8">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                  or sign up with
+                </span>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-center w-full">
+              <GoogleLogin />
             </div>
           </div>
-          <div className="mt-6 flex justify-center w-full">
-            <GoogleLogin />
-          </div>
+
+          <p className="mt-1 text-center text-sm text-gray-600 dark:text-gray-400">
+            Already have an account?{' '}
+            <Button
+              onClick={handleLoginDialogOpen}
+              variant="ghost"
+              className="font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors"
+            >
+              Sign in
+            </Button>
+          </p>
         </div>
-
-        <p className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
-          Already have an account?{' '}
-          <Button
-            onClick={handleLoginDialogOpen}
-            variant="ghost"
-            className="font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors"
-          >
-            Sign in
-          </Button>
-        </p>
       </div>
     </DialogContent>
   );
