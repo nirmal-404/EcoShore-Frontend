@@ -280,6 +280,26 @@ export default function Navbar() {
                   </>
                 )}
 
+                {/* Profile Link */}
+                <DropdownMenuItem
+                  asChild
+                  className="rounded-xl px-3 py-2.5 cursor-pointer gap-3"
+                >
+                  <Link to="/profile" className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+                      <User className="w-4 h-4 text-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">
+                        Profile Settings
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Security and preferences
+                      </p>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+
                 {/* Logout */}
                 <DropdownMenuItem
                   onClick={handleLogout}
