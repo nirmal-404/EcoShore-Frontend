@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
 import { useChangePassword, useDeleteAccount } from '@/hooks/userProfile';
 import { logout } from '@/store/authSlice';
 import { toast } from 'sonner';
@@ -20,7 +19,6 @@ import { ShieldAlert, KeyRound, User } from 'lucide-react';
 export default function ProfilePage() {
   const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
-  const navigate = useNavigate();
 
   const [passwords, setPasswords] = useState({
     oldPassword: '',
