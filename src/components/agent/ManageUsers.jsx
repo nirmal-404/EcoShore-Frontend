@@ -19,7 +19,12 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getAllUsers, activateUser, deactivateUser, deleteUser } from '@/api/authApi';
+import {
+  getAllUsers,
+  activateUser,
+  deactivateUser,
+  deleteUser,
+} from '@/api/authApi';
 import { useSelector } from 'react-redux';
 
 export default function ManageUsers() {
@@ -57,11 +62,7 @@ export default function ManageUsers() {
   };
 
   const handleActivateUser = async (userId, userName) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to activate ${userName}?`
-      )
-    ) {
+    if (!window.confirm(`Are you sure you want to activate ${userName}?`)) {
       return;
     }
 
@@ -70,11 +71,7 @@ export default function ManageUsers() {
       const response = await activateUser(userId);
       if (response.success) {
         setUsers(
-          users.map((u) =>
-            u._id === userId
-              ? { ...u, isActive: true }
-              : u
-          )
+          users.map((u) => (u._id === userId ? { ...u, isActive: true } : u))
         );
       } else {
         alert('Failed to activate user');
@@ -88,11 +85,7 @@ export default function ManageUsers() {
   };
 
   const handleDeactivateUser = async (userId, userName) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to deactivate ${userName}?`
-      )
-    ) {
+    if (!window.confirm(`Are you sure you want to deactivate ${userName}?`)) {
       return;
     }
 
@@ -101,11 +94,7 @@ export default function ManageUsers() {
       const response = await deactivateUser(userId);
       if (response.success) {
         setUsers(
-          users.map((u) =>
-            u._id === userId
-              ? { ...u, isActive: false }
-              : u
-          )
+          users.map((u) => (u._id === userId ? { ...u, isActive: false } : u))
         );
       } else {
         alert('Failed to deactivate user');
@@ -132,11 +121,7 @@ export default function ManageUsers() {
       const response = await deleteUser(userId);
       if (response.success) {
         setUsers(
-          users.map((u) =>
-            u._id === userId
-              ? { ...u, isDeleted: true }
-              : u
-          )
+          users.map((u) => (u._id === userId ? { ...u, isDeleted: true } : u))
         );
       } else {
         alert('Failed to delete user');
@@ -191,7 +176,9 @@ export default function ManageUsers() {
         <CardContent className="pt-6 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-destructive">Error loading users</p>
+            <p className="font-semibold text-destructive">
+              Error loading users
+            </p>
             <p className="text-sm text-muted-foreground mt-1">{error}</p>
             <Button
               onClick={fetchUsers}
@@ -207,15 +194,19 @@ export default function ManageUsers() {
     );
   }
 
-  const activeUsers = users.filter(u => !u.isDeleted && u.isActive);
-  const inactiveUsers = users.filter(u => !u.isDeleted && !u.isActive);
-  const deletedUsers = users.filter(u => u.isDeleted);
+  const activeUsers = users.filter((u) => !u.isDeleted && u.isActive);
+  const inactiveUsers = users.filter((u) => !u.isDeleted && !u.isActive);
+  const deletedUsers = users.filter((u) => u.isDeleted);
 
   // Role-based filters - exclude deleted users
-  const volunteers = users.filter(u => u.role === 'volunteer' && !u.isDeleted);
-  const agents = users.filter(u => u.role === 'agent' && !u.isDeleted);
-  const admins = users.filter(u => u.role === 'admin' && !u.isDeleted);
-  const organizers = users.filter(u => u.role === 'organizer' && !u.isDeleted);
+  const volunteers = users.filter(
+    (u) => u.role === 'volunteer' && !u.isDeleted
+  );
+  const agents = users.filter((u) => u.role === 'agent' && !u.isDeleted);
+  const admins = users.filter((u) => u.role === 'admin' && !u.isDeleted);
+  const organizers = users.filter(
+    (u) => u.role === 'organizer' && !u.isDeleted
+  );
 
   const getRoleIcon = (role) => {
     switch (role) {
@@ -249,11 +240,15 @@ export default function ManageUsers() {
 
   const renderUserTable = (userList, title) => (
     <div className="mb-8">
-      <h3 className="text-lg font-semibold mb-4">{title} ({userList.length})</h3>
+      <h3 className="text-lg font-semibold mb-4">
+        {title} ({userList.length})
+      </h3>
       {userList.length === 0 ? (
         <div className="text-center py-8 bg-muted/20 rounded-lg">
           <User className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-          <p className="text-muted-foreground text-sm">No users in this category</p>
+          <p className="text-muted-foreground text-sm">
+            No users in this category
+          </p>
         </div>
       ) : (
         <div className="overflow-x-auto border border-border rounded-lg">
@@ -288,7 +283,9 @@ export default function ManageUsers() {
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
                       <Shield className="w-4 h-4 text-primary" />
-                      <span className="capitalize font-medium">{user.role}</span>
+                      <span className="capitalize font-medium">
+                        {user.role}
+                      </span>
                     </div>
                   </td>
                   <td className="py-3 px-4">
@@ -302,7 +299,10 @@ export default function ManageUsers() {
                       {!user.isActive && (
                         <Button
                           onClick={() =>
-                            handleActivateUser(user._id, user.name || user.email)
+                            handleActivateUser(
+                              user._id,
+                              user.name || user.email
+                            )
                           }
                           disabled={actioningId === user._id}
                           variant="default"
@@ -325,7 +325,10 @@ export default function ManageUsers() {
                       {user.isActive && (
                         <Button
                           onClick={() =>
-                            handleDeactivateUser(user._id, user.name || user.email)
+                            handleDeactivateUser(
+                              user._id,
+                              user.name || user.email
+                            )
                           }
                           disabled={actioningId === user._id}
                           variant="secondary"
@@ -396,7 +399,10 @@ export default function ManageUsers() {
             {/* Role Summary Stats */}
             <div className="grid md:grid-cols-4 gap-4 mb-8">
               {/* Volunteers */}
-              <Card className={`rounded-2xl border cursor-pointer transition-all ${getRoleColor('volunteer')} ${activeRole === 'volunteers' ? 'ring-2 ring-blue-500' : ''}`} onClick={() => setActiveRole('volunteers')}>
+              <Card
+                className={`rounded-2xl border cursor-pointer transition-all ${getRoleColor('volunteer')} ${activeRole === 'volunteers' ? 'ring-2 ring-blue-500' : ''}`}
+                onClick={() => setActiveRole('volunteers')}
+              >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -405,7 +411,11 @@ export default function ManageUsers() {
                         {volunteers.length}
                       </p>
                       <p className="text-xs mt-2 opacity-70">
-                        Active: {volunteers.filter(u => u.isActive && !u.isDeleted).length}
+                        Active:{' '}
+                        {
+                          volunteers.filter((u) => u.isActive && !u.isDeleted)
+                            .length
+                        }
                       </p>
                     </div>
                     <Users2 className="w-10 h-10 opacity-20" />
@@ -414,16 +424,21 @@ export default function ManageUsers() {
               </Card>
 
               {/* Agents */}
-              <Card className={`rounded-2xl border cursor-pointer transition-all ${getRoleColor('agent')} ${activeRole === 'agents' ? 'ring-2 ring-purple-500' : ''}`} onClick={() => setActiveRole('agents')}>
+              <Card
+                className={`rounded-2xl border cursor-pointer transition-all ${getRoleColor('agent')} ${activeRole === 'agents' ? 'ring-2 ring-purple-500' : ''}`}
+                onClick={() => setActiveRole('agents')}
+              >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">Agents</p>
-                      <p className="text-3xl font-bold mt-1">
-                        {agents.length}
-                      </p>
+                      <p className="text-3xl font-bold mt-1">{agents.length}</p>
                       <p className="text-xs mt-2 opacity-70">
-                        Active: {agents.filter(u => u.isActive && !u.isDeleted).length}
+                        Active:{' '}
+                        {
+                          agents.filter((u) => u.isActive && !u.isDeleted)
+                            .length
+                        }
                       </p>
                     </div>
                     <Zap className="w-10 h-10 opacity-20" />
@@ -432,7 +447,10 @@ export default function ManageUsers() {
               </Card>
 
               {/* Organizers */}
-              <Card className={`rounded-2xl border cursor-pointer transition-all ${getRoleColor('organizer')} ${activeRole === 'organizers' ? 'ring-2 ring-green-500' : ''}`} onClick={() => setActiveRole('organizers')}>
+              <Card
+                className={`rounded-2xl border cursor-pointer transition-all ${getRoleColor('organizer')} ${activeRole === 'organizers' ? 'ring-2 ring-green-500' : ''}`}
+                onClick={() => setActiveRole('organizers')}
+              >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -441,7 +459,11 @@ export default function ManageUsers() {
                         {organizers.length}
                       </p>
                       <p className="text-xs mt-2 opacity-70">
-                        Active: {organizers.filter(u => u.isActive && !u.isDeleted).length}
+                        Active:{' '}
+                        {
+                          organizers.filter((u) => u.isActive && !u.isDeleted)
+                            .length
+                        }
                       </p>
                     </div>
                     <Briefcase className="w-10 h-10 opacity-20" />
@@ -450,16 +472,21 @@ export default function ManageUsers() {
               </Card>
 
               {/* Admins */}
-              <Card className={`rounded-2xl border cursor-pointer transition-all ${getRoleColor('admin')} ${activeRole === 'admins' ? 'ring-2 ring-red-500' : ''}`} onClick={() => setActiveRole('admins')}>
+              <Card
+                className={`rounded-2xl border cursor-pointer transition-all ${getRoleColor('admin')} ${activeRole === 'admins' ? 'ring-2 ring-red-500' : ''}`}
+                onClick={() => setActiveRole('admins')}
+              >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">Admins</p>
-                      <p className="text-3xl font-bold mt-1">
-                        {admins.length}
-                      </p>
+                      <p className="text-3xl font-bold mt-1">{admins.length}</p>
                       <p className="text-xs mt-2 opacity-70">
-                        Active: {admins.filter(u => u.isActive && !u.isDeleted).length}
+                        Active:{' '}
+                        {
+                          admins.filter((u) => u.isActive && !u.isDeleted)
+                            .length
+                        }
                       </p>
                     </div>
                     <Lock className="w-10 h-10 opacity-20" />
@@ -470,9 +497,9 @@ export default function ManageUsers() {
 
             {/* Tab Content */}
             <div className="space-y-6">
-              {activeRole === 'volunteers' && volunteers.length > 0 && (
-                renderUserTable(volunteers, ' Volunteers')
-              )}
+              {activeRole === 'volunteers' &&
+                volunteers.length > 0 &&
+                renderUserTable(volunteers, ' Volunteers')}
               {activeRole === 'volunteers' && volunteers.length === 0 && (
                 <div className="text-center py-12 bg-muted/20 rounded-lg">
                   <Users2 className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
@@ -480,9 +507,9 @@ export default function ManageUsers() {
                 </div>
               )}
 
-              {activeRole === 'agents' && agents.length > 0 && (
-                renderUserTable(agents, ' Agents')
-              )}
+              {activeRole === 'agents' &&
+                agents.length > 0 &&
+                renderUserTable(agents, ' Agents')}
               {activeRole === 'agents' && agents.length === 0 && (
                 <div className="text-center py-12 bg-muted/20 rounded-lg">
                   <Zap className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
@@ -490,9 +517,9 @@ export default function ManageUsers() {
                 </div>
               )}
 
-              {activeRole === 'organizers' && organizers.length > 0 && (
-                renderUserTable(organizers, ' Organizers')
-              )}
+              {activeRole === 'organizers' &&
+                organizers.length > 0 &&
+                renderUserTable(organizers, ' Organizers')}
               {activeRole === 'organizers' && organizers.length === 0 && (
                 <div className="text-center py-12 bg-muted/20 rounded-lg">
                   <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
@@ -500,9 +527,9 @@ export default function ManageUsers() {
                 </div>
               )}
 
-              {activeRole === 'admins' && admins.length > 0 && (
-                renderUserTable(admins, ' Admins')
-              )}
+              {activeRole === 'admins' &&
+                admins.length > 0 &&
+                renderUserTable(admins, ' Admins')}
               {activeRole === 'admins' && admins.length === 0 && (
                 <div className="text-center py-12 bg-muted/20 rounded-lg">
                   <Lock className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />

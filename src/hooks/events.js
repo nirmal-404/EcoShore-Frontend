@@ -2,11 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import API from '@/api/index.js';
 
 /* GET ALL EVENTS */
-export const useEvents = () => {
+export const useEvents = (params = {}) => {
   return useQuery({
-    queryKey: ['events'],
+    queryKey: ['events', params],
     queryFn: async () => {
-      const { data } = await API.get('/events');
+      const { data } = await API.get('/events', { params });
       return data;
     },
     staleTime: 1000 * 60 * 5,
@@ -37,20 +37,8 @@ export const useEditEvent = () => {
       const { data } = await API.put(`/events/${id}`, updatedData);
       return data;
     },
-    onSuccess: (response) => {
-      const updatedEvent = response.data.event;
-      queryClient.setQueryData(['events'], (old) => {
-        if (!old || !old.data) {
-          return { data: [updatedEvent] };
-        }
-
-        return {
-          ...old,
-          data: old.data.map((event) =>
-            event._id === updatedEvent._id ? updatedEvent : event
-          ),
-        };
-      });
+    onSuccess: () => {
+      queryClient.invalidateQueries(['events']);
     },
   });
 };
@@ -106,7 +94,9 @@ export const useAssignAgent = () => {
 
   return useMutation({
     mutationFn: async ({ eventId, agentId }) => {
-      const { data } = await API.patch(`/events/${eventId}/assign-agent`, { agentId });
+      const { data } = await API.patch(`/events/${eventId}/assign-agent`, {
+        agentId,
+      });
       return data;
     },
     onSuccess: () => {

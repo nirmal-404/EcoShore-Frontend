@@ -46,7 +46,9 @@ export default function AgentEvents({ agentId }) {
         <CardContent className="pt-6 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-destructive">Error loading events</p>
+            <p className="font-semibold text-destructive">
+              Error loading events
+            </p>
             <p className="text-sm text-muted-foreground">
               {error?.message || 'Failed to fetch events'}
             </p>

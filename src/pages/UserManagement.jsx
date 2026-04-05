@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
 export default function UserManagementPage() {
-  const navigate = useNavigate();
-
+  
+   const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       {/* Page Header */}
@@ -22,4 +22,5 @@ export default function UserManagementPage() {
       </div>
     </div>
   );
+
 }

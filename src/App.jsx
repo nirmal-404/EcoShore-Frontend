@@ -19,6 +19,7 @@ import AgentDashboard from '@/pages/agent/Dashboard';
 import UserManagement from '@/pages/UserManagement';
 import AnalyticsDashboard from '@/pages/AnalyticsDashboard';
 import AgentRegister from '@/components/agent/AgentRegister';
+import ProfilePage from '@/pages/Profile';
 
 function App() {
   return (
@@ -39,9 +40,10 @@ function App() {
               <Route path="/agent-form" element={<AgentRegister />} />
             </Route>
 
-            {/* Protected Analytics under Layout for all authenticated roles */}
+            {/* Protected routes under Layout for all authenticated roles */}
             <Route element={<PrivateRoute allowedRoles={[]} />}>
               <Route path="/analytics" element={<AnalyticsDashboard />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
           </Route>
 
