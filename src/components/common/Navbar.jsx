@@ -116,6 +116,9 @@ export default function Navbar() {
           <NavLink to="/community" className={navLinkClass}>
             Community
           </NavLink>
+          <NavLink to="/meetings" className={navLinkClass}>
+            Meetings
+          </NavLink>
         </div>
       </div>
 
