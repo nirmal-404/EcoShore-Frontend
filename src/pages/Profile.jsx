@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import CustomAlert from '@/components/common/Alert';
 import {
   Card,
   CardHeader,
@@ -14,17 +15,7 @@ import {
   CardContent,
   CardDescription,
 } from '@/components/ui/card';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { ShieldAlert, KeyRound, User, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, KeyRound, User, } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user } = useSelector((state) => state.auth);
@@ -81,7 +72,6 @@ export default function ProfilePage() {
       onSuccess: () => {
         toast.success('Account deleted successfully');
         dispatch(logout());
-        navigate('/login');
       },
       onError: (error) => {
         toast.error(error.response?.data?.error || 'Failed to delete account');
@@ -248,48 +238,28 @@ export default function ProfilePage() {
               </p>
               <Button
                 variant="destructive"
+                className="text-background"
                 onClick={(e) => {
                   e.preventDefault();
                   setIsDeleteDialogOpen(true);
                 }}
               >
-                Delete Account
+                {isDeleting ? 'Deleting...' : 'Delete Account'}
               </Button>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      <AlertDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-              Are you absolutely sure?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete your
-              account and remove your personal data from our active servers.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                handleDeleteAccount();
-                setIsDeleteDialogOpen(false);
-              }}
-              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-            >
-              {isDeleting ? 'Deleting...' : 'Yes, delete my account'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <CustomAlert
+        openAlertDialog={isDeleteDialogOpen}
+        setOpenAlertDialog={setIsDeleteDialogOpen}
+        title="Are you absolutely sure?"
+        descrption="This action cannot be undone. This will permanently delete your account and remove your personal data from our active servers."
+        closeBtnTxt="Cancel"
+        okBtnTxt="Yes, delete my account"
+        action={handleDeleteAccount}
+      />
     </div>
   );
 }
