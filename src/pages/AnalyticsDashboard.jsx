@@ -10,6 +10,9 @@ import {
   BarChart,
   Bar,
   Legend,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts';
 import {
   AlertCircle,
@@ -24,9 +27,12 @@ import {
   CheckCircle2,
   XCircle,
   TrendingUp,
+  RefreshCw,
+  Wrench,
+  Calendar,
 } from 'lucide-react';
 import HeatmapTracker from '@/components/analytics/HeatmapTracker';
-import { getHeatmapData, getBeachPrediction } from '@/api/heatmapApi';
+import { getHeatmapData, getBeachPrediction, refreshHeatmap } from '@/api/heatmapApi';
 import { getActiveCarbonConfig } from '@/api/carbonConfigApi';
 import {
   getDashboardOverview,
@@ -37,6 +43,8 @@ import {
   exportAnalyticsJSON,
   exportAnalyticsCSV,
   getMLHealth,
+  recalculateSeverity,
+  recalculateCarbonOffsets,
 } from '@/api/analyticsApi';
 
 export default function AnalyticsDashboard() {
@@ -56,6 +64,29 @@ export default function AnalyticsDashboard() {
   const [trendPrediction, setTrendPrediction] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
   const [selectedBeachHeatmap, setSelectedBeachHeatmap] = useState(null);
+  const [adminStatus, setAdminStatus] = useState(null); // { type: 'success'|'error', message: string }
+  const [isRecalculating, setIsRecalculating] = useState(false);
+  const [dateFilter, setDateFilter] = useState('all-time');
+  const [currentDateString, setCurrentDateString] = useState('');
+
+  // Set today's date once on mount
+  useEffect(() => {
+    const d = new Date();
+    setCurrentDateString(d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
+  }, []);
+
+  const getDateRange = (filter) => {
+    if (filter === 'this-month') {
+      const start = new Date(); start.setDate(1); start.setHours(0,0,0,0);
+      return { start: start.toISOString(), end: new Date().toISOString() };
+    }
+    if (filter === 'last-month') {
+      const end = new Date(); end.setDate(0); end.setHours(23,59,59,999);
+      const start = new Date(end); start.setDate(1); start.setHours(0,0,0,0);
+      return { start: start.toISOString(), end: end.toISOString() };
+    }
+    return { start: undefined, end: undefined }; // all time
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -66,6 +97,8 @@ export default function AnalyticsDashboard() {
 
         const health = await getMLHealth();
         if (isMounted) setMlHealth(health);
+
+        const { start, end } = getDateRange(dateFilter);
 
         const [
           heatmapRes,
@@ -78,10 +111,10 @@ export default function AnalyticsDashboard() {
         ] = await Promise.all([
           getHeatmapData().catch(() => null),
           getActiveCarbonConfig().catch(() => null),
-          getDashboardOverview().catch(() => null),
+          getDashboardOverview(start, end).catch(() => null),
           getWasteByPlasticType().catch(() => null),
           getSeverityRanking(10).catch(() => null),
-          getCarbonOffsetSummary().catch(() => null),
+          getCarbonOffsetSummary(start, end).catch(() => null),
           getTrendPrediction().catch(() => null),
         ]);
 
@@ -109,7 +142,6 @@ export default function AnalyticsDashboard() {
         }
 
         // Trend prediction — the inner `prediction` object can itself have success:false
-        // (e.g. "Insufficient data for prediction"). Only use it when both layers succeed.
         if (trendRes?.success && trendRes.data?.prediction?.success === true) {
           setTrendPrediction(trendRes.data.prediction);
         }
@@ -125,7 +157,7 @@ export default function AnalyticsDashboard() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [dateFilter]);
 
   // Compute chart data and highest-risk beach from heatmap predictions
   const { chartData, highestRiskBeach, rawBeaches } = useMemo(() => {
@@ -235,14 +267,76 @@ export default function AnalyticsDashboard() {
     }
   };
 
+  const handleAdminRecalculate = async (type) => {
+    try {
+      setIsRecalculating(true);
+      setAdminStatus(null);
+      const res = type === 'severity'
+        ? await recalculateSeverity()
+        : await recalculateCarbonOffsets();
+
+      if (res?.success) {
+        setAdminStatus({ type: 'success', message: res.message || 'Recalculation complete! Refresh the page to see updated values.' });
+        // Re-fetch dashboard data after recalculation
+        const [dashRes, severityRes, carbonSumRes] = await Promise.all([
+          getDashboardOverview().catch(() => null),
+          getSeverityRanking(10).catch(() => null),
+          getCarbonOffsetSummary().catch(() => null),
+        ]);
+        if (dashRes?.success) setGlobalStats(dashRes.data.dashboard.summary);
+        if (severityRes?.success) setSeverityRanking(severityRes.data.ranking || []);
+        if (carbonSumRes?.success && carbonSumRes.data?.summary) {
+          const s = carbonSumRes.data.summary;
+          setCarbonSummary({
+            totalCarbonOffset: s.totalCarbonOffset ?? 0,
+            totalWasteWeight: s.totalWasteWeight ?? 0,
+            averageCarbonPerKg: s.averageCarbonPerKg ?? 0,
+          });
+        }
+      } else {
+        setAdminStatus({ type: 'error', message: 'Recalculation failed. Check backend logs.' });
+      }
+    } catch (err) {
+      setAdminStatus({ type: 'error', message: err.message || 'Recalculation failed.' });
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-6">
-        <div className="flex flex-col items-center gap-4 text-emerald-600 dark:text-emerald-400">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-current"></div>
-          <p className="font-medium animate-pulse">
-            Loading analytics dashboard...
-          </p>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-10 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto space-y-8 animate-pulse">
+          {/* Header Skeleton */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+            <div className="space-y-4">
+              <div className="h-10 w-64 bg-gray-200 dark:bg-gray-800 rounded-xl"></div>
+              <div className="h-6 w-48 bg-gray-200 dark:bg-gray-800 rounded-lg"></div>
+              <div className="h-5 w-96 bg-gray-200 dark:bg-gray-800 rounded-lg"></div>
+            </div>
+            <div className="flex gap-3">
+              <div className="h-10 w-32 bg-gray-200 dark:bg-gray-800 rounded-xl"></div>
+              <div className="h-10 w-32 bg-gray-200 dark:bg-gray-800 rounded-xl"></div>
+              <div className="h-10 w-32 bg-gray-200 dark:bg-gray-800 rounded-xl"></div>
+            </div>
+          </div>
+          {/* KPI Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white dark:bg-gray-800 p-6 rounded-3xl h-32 flex items-center space-x-4 border border-gray-100 dark:border-gray-700">
+                <div className="w-16 h-16 rounded-2xl bg-gray-200 dark:bg-gray-700"></div>
+                <div className="space-y-3 flex-1">
+                  <div className="h-4 w-1/2 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-8 w-3/4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Main Chart Skeleton */}
+          <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl h-[450px] border border-gray-100 dark:border-gray-700">
+             <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded mb-8"></div>
+             <div className="h-full w-full bg-gray-100 dark:bg-gray-700/50 rounded-xl"></div>
+          </div>
         </div>
       </div>
     );
@@ -276,8 +370,10 @@ export default function AnalyticsDashboard() {
         {/* Header Config */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-4xl bg-gradient-to-r from-emerald-600 to-teal-400 bg-clip-text text-transparent flex items-center gap-3">
-              Analytics Dashboard
+            <div className="flex items-center gap-4 mb-2">
+              <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-4xl bg-gradient-to-r from-emerald-600 to-teal-400 bg-clip-text text-transparent flex items-center gap-3">
+                Analytics Dashboard
+              </h1>
               <span
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${mlHealth ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}
               >
@@ -288,14 +384,27 @@ export default function AnalyticsDashboard() {
                 )}
                 ML Service: {mlHealth ? 'Online' : 'Offline'}
               </span>
-            </h1>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mt-2">
+              <Calendar className="w-5 h-5 text-emerald-500" />
+              <span className="font-semibold">{currentDateString}</span>
+            </div>
             <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
               Complete overview of environmental impact, global statistics, and
               AI forecasting.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white rounded-xl shadow-sm focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+            >
+              <option value="all-time">All-Time Statistics</option>
+              <option value="this-month">This Month</option>
+              <option value="last-month">Last Month</option>
+            </select>
             <button
               onClick={() => handleExport('csv')}
               disabled={isExporting}
@@ -316,7 +425,8 @@ export default function AnalyticsDashboard() {
         {/* KPI Section — always renders; shows '---' placeholders when data hasn't loaded */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* KPI 1: Total Plastics Collected */}
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-xl shadow-emerald-500/5 border border-gray-100 dark:border-gray-700 flex items-center space-x-4">
+          <div className="group hover:-translate-y-1 hover:shadow-2xl hover:border-emerald-300 transition-all duration-300 relative overflow-hidden bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-xl shadow-emerald-500/5 border border-gray-100 dark:border-gray-700 flex items-center space-x-4">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
             <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl">
               <Database className="w-8 h-8" />
             </div>
@@ -329,26 +439,30 @@ export default function AnalyticsDashboard() {
                   ? `${Number(globalStats.totalWasteCollected).toLocaleString()} kg`
                   : '---'}
               </h3>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">All-time · from waste records</p>
             </div>
           </div>
 
           {/* KPI 2: Total Beaches Cleaned */}
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-xl shadow-orange-500/5 border border-gray-100 dark:border-gray-700 flex items-center space-x-4">
+          <div className="group hover:-translate-y-1 hover:shadow-2xl hover:border-orange-300 transition-all duration-300 relative overflow-hidden bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-xl shadow-orange-500/5 border border-gray-100 dark:border-gray-700 flex items-center space-x-4">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
             <div className="p-4 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 rounded-2xl">
               <MapPin className="w-8 h-8" />
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Total Beaches Cleaned
+                Beaches Cleaned
               </p>
               <h3 className="text-3xl font-black text-gray-900 dark:text-white">
                 {globalStats?.totalBeaches ?? '---'}
               </h3>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">All-time · beaches with records</p>
             </div>
           </div>
 
           {/* KPI 3: Total Events Done */}
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-xl shadow-blue-500/5 border border-gray-100 dark:border-gray-700 flex items-center space-x-4">
+          <div className="group hover:-translate-y-1 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 relative overflow-hidden bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-xl shadow-blue-500/5 border border-gray-100 dark:border-gray-700 flex items-center space-x-4">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-2xl">
               <BarChart3 className="w-8 h-8" />
             </div>
@@ -359,8 +473,71 @@ export default function AnalyticsDashboard() {
               <h3 className="text-3xl font-black text-gray-900 dark:text-white">
                 {globalStats?.totalCleanups ?? '---'}
               </h3>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">All-time · all events in system</p>
             </div>
           </div>
+        </div>
+
+        {/* Admin Tools Panel */}
+        <div className="bg-white dark:bg-gray-800 rounded-3xl p-5 shadow-xl border border-gray-100 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 rounded-xl">
+                <Wrench className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white">Tools</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Recalculate derived metrics from raw database records</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => handleAdminRecalculate('severity')}
+                disabled={isRecalculating}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 font-semibold text-sm rounded-xl border border-orange-200 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRecalculating ? 'animate-spin' : ''}`} />
+                Recalculate Severity Scores
+              </button>
+              <button
+                onClick={() => handleAdminRecalculate('carbon')}
+                disabled={isRecalculating}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 font-semibold text-sm rounded-xl border border-emerald-200 dark:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRecalculating ? 'animate-spin' : ''}`} />
+                Recalculate Carbon Offsets
+              </button>
+              <button
+                onClick={async () => {
+                  setIsRecalculating(true);
+                  try {
+                    const res = await refreshHeatmap();
+                    if (res?.success) {
+                      setAdminStatus({ type: 'success', message: 'Map data refreshed! Reloading...' });
+                      setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        setAdminStatus({ type: 'error', message: 'Heatmap refresh failed.' });
+                    }
+                  } catch (e) {
+                     setAdminStatus({ type: 'error', message: 'Error refreshing heatmap.' });
+                  } finally {
+                     setIsRecalculating(false);
+                  }
+                }}
+                disabled={isRecalculating}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-semibold text-sm rounded-xl border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRecalculating ? 'animate-spin' : ''}`} />
+                Refresh Live Map Data
+              </button>
+            </div>
+          </div>
+          {adminStatus && (
+            <div className={`mt-3 px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 ${adminStatus.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700'}`}>
+              {adminStatus.type === 'success' ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <XCircle className="w-4 h-4 flex-shrink-0" />}
+              {adminStatus.message}
+            </div>
+          )}
         </div>
 
         {/* Actionable AI Insight */}
@@ -389,6 +566,11 @@ export default function AnalyticsDashboard() {
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
               7-Day Predictive Risk Heatmap
             </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
+                  * The AI model calculates its predictive result dynamically by
+                  combining total waste volume trends, historical tourist
+                  footprint, and seasonal weather/monsoon rain impact.
+                </p>
             <div className="h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
@@ -478,11 +660,7 @@ export default function AnalyticsDashboard() {
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                   AI Actionable Insights
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
-                  * The AI model calculates its predictive result dynamically by
-                  combining total waste volume trends, historical tourist
-                  footprint, and seasonal weather/monsoon rain impact.
-                </p>
+                
               </div>
               <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400">
                 <Activity className="w-6 h-6" />
@@ -495,6 +673,7 @@ export default function AnalyticsDashboard() {
                     <th className="px-4 py-3 rounded-l-lg">Rank</th>
                     <th className="px-4 py-3">Beach Name</th>
                     <th className="px-4 py-3">Severity Score</th>
+                    <th className="px-4 py-3">Carbon Offset</th>
                     <th className="px-4 py-3 rounded-r-lg">Risk Level</th>
                   </tr>
                 </thead>
@@ -516,7 +695,24 @@ export default function AnalyticsDashboard() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {beach.severityScore?.toFixed(2)}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={`px-2.5 py-1 rounded-md text-xs font-bold leading-none ${
+                              beach.severityScore >= 75
+                                ? 'bg-red-100 text-red-700 dark:bg-red-900/30'
+                                : beach.severityScore >= 50
+                                  ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30'
+                                  : beach.severityScore >= 25
+                                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30'
+                                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30'
+                            }`}
+                          >
+                            {Number(beach.severityScore).toFixed(2)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-emerald-600 dark:text-emerald-400 font-medium">
+                        {beach.totalCarbonOffset} kg CO₂
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -551,35 +747,49 @@ export default function AnalyticsDashboard() {
           </div>
 
           {/* Plastics Type Ranking */}
-          <div className="lg:col-span-3 bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-xl shadow-emerald-500/5 border border-gray-100 dark:border-gray-700">
+          <div className="lg:col-span-3 bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-xl shadow-emerald-500/5 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all duration-300">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               Plastics Collected Ranking
             </h3>
-            <div className="space-y-4 mt-6">
-              {(plasticRanking || []).slice(0, 5).map((plastic, idx) => (
-                <div key={plastic.plasticType} className="flex flex-col">
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">
-                      {idx + 1}. {plastic.plasticType}
-                    </span>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      {plastic.totalWeight.toFixed(1)} kg
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className="bg-emerald-500 h-2 rounded-full"
-                      style={{
-                        width: `${Math.min((plastic.totalWeight / (plasticRanking[0]?.totalWeight || 1)) * 100, 100)}%`,
-                      }}
-                    ></div>
-                  </div>
+            <div className="h-[280px] w-full mt-4">
+              {plasticRanking && plasticRanking.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={plasticRanking.slice(0, 5)}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={70}
+                      outerRadius={100}
+                      paddingAngle={5}
+                      dataKey="totalWeight"
+                      nameKey="plasticType"
+                      stroke="none"
+                    >
+                      {plasticRanking.slice(0, 5).map((entry, index) => {
+                        const PLASTIC_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
+                        return <Cell key={`cell-${index}`} fill={PLASTIC_COLORS[index % PLASTIC_COLORS.length]} />;
+                      })}
+                    </Pie>
+                    <RechartsTooltip 
+                      formatter={(value) => [`${value.toFixed(1)} kg`, 'Weight']}
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+                    />
+                    <Legend 
+                      verticalAlign="middle" 
+                      align="right" 
+                      layout="vertical"
+                      iconType="circle"
+                      wrapperStyle={{ fontSize: '14px', fontWeight: 500 }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                    No plastic data available.
+                  </p>
                 </div>
-              ))}
-              {!plasticRanking?.length && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                  No plastic data available.
-                </p>
               )}
             </div>
           </div>
@@ -588,7 +798,7 @@ export default function AnalyticsDashboard() {
         {/* Carbon Config & Map Layout Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Carbon Config & Summary Panel */}
-          <div className="lg:col-span-1 bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-800 dark:to-gray-900 rounded-3xl p-6 shadow-xl text-white relative flex flex-col justify-between">
+          <div className="lg:col-span-1 bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-800 dark:to-gray-900 rounded-3xl p-6 shadow-xl shadow-emerald-500/10 ring-1 ring-emerald-500/20 text-white relative flex flex-col justify-between hover:shadow-emerald-500/30 hover:-translate-y-1 transition-all duration-300">
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold">Carbon Offset Impact</h3>
