@@ -18,6 +18,7 @@ import CollectorDashboard from '@/pages/collector/Dashboard';
 import AgentDashboard from '@/pages/agent/Dashboard';
 import UserManagement from '@/pages/UserManagement';
 import AnalyticsDashboard from '@/pages/AnalyticsDashboard';
+import AgentRegister from '@/components/agent/AgentRegister';
 
 function App() {
   return (
@@ -32,6 +33,11 @@ function App() {
             <Route path="/community" element={<Community />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/usermanagement" element={<UserManagement />} />
+            
+            {/* Admin only - Register new agent */}
+            <Route element={<PrivateRoute allowedRoles={['admin']} />}>
+              <Route path="/agent-form" element={<AgentRegister />} />
+            </Route>
 
             {/* Protected Analytics under Layout for all authenticated roles */}
             <Route element={<PrivateRoute allowedRoles={[]} />}>
