@@ -1,7 +1,7 @@
-import React from "react";
-import ManageUsers from "@/components/agent/ManageUsers";
+import React from 'react';
+import ManageUsers from '@/components/agent/ManageUsers';
 
-export default function UserManagementPage()  {
+export default function UserManagementPage() {
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       {/* Page Header */}
@@ -12,5 +12,5 @@ export default function UserManagementPage()  {
         <ManageUsers />
       </div>
     </div>
-  );    
-};
+  );
+}

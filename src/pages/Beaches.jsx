@@ -21,6 +21,22 @@ import { Plus } from 'lucide-react';
 import ImageUpload from '@/components/common/ImageUpload.jsx';
 import CustomAlert from '@/components/common/Alert';
 import { toast } from 'sonner';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const initialFormData = {
   name: '',
@@ -40,12 +56,19 @@ const initialAletDialogState = {
 
 export default function BeachesPage() {
   const { user } = useSelector((state) => state.auth);
-  const { data, isLoading, isError: isBechFetchError } = useBeaches();
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(8);
+  const {
+    data,
+    isLoading,
+    isError: isBechFetchError,
+  } = useBeaches({ page, limit });
   const { mutate: addBeach } = useAddBeach();
   const { mutate: editBeach } = useEditBeach();
   const { mutate: deleteBeach } = useDeleteBeach();
 
   const beaches = data?.data || [];
+  const pagination = data?.pagination || { page: 1, pages: 1 };
 
   const [formData, setFormData] = useState(initialFormData);
   const [openAddBeachDialog, setOpenAddBeachDialog] = useState(false);
@@ -186,6 +209,7 @@ export default function BeachesPage() {
           setImageFile(null);
           setUploadedImageUrl('');
           setIsSubmitting(false);
+          setCurrentEditedId(null);
           setOpenAddBeachDialog(false);
           toast.success('Beach updated successfully');
         },
@@ -208,17 +232,86 @@ export default function BeachesPage() {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-4 gap-6">
-        {beaches &&
-          beaches.map((beach) => (
-            <BeachCard
-              key={beach.id}
-              beach={beach}
-              onDelete={handleDelete}
-              onEdit={handleEdit}
-            />
-          ))}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6 items-center justify-end bg-card p-4 rounded-xl border border-border mt-12">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {pagination.pages > 0 && (
+            <div className="">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      className={
+                        page === 1
+                          ? 'pointer-events-none opacity-50'
+                          : 'cursor-pointer'
+                      }
+                    />
+                  </PaginationItem>
+                  {[...Array(pagination.pages)].map((_, i) => (
+                    <PaginationItem key={i + 1}>
+                      <PaginationLink
+                        onClick={() => setPage(i + 1)}
+                        isActive={page === i + 1}
+                        className="cursor-pointer"
+                      >
+                        {i + 1}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() =>
+                        setPage((p) => Math.min(pagination.pages, p + 1))
+                      }
+                      className={
+                        page === pagination.pages
+                          ? 'pointer-events-none opacity-50'
+                          : 'cursor-pointer'
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto ml-auto">
+          <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+            Results per page:
+          </span>
+          <Select
+            value={limit.toString()}
+            onValueChange={(val) => {
+              setLimit(Number(val));
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Page Size" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="8">8</SelectItem>
+                <SelectItem value="16">16</SelectItem>
+                <SelectItem value="32">32</SelectItem>
+                <SelectItem value="64">64</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+      <div className="grid md:grid-cols-4 gap-6">
+        {beaches?.map((beach) => (
+          <BeachCard
+            key={beach.id}
+            beach={beach}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+          />
+        ))}
+      </div>
+
       {user?.role && user?.role === 'admin' && (
         <Button
           onClick={() => setOpenAddBeachDialog(true)}

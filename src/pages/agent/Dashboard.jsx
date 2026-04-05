@@ -109,9 +109,7 @@ export default function AgentDashboard() {
             <Card className="rounded-2xl border-border">
               <CardHeader>
                 <CardTitle>Event Performance</CardTitle>
-                <CardDescription>
-                  Your event management metrics
-                </CardDescription>
+                <CardDescription>Your event management metrics</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid md:grid-cols-2 gap-8">

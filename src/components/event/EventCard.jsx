@@ -105,7 +105,10 @@ function EventCard({ event, onDelete, onEdit, onJoin, onLeave, isLoading }) {
               <div className="flex items-center text-xs text-muted-foreground">
                 <User className="w-3 h-3 mr-2 text-primary" />
                 <span className="font-medium">
-                  Assigned: {typeof event.agentId === 'object' ? event.agentId.name : event.agentId}
+                  Assigned:{' '}
+                  {typeof event.agentId === 'object'
+                    ? event.agentId.name
+                    : event.agentId}
                 </span>
               </div>
             )}
@@ -135,7 +138,7 @@ function EventCard({ event, onDelete, onEdit, onJoin, onLeave, isLoading }) {
 
         {/* Actions */}
         <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
-          {user && user.role === 'admin' ? (
+          {user && (user.role === 'organizer' || user.role === 'admin') ? (
             <div className="flex gap-1 w-full">
               <Button
                 variant="ghost"
@@ -168,7 +171,7 @@ function EventCard({ event, onDelete, onEdit, onJoin, onLeave, isLoading }) {
                 Delete
               </Button>
             </div>
-          ) : user ? (
+          ) : user && user.role === 'volunteer' ? (
             <div className="w-full">
               {isJoinedVolunteer ? (
                 <Button

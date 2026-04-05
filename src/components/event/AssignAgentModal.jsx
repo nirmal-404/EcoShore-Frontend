@@ -19,10 +19,10 @@ function AssignAgentModal({ eventId, beachId, eventTitle, onClose, isOpen }) {
   const [selectedAgentId, setSelectedAgentId] = useState(null);
 
   // Filter agents by beach
-  const beachAgents = agentsData?.data?.agents?.filter(
-    (agent) =>
-      agent.assignedBeach && agent.assignedBeach.id === beachId
-  ) || [];
+  const beachAgents =
+    agentsData?.data?.agents?.filter(
+      (agent) => agent.assignedBeach && agent.assignedBeach.id === beachId
+    ) || [];
 
   const handleAssign = () => {
     if (!selectedAgentId) {
@@ -39,7 +39,9 @@ function AssignAgentModal({ eventId, beachId, eventTitle, onClose, isOpen }) {
           onClose();
         },
         onError: (error) => {
-          toast.error(error.response?.data?.message || 'Failed to assign agent');
+          toast.error(
+            error.response?.data?.message || 'Failed to assign agent'
+          );
         },
       }
     );
@@ -51,8 +53,8 @@ function AssignAgentModal({ eventId, beachId, eventTitle, onClose, isOpen }) {
         <SheetHeader>
           <SheetTitle>Assign Agent to Event</SheetTitle>
           <SheetDescription>
-            Select an agent for &quot;{eventTitle}&quot; from the available agents
-            assigned to this beach.
+            Select an agent for &quot;{eventTitle}&quot; from the available
+            agents assigned to this beach.
           </SheetDescription>
         </SheetHeader>
 
@@ -133,16 +135,14 @@ function AssignAgentModal({ eventId, beachId, eventTitle, onClose, isOpen }) {
         </div>
 
         <div className="flex gap-3 justify-end mt-6 pt-6 border-t border-border">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isAssigning}
-          >
+          <Button variant="outline" onClick={onClose} disabled={isAssigning}>
             Cancel
           </Button>
           <Button
             onClick={handleAssign}
-            disabled={!selectedAgentId || isAssigning || beachAgents.length === 0}
+            disabled={
+              !selectedAgentId || isAssigning || beachAgents.length === 0
+            }
           >
             {isAssigning ? (
               <>
