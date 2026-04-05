@@ -105,7 +105,10 @@ function EventCard({ event, onDelete, onEdit, onJoin, onLeave, isLoading }) {
               <div className="flex items-center text-xs text-muted-foreground">
                 <User className="w-3 h-3 mr-2 text-primary" />
                 <span className="font-medium">
-                  Assigned: {typeof event.agentId === 'object' ? event.agentId.name : event.agentId}
+                  Assigned:{' '}
+                  {typeof event.agentId === 'object'
+                    ? event.agentId.name
+                    : event.agentId}
                 </span>
               </div>
             )}

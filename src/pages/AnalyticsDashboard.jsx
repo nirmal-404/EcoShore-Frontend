@@ -32,7 +32,11 @@ import {
   Calendar,
 } from 'lucide-react';
 import HeatmapTracker from '@/components/analytics/HeatmapTracker';
-import { getHeatmapData, getBeachPrediction, refreshHeatmap } from '@/api/heatmapApi';
+import {
+  getHeatmapData,
+  getBeachPrediction,
+  refreshHeatmap,
+} from '@/api/heatmapApi';
 import { getActiveCarbonConfig } from '@/api/carbonConfigApi';
 import {
   getDashboardOverview,
@@ -72,17 +76,30 @@ export default function AnalyticsDashboard() {
   // Set today's date once on mount
   useEffect(() => {
     const d = new Date();
-    setCurrentDateString(d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
+    setCurrentDateString(
+      d.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    );
   }, []);
 
   const getDateRange = (filter) => {
     if (filter === 'this-month') {
-      const start = new Date(); start.setDate(1); start.setHours(0,0,0,0);
+      const start = new Date();
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
       return { start: start.toISOString(), end: new Date().toISOString() };
     }
     if (filter === 'last-month') {
-      const end = new Date(); end.setDate(0); end.setHours(23,59,59,999);
-      const start = new Date(end); start.setDate(1); start.setHours(0,0,0,0);
+      const end = new Date();
+      end.setDate(0);
+      end.setHours(23, 59, 59, 999);
+      const start = new Date(end);
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
       return { start: start.toISOString(), end: end.toISOString() };
     }
     return { start: undefined, end: undefined }; // all time
@@ -271,12 +288,18 @@ export default function AnalyticsDashboard() {
     try {
       setIsRecalculating(true);
       setAdminStatus(null);
-      const res = type === 'severity'
-        ? await recalculateSeverity()
-        : await recalculateCarbonOffsets();
+      const res =
+        type === 'severity'
+          ? await recalculateSeverity()
+          : await recalculateCarbonOffsets();
 
       if (res?.success) {
-        setAdminStatus({ type: 'success', message: res.message || 'Recalculation complete! Refresh the page to see updated values.' });
+        setAdminStatus({
+          type: 'success',
+          message:
+            res.message ||
+            'Recalculation complete! Refresh the page to see updated values.',
+        });
         // Re-fetch dashboard data after recalculation
         const [dashRes, severityRes, carbonSumRes] = await Promise.all([
           getDashboardOverview().catch(() => null),
@@ -284,7 +307,8 @@ export default function AnalyticsDashboard() {
           getCarbonOffsetSummary().catch(() => null),
         ]);
         if (dashRes?.success) setGlobalStats(dashRes.data.dashboard.summary);
-        if (severityRes?.success) setSeverityRanking(severityRes.data.ranking || []);
+        if (severityRes?.success)
+          setSeverityRanking(severityRes.data.ranking || []);
         if (carbonSumRes?.success && carbonSumRes.data?.summary) {
           const s = carbonSumRes.data.summary;
           setCarbonSummary({
@@ -294,10 +318,16 @@ export default function AnalyticsDashboard() {
           });
         }
       } else {
-        setAdminStatus({ type: 'error', message: 'Recalculation failed. Check backend logs.' });
+        setAdminStatus({
+          type: 'error',
+          message: 'Recalculation failed. Check backend logs.',
+        });
       }
     } catch (err) {
-      setAdminStatus({ type: 'error', message: err.message || 'Recalculation failed.' });
+      setAdminStatus({
+        type: 'error',
+        message: err.message || 'Recalculation failed.',
+      });
     } finally {
       setIsRecalculating(false);
     }
@@ -323,7 +353,10 @@ export default function AnalyticsDashboard() {
           {/* KPI Skeleton */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white dark:bg-gray-800 p-6 rounded-3xl h-32 flex items-center space-x-4 border border-gray-100 dark:border-gray-700">
+              <div
+                key={i}
+                className="bg-white dark:bg-gray-800 p-6 rounded-3xl h-32 flex items-center space-x-4 border border-gray-100 dark:border-gray-700"
+              >
                 <div className="w-16 h-16 rounded-2xl bg-gray-200 dark:bg-gray-700"></div>
                 <div className="space-y-3 flex-1">
                   <div className="h-4 w-1/2 bg-gray-200 dark:bg-gray-700 rounded"></div>
@@ -334,8 +367,8 @@ export default function AnalyticsDashboard() {
           </div>
           {/* Main Chart Skeleton */}
           <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl h-[450px] border border-gray-100 dark:border-gray-700">
-             <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded mb-8"></div>
-             <div className="h-full w-full bg-gray-100 dark:bg-gray-700/50 rounded-xl"></div>
+            <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded mb-8"></div>
+            <div className="h-full w-full bg-gray-100 dark:bg-gray-700/50 rounded-xl"></div>
           </div>
         </div>
       </div>
@@ -439,7 +472,9 @@ export default function AnalyticsDashboard() {
                   ? `${Number(globalStats.totalWasteCollected).toLocaleString()} kg`
                   : '---'}
               </h3>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">All-time · from waste records</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                All-time · from waste records
+              </p>
             </div>
           </div>
 
@@ -456,7 +491,9 @@ export default function AnalyticsDashboard() {
               <h3 className="text-3xl font-black text-gray-900 dark:text-white">
                 {globalStats?.totalBeaches ?? '---'}
               </h3>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">All-time · beaches with records</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                All-time · beaches with records
+              </p>
             </div>
           </div>
 
@@ -473,7 +510,9 @@ export default function AnalyticsDashboard() {
               <h3 className="text-3xl font-black text-gray-900 dark:text-white">
                 {globalStats?.totalCleanups ?? '---'}
               </h3>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">All-time · all events in system</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                All-time · all events in system
+              </p>
             </div>
           </div>
         </div>
@@ -486,8 +525,12 @@ export default function AnalyticsDashboard() {
                 <Wrench className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-gray-900 dark:text-white">Tools</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Recalculate derived metrics from raw database records</p>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                  Tools
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Recalculate derived metrics from raw database records
+                </p>
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -496,7 +539,9 @@ export default function AnalyticsDashboard() {
                 disabled={isRecalculating}
                 className="flex items-center gap-2 px-4 py-2 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 font-semibold text-sm rounded-xl border border-orange-200 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <RefreshCw className={`w-4 h-4 ${isRecalculating ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`w-4 h-4 ${isRecalculating ? 'animate-spin' : ''}`}
+                />
                 Recalculate Severity Scores
               </button>
               <button
@@ -504,7 +549,9 @@ export default function AnalyticsDashboard() {
                 disabled={isRecalculating}
                 className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 font-semibold text-sm rounded-xl border border-emerald-200 dark:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <RefreshCw className={`w-4 h-4 ${isRecalculating ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`w-4 h-4 ${isRecalculating ? 'animate-spin' : ''}`}
+                />
                 Recalculate Carbon Offsets
               </button>
               <button
@@ -513,28 +560,45 @@ export default function AnalyticsDashboard() {
                   try {
                     const res = await refreshHeatmap();
                     if (res?.success) {
-                      setAdminStatus({ type: 'success', message: 'Map data refreshed! Reloading...' });
+                      setAdminStatus({
+                        type: 'success',
+                        message: 'Map data refreshed! Reloading...',
+                      });
                       setTimeout(() => window.location.reload(), 1000);
                     } else {
-                        setAdminStatus({ type: 'error', message: 'Heatmap refresh failed.' });
+                      setAdminStatus({
+                        type: 'error',
+                        message: 'Heatmap refresh failed.',
+                      });
                     }
                   } catch (e) {
-                     setAdminStatus({ type: 'error', message: 'Error refreshing heatmap.' });
+                    setAdminStatus({
+                      type: 'error',
+                      message: 'Error refreshing heatmap.',
+                    });
                   } finally {
-                     setIsRecalculating(false);
+                    setIsRecalculating(false);
                   }
                 }}
                 disabled={isRecalculating}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-semibold text-sm rounded-xl border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <RefreshCw className={`w-4 h-4 ${isRecalculating ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`w-4 h-4 ${isRecalculating ? 'animate-spin' : ''}`}
+                />
                 Refresh Live Map Data
               </button>
             </div>
           </div>
           {adminStatus && (
-            <div className={`mt-3 px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 ${adminStatus.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700'}`}>
-              {adminStatus.type === 'success' ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <XCircle className="w-4 h-4 flex-shrink-0" />}
+            <div
+              className={`mt-3 px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 ${adminStatus.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700'}`}
+            >
+              {adminStatus.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              ) : (
+                <XCircle className="w-4 h-4 flex-shrink-0" />
+              )}
               {adminStatus.message}
             </div>
           )}
@@ -567,10 +631,10 @@ export default function AnalyticsDashboard() {
               7-Day Predictive Risk Heatmap
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
-                  * The AI model calculates its predictive result dynamically by
-                  combining total waste volume trends, historical tourist
-                  footprint, and seasonal weather/monsoon rain impact.
-                </p>
+              * The AI model calculates its predictive result dynamically by
+              combining total waste volume trends, historical tourist footprint,
+              and seasonal weather/monsoon rain impact.
+            </p>
             <div className="h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
@@ -660,7 +724,6 @@ export default function AnalyticsDashboard() {
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                   AI Actionable Insights
                 </h3>
-                
               </div>
               <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400">
                 <Activity className="w-6 h-6" />
@@ -767,17 +830,35 @@ export default function AnalyticsDashboard() {
                       stroke="none"
                     >
                       {plasticRanking.slice(0, 5).map((entry, index) => {
-                        const PLASTIC_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
-                        return <Cell key={`cell-${index}`} fill={PLASTIC_COLORS[index % PLASTIC_COLORS.length]} />;
+                        const PLASTIC_COLORS = [
+                          '#10b981',
+                          '#3b82f6',
+                          '#f59e0b',
+                          '#ef4444',
+                          '#8b5cf6',
+                        ];
+                        return (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={PLASTIC_COLORS[index % PLASTIC_COLORS.length]}
+                          />
+                        );
                       })}
                     </Pie>
-                    <RechartsTooltip 
-                      formatter={(value) => [`${value.toFixed(1)} kg`, 'Weight']}
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+                    <RechartsTooltip
+                      formatter={(value) => [
+                        `${value.toFixed(1)} kg`,
+                        'Weight',
+                      ]}
+                      contentStyle={{
+                        borderRadius: '12px',
+                        border: 'none',
+                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                      }}
                     />
-                    <Legend 
-                      verticalAlign="middle" 
-                      align="right" 
+                    <Legend
+                      verticalAlign="middle"
+                      align="right"
                       layout="vertical"
                       iconType="circle"
                       wrapperStyle={{ fontSize: '14px', fontWeight: 500 }}

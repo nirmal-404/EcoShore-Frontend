@@ -106,7 +106,9 @@ export const useAssignAgent = () => {
 
   return useMutation({
     mutationFn: async ({ eventId, agentId }) => {
-      const { data } = await API.patch(`/events/${eventId}/assign-agent`, { agentId });
+      const { data } = await API.patch(`/events/${eventId}/assign-agent`, {
+        agentId,
+      });
       return data;
     },
     onSuccess: () => {

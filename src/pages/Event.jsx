@@ -406,35 +406,22 @@ export default function EventsPage() {
         </div>
       )}
 
-      <div className="grid md:grid-cols-3 gap-6">
-        {events &&
-          events.length > 0 &&
-          events.map((event) => (
-            <EventCard
-              key={event._id}
-              event={event}
-              onDelete={handleDelete}
-              onEdit={handleEdit}
-              onJoin={handleJoin}
-              onLeave={handleLeave}
-              isLoading={loadingEventIds.has(event._id)}
-            />
-          ))}
-      </div>
       {/* Grid View */}
       {viewMode === 'grid' && (
         <div className="grid md:grid-cols-3 gap-6">
-          {events.map((event) => (
-            <EventCard
-              key={event._id}
-              event={event}
-              onDelete={handleDelete}
-              onEdit={handleEdit}
-              onJoin={handleJoin}
-              onLeave={handleLeave}
-              isLoading={loadingEventIds.has(event._id)}
-            />
-          ))}
+          {events &&
+            events.length > 0 &&
+            events.map((event) => (
+              <EventCard
+                key={event._id}
+                event={event}
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+                onJoin={handleJoin}
+                onLeave={handleLeave}
+                isLoading={loadingEventIds.has(event._id)}
+              />
+            ))}
         </div>
       )}
 
