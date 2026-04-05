@@ -125,14 +125,18 @@ export default function Login({ handleRegisterDialogOpen }) {
               Admin
             </button>
             <button
-              onClick={() => handleQuickLogin('organizer@gmail.com', 'organizer')}
+              onClick={() =>
+                handleQuickLogin('organizer@gmail.com', 'organizer')
+              }
               className="py-2 px-3 text-xs font-semibold rounded-xl bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 transition-colors"
               title="Log in as Organizer"
             >
               Organizer
             </button>
             <button
-              onClick={() => handleQuickLogin('volunteer@gmail.com', 'volunteer')}
+              onClick={() =>
+                handleQuickLogin('volunteer@gmail.com', 'volunteer')
+              }
               className="py-2 px-3 text-xs font-semibold rounded-xl bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 transition-colors"
               title="Log in as Volunteer"
             >
