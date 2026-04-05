@@ -100,21 +100,3 @@
     @apply bg-background text-foreground;
   }
 }
-
-@layer utilities {
-  .scrollbar-thin {
-    scrollbar-width: thin;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    @apply bg-gray-200 dark:bg-gray-700 rounded-full;
-  }
-}
