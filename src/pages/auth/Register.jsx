@@ -9,7 +9,6 @@ const initialFormData = {
   name: '',
   email: '',
   phoneNumber: '',
- 
 };
 
 export default function Register() {
@@ -21,7 +20,6 @@ export default function Register() {
     e.preventDefault();
 
     // Client-side password match validation before hitting the API
-   
 
     signup(formData);
   }

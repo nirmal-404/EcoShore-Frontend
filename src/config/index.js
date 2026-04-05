@@ -169,5 +169,4 @@ export const agentFormControls = [
     componentType: 'select',
     options: [],
   },
-  
 ];

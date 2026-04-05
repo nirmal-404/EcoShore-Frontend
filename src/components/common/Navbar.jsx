@@ -111,23 +111,23 @@ export default function Navbar() {
           <NavLink to="/" end className={navLinkClass}>
             Home
           </NavLink>
-          {role !== 'agent' && (
-            <>
-              <NavLink to="/analytics" className={navLinkClass}>
-                Analytics
-              </NavLink>
-              <NavLink to="/events" className={navLinkClass}>
-                Events
-              </NavLink>
-            </>
+          {role && role !== 'agent' && (
+            <NavLink to="/analytics" className={navLinkClass}>
+              Analytics
+            </NavLink>
           )}
           <NavLink to="/beaches" className={navLinkClass}>
             Beaches
           </NavLink>
           {role !== 'agent' && (
-            <NavLink to="/community" className={navLinkClass}>
-              Community
-            </NavLink>
+            <>
+              <NavLink to="/events" className={navLinkClass}>
+                Events
+              </NavLink>
+              <NavLink to="/community" className={navLinkClass}>
+                Community
+              </NavLink>
+            </>
           )}
 
           {user && (
