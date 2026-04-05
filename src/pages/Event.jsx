@@ -11,6 +11,7 @@ import Spinner from '@/components/common/LoadingSpinner.jsx';
 import EventCard from '@/components/event/EventCard.jsx';
 import EventCalendar from '@/components/event/EventCalendar.jsx';
 import CommonForm from '@/components/common/Form.jsx';
+import ImageUpload from '@/components/common/ImageUpload.jsx';
 import { eventFormControls } from '@/config/index.js';
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
@@ -113,6 +114,9 @@ export default function EventsPage() {
   );
   const [loadingEventIds, setLoadingEventIds] = useState(new Set());
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'calendar'
+  const [imageFile, setImageFile] = useState(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState('');
+  const [imageLoadingState, setImageLoadingState] = useState(false);
 
   if (isEventLoading || isBeachLoading) return <Spinner />;
   if (isEventError || isBeachError) return <p>Something went wrong.</p>;
@@ -133,11 +137,14 @@ export default function EventsPage() {
       endDate: formData.endDate,
       maxVolunteers: parseInt(formData.maxVolunteers),
       tags: tagsArray,
+      imageUrls: uploadedImageUrl ? [uploadedImageUrl] : [],
     };
 
     addEvent(payload, {
       onSuccess: () => {
         setFormData(initialFormData);
+        setImageFile(null);
+        setUploadedImageUrl('');
         setIsSubmitting(false);
         setOpenAddEventDialog(false);
         toast.success('Event created successfully');
@@ -184,6 +191,12 @@ export default function EventsPage() {
       tags: event.tags?.join(', ') || '',
     };
 
+    if (event.imageUrls && event.imageUrls.length > 0) {
+      setUploadedImageUrl(event.imageUrls[0]);
+    } else {
+      setUploadedImageUrl('');
+    }
+
     setFormData(patchData);
   };
 
@@ -203,6 +216,7 @@ export default function EventsPage() {
       endDate: formData.endDate,
       maxVolunteers: parseInt(formData.maxVolunteers),
       tags: tagsArray,
+      imageUrls: uploadedImageUrl ? [uploadedImageUrl] : [],
     };
 
     editEvent(
@@ -210,6 +224,8 @@ export default function EventsPage() {
       {
         onSuccess: () => {
           setFormData(initialFormData);
+          setImageFile(null);
+          setUploadedImageUrl('');
           setIsSubmitting(false);
           setOpenAddEventDialog(false);
           setCurrentEditedId(null);
@@ -443,6 +459,8 @@ export default function EventsPage() {
           setOpenAddEventDialog(false);
           setCurrentEditedId(null);
           setFormData(initialFormData);
+          setImageFile(null);
+          setUploadedImageUrl('');
         }}
       >
         <SheetContent side="right" className="overflow-auto">
@@ -451,6 +469,15 @@ export default function EventsPage() {
               {currentEditedId !== null ? 'Edit Event' : 'Create New Event'}
             </SheetTitle>
           </SheetHeader>
+          <ImageUpload
+            imageFile={imageFile}
+            setImageFile={setImageFile}
+            uploadedImageUrl={uploadedImageUrl}
+            setUploadedImageUrl={setUploadedImageUrl}
+            imageLoadingState={imageLoadingState}
+            setImageLoadingState={setImageLoadingState}
+            isEditMode={currentEditedId !== null}
+          />
           <div className="py-6">
             <CommonForm
               formControls={eventFormControlsWithBeachesData}
