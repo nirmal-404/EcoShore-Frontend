@@ -60,12 +60,14 @@ export const getAgentsByBeach = async (beachId) => {
 export const getBeachesWithAgentCount = async () => {
   const response = await API.get('/beaches');
   const beaches = response.data?.data || [];
-  
+
   // For each beach, get the agent count
   const beachesWithCount = await Promise.all(
     beaches.map(async (beach) => {
       try {
-        const agentsResponse = await API.get(`/agents/beach/${beach._id || beach.id}`);
+        const agentsResponse = await API.get(
+          `/agents/beach/${beach._id || beach.id}`
+        );
         const agentCount = agentsResponse.data?.data?.length || 0;
         return {
           ...beach,
@@ -80,6 +82,6 @@ export const getBeachesWithAgentCount = async () => {
       }
     })
   );
-  
+
   return { data: beachesWithCount };
 };

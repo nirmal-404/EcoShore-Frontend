@@ -51,12 +51,18 @@ export default function AgentRegister() {
     setIsSuccess(false);
 
     // Validation
-    if (!formData.name || !formData.email || !formData.nic || !formData.assignedBeach) {
+    if (
+      !formData.name ||
+      !formData.email ||
+      !formData.nic ||
+      !formData.assignedBeach
+    ) {
       setIsError(true);
-      setError({ response: { data: { error: 'Please fill in all required fields.' } } });
+      setError({
+        response: { data: { error: 'Please fill in all required fields.' } },
+      });
       return;
     }
-
 
     setIsPending(true);
 
@@ -66,7 +72,6 @@ export default function AgentRegister() {
         email: formData.email,
         nic: formData.nic,
         assignedBeach: formData.assignedBeach,
-    
       });
 
       setIsSuccess(true);
