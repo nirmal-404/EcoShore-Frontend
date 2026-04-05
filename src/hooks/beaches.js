@@ -24,17 +24,6 @@ export const useAddBeach = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['beaches']);
-      // const newBeach = response.data.beach;
-      // queryClient.setQueryData(['beaches'], (old) => {
-      //   if (!old || !old.data) {
-      //     return { data: [newBeach] };
-      //   }
-
-      //   return {
-      //     ...old,
-      //     data: [...old.data, newBeach],
-      //   };
-      // });
     },
   });
 };
@@ -48,20 +37,8 @@ export const useEditBeach = () => {
       const { data } = await API.put(`/beaches/${id}`, updatedData);
       return data;
     },
-    onSuccess: (response) => {
-      const updatedBeach = response.data.beach;
-      queryClient.setQueryData(['beaches'], (old) => {
-        if (!old || !old.data) {
-          return { data: [updatedBeach] };
-        }
-
-        return {
-          ...old,
-          data: old.data.map((beach) =>
-            beach.id === updatedBeach.id ? updatedBeach : beach
-          ),
-        };
-      });
+    onSuccess: () => {
+      queryClient.invalidateQueries(['beaches']);
     },
   });
 };
