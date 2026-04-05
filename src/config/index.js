@@ -139,3 +139,35 @@ export const eventFormControls = [
     placeholder: 'e.g., environment, marine-life, community',
   },
 ];
+
+export const agentFormControls = [
+  {
+    name: 'name',
+    label: 'Full Name',
+    placeholder: 'Enter agent name (firstname + lastname)',
+    componentType: 'input',
+    type: 'text',
+  },
+  {
+    name: 'email',
+    label: 'Email',
+    placeholder: 'Enter agent email',
+    componentType: 'input',
+    type: 'email',
+  },
+  {
+    name: 'nic',
+    label: 'National ID (NIC)',
+    placeholder: 'Enter agent NIC',
+    componentType: 'input',
+    type: 'text',
+  },
+  {
+    name: 'assignedBeach',
+    label: 'Assigned Beach',
+    placeholder: 'Select beach',
+    componentType: 'select',
+    options: [],
+  },
+  
+];

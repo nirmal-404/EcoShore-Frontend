@@ -9,8 +9,7 @@ const initialFormData = {
   name: '',
   email: '',
   phoneNumber: '',
-  password: '',
-  confirmPassword: '',
+ 
 };
 
 export default function Register() {
@@ -22,10 +21,7 @@ export default function Register() {
     e.preventDefault();
 
     // Client-side password match validation before hitting the API
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match!');
-      return;
-    }
+   
 
     signup(formData);
   }
