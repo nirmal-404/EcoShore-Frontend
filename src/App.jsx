@@ -18,6 +18,7 @@ import OraganizerPanel from '@/pages/OrganizerPanel';
 import VolunteerDashboard from '@/pages/volunteer/Dashboard';
 import CollectorDashboard from '@/pages/collector/Dashboard';
 import AnalyticsDashboard from '@/pages/AnalyticsDashboard';
+import GlobalChatWidget from '@/components/chat/GlobalChatWidget';
 
 function App() {
   return (
@@ -94,6 +95,8 @@ function App() {
             <Route path="/chat" element={<ChatApp />} />
           </Route>
         </Routes>
+
+        <GlobalChatWidget />
       </BrowserRouter>
     </AuthProvider>
   );

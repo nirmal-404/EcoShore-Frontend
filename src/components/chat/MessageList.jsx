@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getMessages } from '@/api/chatApi';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getMessages, markMessageSeen } from '@/api/chatApi';
 import { useSelector } from 'react-redux';
-import { Loader2 } from 'lucide-react';
+import { Check, CheckCheck, Loader2 } from 'lucide-react';
 
 function avatarColor(name = '') {
   const colors = [
@@ -30,9 +30,15 @@ function groupByDate(messages) {
   return groups;
 }
 
-export function MessageList({ groupId }) {
+export function MessageList({
+  groupId,
+  groupType = 'DIRECT_MESSAGE',
+  memberNameMap = {},
+}) {
   const { user } = useSelector((s) => s.auth);
   const scrollRef = useRef(null);
+  const pendingSeenMessageIdsRef = useRef(new Set());
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ['chat-messages', groupId],
@@ -42,13 +48,68 @@ export function MessageList({ groupId }) {
   });
 
   const rawData = data?.data;
-  const messages = Array.isArray(rawData) ? rawData : rawData?.messages || [];
+  const allMessages = Array.isArray(rawData) ? rawData : rawData?.messages || [];
+  const messages = allMessages.filter(
+    (msg) => !msg?.isSystemMessage && msg?.senderId !== 'SYSTEM'
+  );
+  const myId = user?.id?.toString() || user?._id?.toString();
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (!groupId || !myId || messages.length === 0) {
+      return;
+    }
+
+    const unseenMessageIds = messages
+      .filter((msg) => {
+        const senderIdStr =
+          typeof msg.senderId === 'object'
+            ? msg.senderId?._id?.toString()
+            : msg.senderId?.toString();
+
+        if (!senderIdStr || senderIdStr === myId) {
+          return false;
+        }
+
+        const messageId = msg.id || msg._id;
+        if (!messageId || pendingSeenMessageIdsRef.current.has(messageId)) {
+          return false;
+        }
+
+        const seenByIds = Array.isArray(msg.seenBy)
+          ? msg.seenBy.map((seenId) => seenId?.toString?.() || String(seenId))
+          : [];
+
+        return !seenByIds.includes(myId);
+      })
+      .map((msg) => msg.id || msg._id);
+
+    if (unseenMessageIds.length === 0) {
+      return;
+    }
+
+    unseenMessageIds.forEach((messageId) => {
+      pendingSeenMessageIdsRef.current.add(messageId);
+    });
+
+    Promise.allSettled(
+      unseenMessageIds.map((messageId) => markMessageSeen(groupId, messageId))
+    )
+      .then(() => {
+        queryClient.invalidateQueries(['chat-groups']);
+        queryClient.invalidateQueries(['chat-messages', groupId]);
+      })
+      .finally(() => {
+        unseenMessageIds.forEach((messageId) => {
+          pendingSeenMessageIdsRef.current.delete(messageId);
+        });
+      });
+  }, [groupId, myId, messages, queryClient]);
 
   if (!groupId) return null;
 
@@ -70,7 +131,7 @@ export function MessageList({ groupId }) {
       {messages.length === 0 ? (
         <div className="flex items-center justify-center py-12">
           <div className="bg-gray-800 dark:bg-gray-800 px-6 py-3 rounded-full text-sm text-gray-400 dark:text-gray-400 shadow-sm border border-gray-700 dark:border-gray-700">
-            No messages yet. Start the conversation! 👋
+            No messages yet
           </div>
         </div>
       ) : (
@@ -87,9 +148,20 @@ export function MessageList({ groupId }) {
 
           const msg = item.msg;
           const senderIdStr = typeof msg.senderId === 'object' ? msg.senderId?._id?.toString() : msg.senderId?.toString();
-          const senderName = typeof msg.senderId === 'object' ? msg.senderId?.name : null;
-          const myId = user?.id?.toString() || user?._id?.toString();
           const isMine = !!myId && senderIdStr === myId;
+          const isGroupChat = groupType !== 'DIRECT_MESSAGE';
+          const senderName = (
+            (typeof msg.senderId === 'object' ? msg.senderId?.name : null) ||
+            memberNameMap[senderIdStr] ||
+            ''
+          ).trim();
+          const avatarName = senderName || 'Member';
+          const showSenderMeta = !isMine && isGroupChat;
+          const seenByIds = Array.isArray(msg.seenBy)
+            ? msg.seenBy.map((seenId) => seenId?.toString?.() || String(seenId))
+            : [];
+          const isSeenByRecipient =
+            isMine && seenByIds.some((seenId) => seenId && seenId !== myId);
 
           const prevItem = items[idx - 1];
           const prevSenderId = prevItem?.type === 'message'
@@ -98,6 +170,18 @@ export function MessageList({ groupId }) {
           const isFirstInGroup = prevItem?.type !== 'message' || prevSenderId !== senderIdStr;
 
           const timeStr = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const isCallEvent = msg.messageType === 'CALL_EVENT';
+
+          if (isCallEvent) {
+            return (
+              <div key={msg._id || msg.id || idx} className="flex items-center justify-center">
+                <span className="inline-flex items-center gap-2 rounded-full bg-gray-800/80 border border-gray-700 px-3 py-1 text-xs text-gray-300">
+                  <span>{msg.text || 'Voice call'}</span>
+                  <span className="text-gray-500">{timeStr}</span>
+                </span>
+              </div>
+            );
+          }
 
           return (
             <div
@@ -105,20 +189,20 @@ export function MessageList({ groupId }) {
               className={`flex items-end gap-2 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}
             >
               {/* Avatar */}
-              {!isMine && isFirstInGroup && (
+              {showSenderMeta && isFirstInGroup && (
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${avatarColor(senderName || '')}`}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${avatarColor(avatarName)}`}
                 >
-                  {(senderName || 'U').slice(0, 2).toUpperCase()}
+                  {avatarName.charAt(0).toUpperCase()}
                 </div>
               )}
-              {!isMine && !isFirstInGroup && <div className="w-8 shrink-0" />}
+              {showSenderMeta && !isFirstInGroup && <div className="w-8 shrink-0" />}
 
               <div className={`flex flex-col max-w-xs lg:max-w-md ${isMine ? 'items-end' : 'items-start'}`}>
-                {/* Sender name */}
-                {!isMine && isFirstInGroup && (
+                {/* Sender name for group chats only */}
+                {showSenderMeta && isFirstInGroup && (
                   <span className="text-xs text-gray-400 dark:text-gray-400 font-semibold ml-1 mb-1">
-                    {senderName || 'User'}
+                    {avatarName}
                   </span>
                 )}
 
@@ -130,9 +214,22 @@ export function MessageList({ groupId }) {
                     } shadow-sm`}
                 >
                   <p className="whitespace-pre-wrap">{msg.text}</p>
-                  <span className={`text-xs mt-1 block ${isMine ? 'text-blue-100 dark:text-blue-200' : 'text-gray-400 dark:text-gray-400'}`}>
-                    {timeStr}
-                  </span>
+                  <div className={`text-xs mt-1 flex items-center gap-1 ${isMine ? 'text-blue-100 dark:text-blue-200 justify-end' : 'text-gray-400 dark:text-gray-400'}`}>
+                    <span>{timeStr}</span>
+                    {isMine && (
+                      isSeenByRecipient ? (
+                        <CheckCheck
+                          className="w-3.5 h-3.5 text-blue-200"
+                          title="Seen"
+                        />
+                      ) : (
+                        <Check
+                          className="w-3.5 h-3.5 text-blue-100"
+                          title="Received"
+                        />
+                      )
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

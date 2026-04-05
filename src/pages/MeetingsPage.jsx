@@ -170,45 +170,55 @@ export default function MeetingsPage() {
   }
 
   return (
-    <div className="container mx-auto px-6 py-12 space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Meetings</h1>
-          <p className="text-muted-foreground">
-            Create and join video meetings with up to 5 participants.
-          </p>
+    <div className="h-full min-h-0 px-6 py-6 overflow-auto lg:overflow-hidden">
+      <div className="h-full min-h-0 flex flex-col gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4 shrink-0">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Meetings</h1>
+            <p className="text-muted-foreground">
+              Create and join video meetings with up to 5 participants.
+            </p>
+          </div>
+
+          <Button
+            variant="outline"
+            onClick={() =>
+              queryClient.invalidateQueries({ queryKey: ['my-meetings'] })
+            }
+            disabled={meetingsQuery.isFetching}
+          >
+            <RefreshCcw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
         </div>
 
-        <Button
-          variant="outline"
-          onClick={() => queryClient.invalidateQueries({ queryKey: ['my-meetings'] })}
-          disabled={meetingsQuery.isFetching}
-        >
-          <RefreshCcw className="mr-2 h-4 w-4" />
-          Refresh
-        </Button>
+        {(usersQuery.isLoading || meetingsQuery.isLoading) && (
+          <p className="text-sm text-muted-foreground shrink-0">
+            Loading meeting data...
+          </p>
+        )}
+
+        <div className="grid gap-6 lg:grid-cols-2 flex-1 min-h-0 lg:overflow-hidden">
+          <div className="lg:min-h-0">
+            <MeetingForm
+              users={availableUsers}
+              onSubmit={handleCreateMeeting}
+              isSubmitting={createMeetingMutation.isPending}
+            />
+          </div>
+
+          <div className="lg:min-h-0">
+            <MeetingList
+              meetings={myMeetings}
+              currentUserId={currentUserId}
+              onStart={handleStartMeeting}
+              onJoin={handleJoinMeeting}
+              onEnd={handleEndMeeting}
+              actionLoading={actionLoading}
+            />
+          </div>
+        </div>
       </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <MeetingForm
-          users={availableUsers}
-          onSubmit={handleCreateMeeting}
-          isSubmitting={createMeetingMutation.isPending}
-        />
-
-        <MeetingList
-          meetings={myMeetings}
-          currentUserId={currentUserId}
-          onStart={handleStartMeeting}
-          onJoin={handleJoinMeeting}
-          onEnd={handleEndMeeting}
-          actionLoading={actionLoading}
-        />
-      </div>
-
-      {(usersQuery.isLoading || meetingsQuery.isLoading) && (
-        <p className="text-sm text-muted-foreground">Loading meeting data...</p>
-      )}
     </div>
   );
 }

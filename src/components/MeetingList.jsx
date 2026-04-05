@@ -30,18 +30,29 @@ export default function MeetingList({
   onEnd,
   actionLoading,
 }) {
+  const sortedMeetings = [...meetings].sort((firstMeeting, secondMeeting) => {
+    const firstIsOngoing = firstMeeting.status === 'ongoing';
+    const secondIsOngoing = secondMeeting.status === 'ongoing';
+
+    if (firstIsOngoing === secondIsOngoing) {
+      return 0;
+    }
+
+    return firstIsOngoing ? -1 : 1;
+  });
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>My Meetings</CardTitle>
+    <Card className="h-full min-h-0 flex flex-col">
+      <CardHeader className="shrink-0">
+        <CardTitle>Meetings</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 flex-1 min-h-0 overflow-y-auto">
         {meetings.length === 0 ? (
           <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
             You do not have any meetings yet.
           </p>
         ) : (
-          meetings.map((meeting) => {
+          sortedMeetings.map((meeting) => {
             const creatorId =
               typeof meeting.createdBy === 'object'
                 ? meeting.createdBy?._id

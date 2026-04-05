@@ -82,12 +82,12 @@ export default function MeetingForm({ users = [], onSubmit, isSubmitting }) {
   };
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle>Create Meeting</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="meeting-title">
               Title
@@ -112,7 +112,7 @@ export default function MeetingForm({ users = [], onSubmit, isSubmitting }) {
             <p className="text-xs text-muted-foreground">
               Select up to 4 users. You are auto-added as participant 5.
             </p>
-            <div className="max-h-52 overflow-y-auto rounded-lg border border-border divide-y">
+            <div className="max-h-40 overflow-y-auto rounded-lg border border-border divide-y">
               {sortedUsers.length === 0 ? (
                 <p className="p-3 text-sm text-muted-foreground">
                   No users available to invite.

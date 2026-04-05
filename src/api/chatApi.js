@@ -26,6 +26,14 @@ export const addMemberToGroup = async (groupId, userId) => {
   return response.data;
 };
 
+export const removeMemberFromGroup = async (groupId, userId) => {
+  const response = await axios.delete(
+    `${BASE_URL}/groups/${groupId}/members/${userId}`,
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
+
 export const getUserChatGroups = async () => {
   const response = await axios.get(`${BASE_URL}/groups`, {
     headers: getAuthHeaders(),
@@ -89,6 +97,15 @@ export const sendMessage = async (groupId, text) => {
   const response = await axios.post(
     `${BASE_URL}/groups/${groupId}/messages`,
     { text },
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
+
+export const markMessageSeen = async (groupId, messageId) => {
+  const response = await axios.patch(
+    `${BASE_URL}/groups/${groupId}/messages/${messageId}/seen`,
+    {},
     { headers: getAuthHeaders() }
   );
   return response.data;

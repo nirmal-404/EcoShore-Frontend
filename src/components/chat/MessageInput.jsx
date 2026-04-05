@@ -11,6 +11,7 @@ export function MessageInput({ groupId }) {
     mutationFn: (msg) => sendMessage(groupId, msg),
     onSuccess: () => {
       queryClient.invalidateQueries(['chat-messages', groupId]);
+      queryClient.invalidateQueries(['chat-groups']);
       setText('');
     },
   });

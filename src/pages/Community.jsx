@@ -204,7 +204,11 @@ export default function Community() {
       </div>
 
       {/* Chat Modal */}
-      <ChatApp isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      <ChatApp
+        isOpen={isChatOpen}
+        onOpen={() => setIsChatOpen(true)}
+        onClose={() => setIsChatOpen(false)}
+      />
     </div>
   );
 }
