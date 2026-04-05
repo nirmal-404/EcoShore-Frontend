@@ -21,6 +21,14 @@ import { Plus } from 'lucide-react';
 import ImageUpload from '@/components/common/ImageUpload.jsx';
 import CustomAlert from '@/components/common/Alert';
 import { toast } from 'sonner';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 
 const initialFormData = {
   name: '',
@@ -40,12 +48,19 @@ const initialAletDialogState = {
 
 export default function BeachesPage() {
   const { user } = useSelector((state) => state.auth);
-  const { data, isLoading, isError: isBechFetchError } = useBeaches();
+  const [page, setPage] = useState(1);
+  const limit = 8;
+  const {
+    data,
+    isLoading,
+    isError: isBechFetchError,
+  } = useBeaches({ page, limit });
   const { mutate: addBeach } = useAddBeach();
   const { mutate: editBeach } = useEditBeach();
   const { mutate: deleteBeach } = useDeleteBeach();
 
   const beaches = data?.data || [];
+  const pagination = data?.pagination || { page: 1, pages: 1 };
 
   const [formData, setFormData] = useState(initialFormData);
   const [openAddBeachDialog, setOpenAddBeachDialog] = useState(false);
@@ -208,17 +223,60 @@ export default function BeachesPage() {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-4 gap-6">
-        {beaches &&
-          beaches.map((beach) => (
-            <BeachCard
-              key={beach.id}
-              beach={beach}
-              onDelete={handleDelete}
-              onEdit={handleEdit}
-            />
-          ))}
+      <div className="mb-6">
+        {pagination.pages > 0 && (
+          <div className="mt-12">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    className={
+                      page === 1
+                        ? 'pointer-events-none opacity-50'
+                        : 'cursor-pointer'
+                    }
+                  />
+                </PaginationItem>
+                {[...Array(pagination.pages)].map((_, i) => (
+                  <PaginationItem key={i + 1}>
+                    <PaginationLink
+                      onClick={() => setPage(i + 1)}
+                      isActive={page === i + 1}
+                      className="cursor-pointer"
+                    >
+                      {i + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() =>
+                      setPage((p) => Math.min(pagination.pages, p + 1))
+                    }
+                    className={
+                      page === pagination.pages
+                        ? 'pointer-events-none opacity-50'
+                        : 'cursor-pointer'
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </div>
+      <div className="grid md:grid-cols-4 gap-6">
+        {beaches?.map((beach) => (
+          <BeachCard
+            key={beach.id}
+            beach={beach}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+          />
+        ))}
+      </div>
+
       {user?.role && user?.role === 'admin' && (
         <Button
           onClick={() => setOpenAddBeachDialog(true)}

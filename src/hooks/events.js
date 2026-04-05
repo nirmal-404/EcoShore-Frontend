@@ -2,11 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import API from '@/api/index.js';
 
 /* GET ALL EVENTS */
-export const useEvents = () => {
+export const useEvents = (params = {}) => {
   return useQuery({
-    queryKey: ['events'],
+    queryKey: ['events', params],
     queryFn: async () => {
-      const { data } = await API.get('/events');
+      const { data } = await API.get('/events', { params });
       return data;
     },
     staleTime: 1000 * 60 * 5,

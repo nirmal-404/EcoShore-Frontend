@@ -2,11 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import API from '@/api/index.js';
 
 /* GET ALL */
-export const useBeaches = () => {
+export const useBeaches = (params = {}) => {
   return useQuery({
-    queryKey: ['beaches'],
+    queryKey: ['beaches', params],
     queryFn: async () => {
-      const { data } = await API.get('/beaches');
+      const { data } = await API.get('/beaches', { params });
       return data;
     },
     staleTime: 1000 * 60 * 5,
