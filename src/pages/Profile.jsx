@@ -15,7 +15,7 @@ import {
   CardContent,
   CardDescription,
 } from '@/components/ui/card';
-import { ShieldAlert, KeyRound, User, } from 'lucide-react';
+import { ShieldAlert, KeyRound, User } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user } = useSelector((state) => state.auth);
