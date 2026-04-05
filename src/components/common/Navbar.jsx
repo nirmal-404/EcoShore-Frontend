@@ -13,6 +13,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -20,8 +21,11 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { useState } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import Login from '@/pages/auth/Login';
+import Register from '@/pages/auth/Register';
 
 const navLinkClass = ({ isActive }) =>
   `text-sm font-medium transition-colors relative pb-0.5 ${
@@ -78,6 +82,9 @@ export default function Navbar() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  const [openLoginDialog, setOpenLoginDialog] = useState(false);
+  const [openRegisterDialog, setOpenRegisterDialog] = useState(false);
+
   const handleLogout = () => {
     dispatch(logout());
     navigate('/');
@@ -94,6 +101,17 @@ export default function Navbar() {
         .toUpperCase()
     : 'U';
 
+  function handleLoginDialogOpen(event) {
+    event.preventDefault();
+    setOpenRegisterDialog(false);
+    setOpenLoginDialog(true);
+  }
+
+  function handleRegisterDialogOpen(event) {
+    event.preventDefault();
+    setOpenLoginDialog(false);
+    setOpenRegisterDialog(true);
+  }
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-3 flex items-center justify-between">
       {/* LEFT — Logo + Nav Links */}
@@ -152,11 +170,11 @@ export default function Navbar() {
         )}
         {!token ? (
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/login">Login</Link>
+            <Button variant="ghost" size="sm" onClick={handleLoginDialogOpen}>
+              Login
             </Button>
-            <Button size="sm" asChild>
-              <Link to="/register">Sign Up</Link>
+            <Button size="sm" onClick={handleRegisterDialogOpen}>
+              Sign Up
             </Button>
           </div>
         ) : (
@@ -318,6 +336,24 @@ export default function Navbar() {
           </DropdownMenu>
         )}
       </div>
+
+      <Dialog
+        open={openLoginDialog}
+        onOpenChange={() => {
+          setOpenLoginDialog(false);
+        }}
+      >
+        <Login handleRegisterDialogOpen={handleRegisterDialogOpen} />
+      </Dialog>
+
+      <Dialog
+        open={openRegisterDialog}
+        onOpenChange={() => {
+          setOpenRegisterDialog(false);
+        }}
+      >
+        <Register handleLoginDialogOpen={handleLoginDialogOpen} />
+      </Dialog>
     </nav>
   );
 }

@@ -3,8 +3,6 @@ import AuthProvider from '@/components/auth/AuthProvider';
 import Layout from '@/layout.jsx';
 import PrivateRoute from '@/components/common/PrivateRoute';
 
-import Login from '@/pages/auth/Auth';
-import Register from '@/pages/auth/Register';
 import Home from '@/pages/Home';
 import Event from '@/pages/Event';
 import Beaches from '@/pages/Beaches';
@@ -40,10 +38,6 @@ function App() {
               <Route path="/profile" element={<ProfilePage />} />
             </Route>
           </Route>
-
-          {/* Auth pages without navbar */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
 
           {/* Admin */}
           <Route element={<PrivateRoute allowedRoles={['admin']} />}>
