@@ -68,7 +68,9 @@ export default function MeetingForm({ users = [], onSubmit, isSubmitting }) {
       }
 
       if (previousParticipants.length >= MAX_OTHER_PARTICIPANTS) {
-        toast.error('You can select up to 4 other participants (5 including you).');
+        toast.error(
+          'You can select up to 4 other participants (5 including you).'
+        );
         return previousParticipants;
       }
 
@@ -243,11 +245,7 @@ export default function MeetingForm({ users = [], onSubmit, isSubmitting }) {
           )}
 
           <div className="flex justify-start pt-1">
-            <Button
-              type="submit"
-              className="min-w-36"
-              disabled={isSubmitting}
-            >
+            <Button type="submit" className="min-w-36" disabled={isSubmitting}>
               {isSubmitting ? 'Creating...' : 'Create Meeting'}
             </Button>
           </div>
@@ -324,7 +322,8 @@ export default function MeetingForm({ users = [], onSubmit, isSubmitting }) {
 
               <div className="flex items-center justify-between gap-3 pt-1">
                 <p className="text-xs text-muted-foreground">
-                  {selectedParticipants.length}/{MAX_OTHER_PARTICIPANTS} selected
+                  {selectedParticipants.length}/{MAX_OTHER_PARTICIPANTS}{' '}
+                  selected
                 </p>
                 <Button
                   type="button"

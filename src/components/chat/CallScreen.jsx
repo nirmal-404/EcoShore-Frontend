@@ -27,12 +27,12 @@ export function CallScreen({
     phase === 'incoming'
       ? 'Incoming call...'
       : phase === 'outgoing'
-      ? 'Calling...'
-      : phase === 'active'
-      ? `In call · ${formatDuration(durationSeconds)}`
-      : phase === 'connecting'
-      ? 'Connecting...'
-      : 'Call ended';
+        ? 'Calling...'
+        : phase === 'active'
+          ? `In call · ${formatDuration(durationSeconds)}`
+          : phase === 'connecting'
+            ? 'Connecting...'
+            : 'Call ended';
 
   return (
     <div className="h-full w-full bg-gradient-to-br from-gray-900 via-slate-900 to-gray-800 text-white flex flex-col items-center justify-center px-6">
@@ -69,7 +69,9 @@ export function CallScreen({
           </>
         )}
 
-        {(phase === 'active' || phase === 'connecting' || phase === 'outgoing') && (
+        {(phase === 'active' ||
+          phase === 'connecting' ||
+          phase === 'outgoing') && (
           <>
             {phase === 'active' && (
               <button
@@ -78,7 +80,11 @@ export function CallScreen({
                 className="w-14 h-14 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-colors"
                 title={isMuted ? 'Unmute' : 'Mute'}
               >
-                {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+                {isMuted ? (
+                  <MicOff className="w-6 h-6" />
+                ) : (
+                  <Mic className="w-6 h-6" />
+                )}
               </button>
             )}
 

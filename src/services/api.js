@@ -1,7 +1,8 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -52,7 +53,10 @@ export const createPost = async (postDataOrPayload, filesArg = []) => {
 
   const formData = new FormData();
   formData.append('text', text || '');
-  formData.append('visibility', visibility === 'community' ? 'community' : 'public');
+  formData.append(
+    'visibility',
+    visibility === 'community' ? 'community' : 'public'
+  );
 
   files.forEach((file) => {
     formData.append('media', file);

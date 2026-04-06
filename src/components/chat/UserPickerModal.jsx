@@ -7,7 +7,11 @@ export function UserPickerModal({ isOpen, onClose, onUserSelected }) {
   const [search, setSearch] = useState('');
   const [selectedUserId, setSelectedUserId] = useState(null);
 
-  const { data: users = [], isLoading, error } = useQuery({
+  const {
+    data: users = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['all-users'],
     queryFn: getAllUsers,
     staleTime: 60_000,
@@ -60,7 +64,10 @@ export function UserPickerModal({ isOpen, onClose, onUserSelected }) {
         {/* Search */}
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <div className="relative">
-            <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Search
+              size={18}
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            />
             <input
               type="text"
               placeholder="Search users..."
@@ -76,7 +83,10 @@ export function UserPickerModal({ isOpen, onClose, onUserSelected }) {
         <div className="overflow-y-auto flex-1 min-h-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-32">
-              <Loader2 size={24} className="text-blue-600 dark:text-blue-400 animate-spin" />
+              <Loader2
+                size={24}
+                className="text-blue-600 dark:text-blue-400 animate-spin"
+              />
             </div>
           ) : error ? (
             <div className="p-4 text-center text-red-600 dark:text-red-400 text-sm">

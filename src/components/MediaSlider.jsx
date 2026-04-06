@@ -20,7 +20,11 @@ function MediaFallback({ type }) {
 
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-300">
-      {isVideo ? <VideoOff className="h-8 w-8" /> : <ImageOff className="h-8 w-8" />}
+      {isVideo ? (
+        <VideoOff className="h-8 w-8" />
+      ) : (
+        <ImageOff className="h-8 w-8" />
+      )}
       <p className="text-sm font-medium">
         {isVideo ? 'Video unavailable' : 'Image unavailable'}
       </p>

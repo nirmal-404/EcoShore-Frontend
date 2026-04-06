@@ -11,7 +11,8 @@ const rtcConfig = {
 };
 
 const getSocketServerUrl = () => {
-  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+  const apiBaseUrl =
+    import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
   return apiBaseUrl.replace(/\/api\/?$/, '');
 };
 
@@ -266,7 +267,9 @@ export default function VideoRoom({
         const token = Cookies.get('token') || localStorage.getItem('token');
 
         if (!token) {
-          throw new Error('Authentication token missing. Please sign in again.');
+          throw new Error(
+            'Authentication token missing. Please sign in again.'
+          );
         }
 
         const socket = io(getSocketServerUrl(), {
@@ -284,9 +287,9 @@ export default function VideoRoom({
         });
 
         socket.on('existing-participants', async ({ participants = [] }) => {
-          const uniqueParticipants = [...new Set(participants.map(String))].filter(
-            (participantId) => participantId !== currentUserId
-          );
+          const uniqueParticipants = [
+            ...new Set(participants.map(String)),
+          ].filter((participantId) => participantId !== currentUserId);
 
           participantsRef.current = uniqueParticipants;
           setParticipants(uniqueParticipants);
@@ -400,24 +403,33 @@ export default function VideoRoom({
           }
         });
 
-        socket.on('ice-candidate', async ({ fromUserId, toUserId, candidate }) => {
-          if (String(toUserId) !== currentUserId || !fromUserId || !candidate) {
-            return;
-          }
+        socket.on(
+          'ice-candidate',
+          async ({ fromUserId, toUserId, candidate }) => {
+            if (
+              String(toUserId) !== currentUserId ||
+              !fromUserId ||
+              !candidate
+            ) {
+              return;
+            }
 
-          const remoteUserId = String(fromUserId);
-          const peerConnection = createPeerConnection(remoteUserId);
+            const remoteUserId = String(fromUserId);
+            const peerConnection = createPeerConnection(remoteUserId);
 
-          if (!peerConnection) {
-            return;
-          }
+            if (!peerConnection) {
+              return;
+            }
 
-          try {
-            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-          } catch (error) {
-            // Ignore transient ICE add failures during rapid disconnect/reconnect.
+            try {
+              await peerConnection.addIceCandidate(
+                new RTCIceCandidate(candidate)
+              );
+            } catch (error) {
+              // Ignore transient ICE add failures during rapid disconnect/reconnect.
+            }
           }
-        });
+        );
 
         socket.on('join-error', ({ message }) => {
           toast.error(message || 'Failed to join meeting.');
@@ -509,11 +521,7 @@ export default function VideoRoom({
             {isMuted ? <MicOff /> : <Mic />}
             {isMuted ? 'Unmute' : 'Mute'}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleToggleCamera}
-          >
+          <Button type="button" variant="outline" onClick={handleToggleCamera}>
             {isCameraOff ? <VideoOff /> : <Video />}
             {isCameraOff ? 'Camera On' : 'Camera Off'}
           </Button>

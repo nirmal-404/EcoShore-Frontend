@@ -782,7 +782,8 @@ function PostCard({ post, onLikeToggle }) {
           )}
         >
           {liking ? <Spinner /> : isLiked ? '❤️' : '🤍'}
-          {post.likesCount || post.likes?.length || 0} {isLiked ? 'Liked' : 'Like'}
+          {post.likesCount || post.likes?.length || 0}{' '}
+          {isLiked ? 'Liked' : 'Like'}
         </button>
         <div className="flex-1">
           <PostComments postId={post._id} />

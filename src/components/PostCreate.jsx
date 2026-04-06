@@ -140,7 +140,10 @@ export default function PostCreate({ onCreated }) {
       toast.error('Only the first 5 files were kept.');
     }
 
-    setSelectedFiles((prev) => [...prev, ...validFiles.slice(0, remainingSlots)]);
+    setSelectedFiles((prev) => [
+      ...prev,
+      ...validFiles.slice(0, remainingSlots),
+    ]);
   };
 
   const handleSubmit = (event) => {

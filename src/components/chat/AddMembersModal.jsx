@@ -13,7 +13,11 @@ export function AddMembersModal({
 }) {
   const [search, setSearch] = useState('');
 
-  const { data: users = [], isLoading, error } = useQuery({
+  const {
+    data: users = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['all-users'],
     queryFn: getAllUsers,
     staleTime: 60_000,
@@ -26,7 +30,9 @@ export function AddMembersModal({
   );
 
   const filteredUsers = useMemo(() => {
-    const candidates = users.filter((user) => !memberIdSet.has(user._id?.toString()));
+    const candidates = users.filter(
+      (user) => !memberIdSet.has(user._id?.toString())
+    );
 
     if (!search.trim()) {
       return candidates;
@@ -84,7 +90,10 @@ export function AddMembersModal({
         <div className="overflow-y-auto flex-1 min-h-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-32">
-              <Loader2 size={24} className="text-blue-600 dark:text-blue-400 animate-spin" />
+              <Loader2
+                size={24}
+                className="text-blue-600 dark:text-blue-400 animate-spin"
+              />
             </div>
           ) : error ? (
             <div className="p-4 text-center text-red-600 dark:text-red-400 text-sm">

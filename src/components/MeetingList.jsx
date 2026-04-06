@@ -44,7 +44,9 @@ export default function MeetingList({
   });
 
   return (
-    <Card className={compact ? 'flex flex-col' : 'h-full min-h-0 flex flex-col'}>
+    <Card
+      className={compact ? 'flex flex-col' : 'h-full min-h-0 flex flex-col'}
+    >
       <CardHeader className="shrink-0">
         <CardTitle>Meetings</CardTitle>
       </CardHeader>
@@ -143,7 +145,9 @@ export default function MeetingList({
                       disabled={actionLoading === `end-${meeting._id}`}
                       onClick={() => onEnd(meeting)}
                     >
-                      {actionLoading === `end-${meeting._id}` ? 'Ending...' : 'End'}
+                      {actionLoading === `end-${meeting._id}`
+                        ? 'Ending...'
+                        : 'End'}
                     </Button>
                   )}
 

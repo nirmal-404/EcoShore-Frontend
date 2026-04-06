@@ -1,5 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { Mail, Phone, MapPin, Edit2, Award, Zap, Heart, Users, Calendar, Loader2 } from 'lucide-react';
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Edit2,
+  Award,
+  Zap,
+  Heart,
+  Users,
+  Calendar,
+  Loader2,
+} from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +24,11 @@ export default function ProfileView() {
   const [isEditing, setIsEditing] = useState(false);
 
   // Fetch current user profile
-  const { data: userProfile, isLoading: profileLoading, error: profileError } = useQuery({
+  const {
+    data: userProfile,
+    isLoading: profileLoading,
+    error: profileError,
+  } = useQuery({
     queryKey: ['userProfile'],
     queryFn: getUserProfile,
   });
@@ -44,7 +59,10 @@ export default function ProfileView() {
     const uniqueBeaches = new Set();
     wasteRecords.forEach((record) => {
       if (record.beachId) {
-        const beachId = typeof record.beachId === 'object' ? record.beachId._id : record.beachId;
+        const beachId =
+          typeof record.beachId === 'object'
+            ? record.beachId._id
+            : record.beachId;
         uniqueBeaches.add(beachId);
       }
     });
@@ -58,11 +76,12 @@ export default function ProfileView() {
   }, [userEvents, wasteRecords, communityPosts]);
 
   // Generate user initials for avatar
-  const userInitials = userProfile?.name
-    ?.split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase() || 'U';
+  const userInitials =
+    userProfile?.name
+      ?.split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase() || 'U';
 
   // Prepare activities from recent events and posts
   const activities = useMemo(() => {
@@ -109,23 +128,41 @@ export default function ProfileView() {
     const badgeList = [];
 
     if (stats.eventsAttended >= 5) {
-      badgeList.push({ id: 1, name: 'Ocean Guardian', icon: '🌊', color: 'blue' });
+      badgeList.push({
+        id: 1,
+        name: 'Ocean Guardian',
+        icon: '🌊',
+        color: 'blue',
+      });
     }
     if (stats.beachesVisited >= 3) {
-      badgeList.push({ id: 2, name: 'Beach Hero', icon: '⭐', color: 'yellow' });
+      badgeList.push({
+        id: 2,
+        name: 'Beach Hero',
+        icon: '⭐',
+        color: 'yellow',
+      });
     }
     if (stats.wasterecordsSubmitted >= 10) {
-      badgeList.push({ id: 3, name: 'Active Member', icon: '🔥', color: 'orange' });
+      badgeList.push({
+        id: 3,
+        name: 'Active Member',
+        icon: '🔥',
+        color: 'orange',
+      });
     }
 
-    return badgeList.length > 0 ? badgeList : [
-      { id: 1, name: 'Ocean Guardian', icon: '🌊', color: 'blue' },
-      { id: 2, name: 'Beach Hero', icon: '⭐', color: 'yellow' },
-      { id: 3, name: 'Active Member', icon: '🔥', color: 'orange' },
-    ];
+    return badgeList.length > 0
+      ? badgeList
+      : [
+          { id: 1, name: 'Ocean Guardian', icon: '🌊', color: 'blue' },
+          { id: 2, name: 'Beach Hero', icon: '⭐', color: 'yellow' },
+          { id: 3, name: 'Active Member', icon: '🔥', color: 'orange' },
+        ];
   }, [stats]);
 
-  const isLoading = profileLoading || eventsLoading || wasteLoading || postsLoading;
+  const isLoading =
+    profileLoading || eventsLoading || wasteLoading || postsLoading;
 
   if (isLoading) {
     return (
@@ -156,8 +193,12 @@ export default function ProfileView() {
     email: userProfile?.email || 'N/A',
     phone: userProfile?.phone || 'N/A',
     location: userProfile?.address || 'Not specified',
-    bio: userProfile?.bio || 'Environmental enthusiast passionate about ocean conservation. Volunteer with EcoShore team.',
-    role: userProfile?.role?.charAt(0).toUpperCase() + userProfile?.role?.slice(1).toLowerCase() || 'Volunteer',
+    bio:
+      userProfile?.bio ||
+      'Environmental enthusiast passionate about ocean conservation. Volunteer with EcoShore team.',
+    role:
+      userProfile?.role?.charAt(0).toUpperCase() +
+        userProfile?.role?.slice(1).toLowerCase() || 'Volunteer',
     joinDate: userProfile?.createdAt
       ? new Date(userProfile.createdAt).toLocaleDateString('en-US', {
           year: 'numeric',
@@ -300,9 +341,15 @@ export default function ProfileView() {
                 className="flex items-start gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                  {activity.type === 'event' && <Users size={20} className="text-blue-600" />}
-                  {activity.type === 'post' && <Heart size={20} className="text-red-600" />}
-                  {activity.type === 'record' && <Award size={20} className="text-purple-600" />}
+                  {activity.type === 'event' && (
+                    <Users size={20} className="text-blue-600" />
+                  )}
+                  {activity.type === 'post' && (
+                    <Heart size={20} className="text-red-600" />
+                  )}
+                  {activity.type === 'record' && (
+                    <Award size={20} className="text-purple-600" />
+                  )}
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900 dark:text-white">

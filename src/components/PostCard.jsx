@@ -85,7 +85,11 @@ function MediaFallback({ type }) {
 
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-300">
-      {isVideo ? <VideoOff className="h-8 w-8" /> : <ImageOff className="h-8 w-8" />}
+      {isVideo ? (
+        <VideoOff className="h-8 w-8" />
+      ) : (
+        <ImageOff className="h-8 w-8" />
+      )}
       <p className="text-sm font-medium">
         {isVideo ? 'Video unavailable' : 'Image unavailable'}
       </p>
@@ -212,7 +216,11 @@ function PostCardSkeleton() {
   );
 }
 
-export default function PostCard({ post, loading = false, showActions = true }) {
+export default function PostCard({
+  post,
+  loading = false,
+  showActions = true,
+}) {
   const queryClient = useQueryClient();
   const { user } = useSelector((state) => state.auth);
   const [showMenu, setShowMenu] = useState(false);
@@ -239,7 +247,8 @@ export default function PostCard({ post, loading = false, showActions = true }) 
       ? 'community'
       : 'public';
   const VisibilityIcon = postVisibility === 'community' ? Users : Globe;
-  const visibilityLabel = postVisibility === 'community' ? 'Community' : 'Public';
+  const visibilityLabel =
+    postVisibility === 'community' ? 'Community' : 'Public';
   const currentUserId = user?.id || user?._id || null;
   const postOwnerId = post?.userId?._id || post?.userId?.id || null;
   const isOwner =
@@ -528,7 +537,9 @@ export default function PostCard({ post, loading = false, showActions = true }) 
           >
             <Heart
               className={`h-4 w-4 ${
-                isLiked ? 'fill-red-500 text-red-500' : 'text-gray-500 dark:text-gray-300'
+                isLiked
+                  ? 'fill-red-500 text-red-500'
+                  : 'text-gray-500 dark:text-gray-300'
               }`}
             />
             Like

@@ -1,5 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { MessageCircle, Search, Plus, Phone, Info, UserPlus } from 'lucide-react';
+import {
+  MessageCircle,
+  Search,
+  Plus,
+  Phone,
+  Info,
+  UserPlus,
+} from 'lucide-react';
 import { io } from 'socket.io-client';
 import Cookies from 'js-cookie';
 import { useSelector } from 'react-redux';
@@ -23,7 +30,8 @@ const rtcConfig = {
 };
 
 const getSocketServerUrl = () => {
-  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+  const apiBaseUrl =
+    import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
   return apiBaseUrl.replace(/\/api\/?$/, '');
 };
 
@@ -79,21 +87,18 @@ export default function ChatApp({
 
   // Use external state if provided, otherwise use internal state
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
-  const setIsOpen = useCallback(
-    (val) => {
-      if (externalOnCloseRef.current) {
-        if (val) {
-          externalOnOpenRef.current?.();
-        } else {
-          externalOnCloseRef.current?.();
-        }
-        return;
+  const setIsOpen = useCallback((val) => {
+    if (externalOnCloseRef.current) {
+      if (val) {
+        externalOnOpenRef.current?.();
+      } else {
+        externalOnCloseRef.current?.();
       }
+      return;
+    }
 
-      setInternalIsOpen(val);
-    },
-    []
-  );
+    setInternalIsOpen(val);
+  }, []);
 
   const createDirectChatMutation = useMutation({
     mutationFn: async (selectedUser) => {
@@ -120,7 +125,9 @@ export default function ChatApp({
       console.error('Error response:', error.response?.data);
       console.error('Error message:', error.message);
       setCreatingChat(false);
-      alert(`Failed to create chat: ${error.response?.data?.message || error.message || 'Unknown error'}`);
+      alert(
+        `Failed to create chat: ${error.response?.data?.message || error.message || 'Unknown error'}`
+      );
     },
   });
 
@@ -178,9 +185,7 @@ export default function ChatApp({
     }
 
     if (localAudioStreamRef.current) {
-      localAudioStreamRef.current
-        .getTracks()
-        .forEach((track) => track.stop());
+      localAudioStreamRef.current.getTracks().forEach((track) => track.stop());
       localAudioStreamRef.current = null;
     }
 
@@ -351,7 +356,9 @@ export default function ChatApp({
 
     for (const item of pendingCandidates) {
       try {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(item.candidate));
+        await peerConnection.addIceCandidate(
+          new RTCIceCandidate(item.candidate)
+        );
       } catch {
         // Ignore invalid or stale candidates.
       }
@@ -483,7 +490,8 @@ export default function ChatApp({
     0
   );
 
-  const unreadBadgeText = totalUnreadCount > 99 ? '99+' : String(totalUnreadCount);
+  const unreadBadgeText =
+    totalUnreadCount > 99 ? '99+' : String(totalUnreadCount);
 
   // Fetch current group details
   const { data: currentGroup } = useQuery({
@@ -507,9 +515,10 @@ export default function ChatApp({
     (user?.role || '').toLowerCase()
   );
   const currentGroupMemberIds = (currentGroup?.data?.members || [])
-    .map((member) =>
-      (typeof member === 'object' && member?._id?.toString?.()) ||
-      member?.toString?.()
+    .map(
+      (member) =>
+        (typeof member === 'object' && member?._id?.toString?.()) ||
+        member?.toString?.()
     )
     .filter(Boolean);
   const currentGroupMemberNameMap = (currentGroup?.data?.members || []).reduce(
@@ -763,7 +772,9 @@ export default function ChatApp({
       }));
 
       try {
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
+        await peerConnection.setRemoteDescription(
+          new RTCSessionDescription(sdp)
+        );
         await flushPendingIceCandidates(callId);
       } catch {
         // Ignore transient answer sync failures.
@@ -837,7 +848,10 @@ export default function ChatApp({
           className="fixed bottom-6 left-6 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 group"
           title="Open Messages"
         >
-          <MessageCircle size={24} className="group-hover:rotate-12 transition-transform" />
+          <MessageCircle
+            size={24}
+            className="group-hover:rotate-12 transition-transform"
+          />
 
           {totalUnreadCount > 0 && (
             <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center border-2 border-blue-700">
@@ -873,7 +887,9 @@ export default function ChatApp({
                 <div className="w-full sm:w-96 bg-gray-800 dark:bg-gray-800 flex flex-col border-r border-gray-700 dark:border-gray-700 min-h-0">
                   {/* Header */}
                   <div className="p-4 border-b border-gray-700 dark:border-gray-700 flex items-center justify-between bg-gray-800 dark:bg-gray-800">
-                    <h2 className="text-xl font-bold text-white dark:text-white">Chats</h2>
+                    <h2 className="text-xl font-bold text-white dark:text-white">
+                      Chats
+                    </h2>
                     <button
                       onClick={() => setUserPickerOpen(true)}
                       className="p-1.5 rounded-full hover:bg-gray-700 dark:hover:bg-gray-700 transition-colors text-blue-400 dark:text-blue-400"
@@ -886,7 +902,10 @@ export default function ChatApp({
                   {/* Search Bar */}
                   <div className="px-4 py-3 border-b border-gray-700 dark:border-gray-700 bg-gray-800 dark:bg-gray-800">
                     <div className="relative">
-                      <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                      <Search
+                        size={18}
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                      />
                       <input
                         type="text"
                         placeholder="Search..."
@@ -979,10 +998,10 @@ export default function ChatApp({
                               {currentGroupRecipientIsOnline
                                 ? 'Online'
                                 : currentGroupRecipientLastSeen
-                                ? `Last seen ${new Date(
-                                    currentGroupRecipientLastSeen
-                                  ).toLocaleString()}`
-                                : 'Offline'}
+                                  ? `Last seen ${new Date(
+                                      currentGroupRecipientLastSeen
+                                    ).toLocaleString()}`
+                                  : 'Offline'}
                             </p>
                           )}
                         </div>
@@ -1006,7 +1025,8 @@ export default function ChatApp({
                           <button
                             onClick={handleStartDirectCall}
                             disabled={
-                              !currentGroupRecipientIsOnline || callState.isVisible
+                              !currentGroupRecipientIsOnline ||
+                              callState.isVisible
                             }
                             className="p-2 hover:bg-gray-700 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title={
@@ -1015,7 +1035,10 @@ export default function ChatApp({
                                 : 'User is offline'
                             }
                           >
-                            <Phone size={20} className="text-gray-400 dark:text-gray-400" />
+                            <Phone
+                              size={20}
+                              className="text-gray-400 dark:text-gray-400"
+                            />
                           </button>
                         )}
                       </div>
@@ -1038,7 +1061,10 @@ export default function ChatApp({
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center text-center px-6 bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-900 dark:to-gray-800">
                     <div className="p-4 rounded-full bg-blue-900/30 dark:bg-blue-900/30 mb-4">
-                      <MessageCircle className="text-blue-400 dark:text-blue-400" size={40} />
+                      <MessageCircle
+                        className="text-blue-400 dark:text-blue-400"
+                        size={40}
+                      />
                     </div>
                     <h3 className="text-lg font-semibold text-white dark:text-white mb-2">
                       Select a chat to start
@@ -1066,7 +1092,12 @@ export default function ChatApp({
                 onToggleMute={handleToggleMute}
               />
 
-              <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
+              <audio
+                ref={remoteAudioRef}
+                autoPlay
+                playsInline
+                className="hidden"
+              />
             </div>
           </div>
         </div>

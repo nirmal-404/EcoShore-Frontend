@@ -131,7 +131,10 @@ export const getUserBeachesVisited = async (userId) => {
 export const getUserBio = async () => {
   try {
     const user = await getUserProfile();
-    return user.bio || 'Environmental enthusiast passionate about ocean conservation.';
+    return (
+      user.bio ||
+      'Environmental enthusiast passionate about ocean conservation.'
+    );
   } catch (error) {
     return 'Environmental enthusiast passionate about ocean conservation.';
   }

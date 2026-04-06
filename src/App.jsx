@@ -52,7 +52,12 @@ function App() {
             <Route
               element={
                 <PrivateRoute
-                  allowedRoles={['volunteer', 'organizer', 'admin', 'collector']}
+                  allowedRoles={[
+                    'volunteer',
+                    'organizer',
+                    'admin',
+                    'collector',
+                  ]}
                 />
               }
             >

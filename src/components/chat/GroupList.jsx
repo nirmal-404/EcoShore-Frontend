@@ -159,7 +159,11 @@ export function GroupList({
     const shouldArchive = !contextMenu.group.isArchived;
     toggleGroupPreference(contextMenu.group._id, 'isArchived');
 
-    if (shouldArchive && selectedGroupId === contextMenu.group._id && chatFilter !== 'archived') {
+    if (
+      shouldArchive &&
+      selectedGroupId === contextMenu.group._id &&
+      chatFilter !== 'archived'
+    ) {
       onSelectGroup(null);
     }
 
@@ -201,7 +205,6 @@ export function GroupList({
     <div className="relative flex flex-col h-full bg-gray-800 dark:bg-gray-800">
       {/* Chat List */}
       <div className="flex-1 overflow-y-auto">
-
         {isLoading && (
           <div className="flex justify-center py-10">
             <Loader2 className="animate-spin text-blue-600" />
@@ -209,22 +212,22 @@ export function GroupList({
         )}
 
         {error && (
-          <p className="text-center text-red-500 py-4">
-            Failed to load chats
-          </p>
+          <p className="text-center text-red-500 py-4">Failed to load chats</p>
         )}
 
         {!isLoading && groups.length === 0 && (
-          <p className="text-center text-gray-500 py-6">
-            No chats available
-          </p>
+          <p className="text-center text-gray-500 py-6">No chats available</p>
         )}
 
         {groups.map((group) => {
           const isSelected = selectedGroupId === group._id;
-          const groupDisplayName = (group.displayName || group.name || 'Chat').trim();
+          const groupDisplayName = (
+            group.displayName ||
+            group.name ||
+            'Chat'
+          ).trim();
 
-          const lastMessage = group.lastMessage?.text || "No messages yet";
+          const lastMessage = group.lastMessage?.text || 'No messages yet';
           const lastTime = group.lastMessage?.createdAt;
           const unreadCount = Number(group.unreadCount || 0);
 
@@ -260,7 +263,9 @@ export function GroupList({
               >
                 {/* Avatar */}
                 <div className="relative shrink-0">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-lg ${bg}`}>
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-lg ${bg}`}
+                  >
                     {groupDisplayName.charAt(0)?.toUpperCase()}
                   </div>
 

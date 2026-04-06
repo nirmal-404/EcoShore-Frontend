@@ -6,11 +6,17 @@ import { Check, CheckCheck, Loader2 } from 'lucide-react';
 
 function avatarColor(name = '') {
   const colors = [
-    'bg-blue-500', 'bg-emerald-500', 'bg-violet-500',
-    'bg-rose-500', 'bg-amber-500', 'bg-cyan-500', 'bg-pink-500',
+    'bg-blue-500',
+    'bg-emerald-500',
+    'bg-violet-500',
+    'bg-rose-500',
+    'bg-amber-500',
+    'bg-cyan-500',
+    'bg-pink-500',
   ];
   let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h + name.charCodeAt(i)) % colors.length;
+  for (let i = 0; i < name.length; i++)
+    h = (h + name.charCodeAt(i)) % colors.length;
   return colors[h];
 }
 
@@ -19,7 +25,9 @@ function groupByDate(messages) {
   let currentDate = null;
   messages.forEach((msg) => {
     const d = new Date(msg.createdAt).toLocaleDateString(undefined, {
-      day: 'numeric', month: 'short', year: 'numeric',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
     });
     if (d !== currentDate) {
       currentDate = d;
@@ -48,7 +56,9 @@ export function MessageList({
   });
 
   const rawData = data?.data;
-  const allMessages = Array.isArray(rawData) ? rawData : rawData?.messages || [];
+  const allMessages = Array.isArray(rawData)
+    ? rawData
+    : rawData?.messages || [];
   const messages = allMessages.filter(
     (msg) => !msg?.isSystemMessage && msg?.senderId !== 'SYSTEM'
   );
@@ -138,7 +148,10 @@ export function MessageList({
         items.map((item, idx) => {
           if (item.type === 'date') {
             return (
-              <div key={`date-${idx}`} className="flex items-center justify-center my-2">
+              <div
+                key={`date-${idx}`}
+                className="flex items-center justify-center my-2"
+              >
                 <span className="bg-gray-800 dark:bg-gray-800 text-xs text-gray-400 dark:text-gray-400 font-medium px-3 py-1 rounded-full shadow-sm border border-gray-700 dark:border-gray-700">
                   {item.label}
                 </span>
@@ -147,7 +160,10 @@ export function MessageList({
           }
 
           const msg = item.msg;
-          const senderIdStr = typeof msg.senderId === 'object' ? msg.senderId?._id?.toString() : msg.senderId?.toString();
+          const senderIdStr =
+            typeof msg.senderId === 'object'
+              ? msg.senderId?._id?.toString()
+              : msg.senderId?.toString();
           const isMine = !!myId && senderIdStr === myId;
           const isGroupChat = groupType !== 'DIRECT_MESSAGE';
           const senderName = (
@@ -164,17 +180,27 @@ export function MessageList({
             isMine && seenByIds.some((seenId) => seenId && seenId !== myId);
 
           const prevItem = items[idx - 1];
-          const prevSenderId = prevItem?.type === 'message'
-            ? (typeof prevItem.msg.senderId === 'object' ? prevItem.msg.senderId?._id?.toString() : prevItem.msg.senderId?.toString())
-            : null;
-          const isFirstInGroup = prevItem?.type !== 'message' || prevSenderId !== senderIdStr;
+          const prevSenderId =
+            prevItem?.type === 'message'
+              ? typeof prevItem.msg.senderId === 'object'
+                ? prevItem.msg.senderId?._id?.toString()
+                : prevItem.msg.senderId?.toString()
+              : null;
+          const isFirstInGroup =
+            prevItem?.type !== 'message' || prevSenderId !== senderIdStr;
 
-          const timeStr = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const timeStr = new Date(msg.createdAt).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
           const isCallEvent = msg.messageType === 'CALL_EVENT';
 
           if (isCallEvent) {
             return (
-              <div key={msg._id || msg.id || idx} className="flex items-center justify-center">
+              <div
+                key={msg._id || msg.id || idx}
+                className="flex items-center justify-center"
+              >
                 <span className="inline-flex items-center gap-2 rounded-full bg-gray-800/80 border border-gray-700 px-3 py-1 text-xs text-gray-300">
                   <span>{msg.text || 'Voice call'}</span>
                   <span className="text-gray-500">{timeStr}</span>
@@ -196,9 +222,13 @@ export function MessageList({
                   {avatarName.charAt(0).toUpperCase()}
                 </div>
               )}
-              {showSenderMeta && !isFirstInGroup && <div className="w-8 shrink-0" />}
+              {showSenderMeta && !isFirstInGroup && (
+                <div className="w-8 shrink-0" />
+              )}
 
-              <div className={`flex flex-col max-w-xs lg:max-w-md ${isMine ? 'items-end' : 'items-start'}`}>
+              <div
+                className={`flex flex-col max-w-xs lg:max-w-md ${isMine ? 'items-end' : 'items-start'}`}
+              >
                 {/* Sender name for group chats only */}
                 {showSenderMeta && isFirstInGroup && (
                   <span className="text-xs text-gray-400 dark:text-gray-400 font-semibold ml-1 mb-1">
@@ -208,16 +238,19 @@ export function MessageList({
 
                 {/* Message bubble */}
                 <div
-                  className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed break-words ${isMine
+                  className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed break-words ${
+                    isMine
                       ? 'bg-blue-600 dark:bg-blue-500 text-white rounded-br-none'
                       : 'bg-gray-700 dark:bg-gray-700 text-gray-100 dark:text-gray-100 rounded-bl-none border border-gray-600 dark:border-gray-600'
-                    } shadow-sm`}
+                  } shadow-sm`}
                 >
                   <p className="whitespace-pre-wrap">{msg.text}</p>
-                  <div className={`text-xs mt-1 flex items-center gap-1 ${isMine ? 'text-blue-100 dark:text-blue-200 justify-end' : 'text-gray-400 dark:text-gray-400'}`}>
+                  <div
+                    className={`text-xs mt-1 flex items-center gap-1 ${isMine ? 'text-blue-100 dark:text-blue-200 justify-end' : 'text-gray-400 dark:text-gray-400'}`}
+                  >
                     <span>{timeStr}</span>
-                    {isMine && (
-                      isSeenByRecipient ? (
+                    {isMine &&
+                      (isSeenByRecipient ? (
                         <CheckCheck
                           className="w-3.5 h-3.5 text-blue-200"
                           title="Seen"
@@ -227,8 +260,7 @@ export function MessageList({
                           className="w-3.5 h-3.5 text-blue-100"
                           title="Received"
                         />
-                      )
-                    )}
+                      ))}
                   </div>
                 </div>
               </div>

@@ -79,7 +79,12 @@ export const getAllUsers = async () => {
     console.log('getAllUsers response:', response);
     return response.data?.data || [];
   } catch (error) {
-    console.error('getAllUsers error:', error.response?.status, error.response?.data, error.message);
+    console.error(
+      'getAllUsers error:',
+      error.response?.status,
+      error.response?.data,
+      error.message
+    );
     throw error;
   }
 };

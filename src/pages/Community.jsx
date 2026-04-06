@@ -8,13 +8,27 @@ import { getMyMeetings } from '@/api/meetingsApi';
 import PostCard from '@/components/PostCard';
 import PostCreate from '@/components/PostCreate';
 import ChatApp from '@/pages/chat/ChatApp';
-import { MessageSquare, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import {
+  MessageSquare,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+} from 'lucide-react';
 
 /* ── helpers ─────────────────────────────────────────────────────── */
 function avatarColor(name = '') {
-  const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-violet-500', 'bg-rose-500', 'bg-amber-500', 'bg-cyan-500', 'bg-pink-500'];
+  const colors = [
+    'bg-blue-500',
+    'bg-emerald-500',
+    'bg-violet-500',
+    'bg-rose-500',
+    'bg-amber-500',
+    'bg-cyan-500',
+    'bg-pink-500',
+  ];
   let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h + name.charCodeAt(i)) % colors.length;
+  for (let i = 0; i < name.length; i++)
+    h = (h + name.charCodeAt(i)) % colors.length;
   return colors[h];
 }
 
@@ -60,7 +74,9 @@ function sortMeetingsForSidebar(meetings = []) {
   };
 
   const getTime = (meeting) =>
-    new Date(meeting?.scheduledAt || meeting?.updatedAt || meeting?.createdAt || 0).getTime();
+    new Date(
+      meeting?.scheduledAt || meeting?.updatedAt || meeting?.createdAt || 0
+    ).getTime();
 
   return [...meetings].sort((a, b) => {
     const priorityDiff =
@@ -194,10 +210,12 @@ function RightSidebar({ user, onOpenConversation }) {
   const chatGroups = data?.data || [];
   const recentChatGroups = [...chatGroups]
     .sort((a, b) => {
-      const aTime =
-        new Date(a?.lastMessage?.createdAt || a?.updatedAt || a?.createdAt || 0).getTime();
-      const bTime =
-        new Date(b?.lastMessage?.createdAt || b?.updatedAt || b?.createdAt || 0).getTime();
+      const aTime = new Date(
+        a?.lastMessage?.createdAt || a?.updatedAt || a?.createdAt || 0
+      ).getTime();
+      const bTime = new Date(
+        b?.lastMessage?.createdAt || b?.updatedAt || b?.createdAt || 0
+      ).getTime();
       return bTime - aTime;
     })
     .slice(0, 5);
@@ -237,10 +255,16 @@ function RightSidebar({ user, onOpenConversation }) {
         {!isLoading && !error && recentChatGroups.length > 0 && (
           <div className="space-y-1 max-h-[28rem] overflow-y-auto pr-1">
             {recentChatGroups.map((group) => {
-              const displayName = (group.displayName || group.name || 'Chat').trim();
+              const displayName = (
+                group.displayName ||
+                group.name ||
+                'Chat'
+              ).trim();
               const unreadCount = Number(group.unreadCount || 0);
               const lastMessage = group.lastMessage?.text || 'No messages yet';
-              const lastMessageTime = formatChatTimestamp(group.lastMessage?.createdAt);
+              const lastMessageTime = formatChatTimestamp(
+                group.lastMessage?.createdAt
+              );
 
               return (
                 <button
@@ -248,7 +272,9 @@ function RightSidebar({ user, onOpenConversation }) {
                   onClick={() => onOpenConversation(group._id)}
                   className="w-full flex items-center gap-3 rounded-lg px-2.5 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition text-left"
                 >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 ${avatarColor(displayName)}`}>
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 ${avatarColor(displayName)}`}
+                  >
                     {displayName.slice(0, 2).toUpperCase()}
                   </div>
 
@@ -262,7 +288,9 @@ function RightSidebar({ user, onOpenConversation }) {
                       </span>
                     </div>
                     <div className="mt-0.5 flex items-center justify-between gap-2">
-                      <p className={`text-xs truncate ${unreadCount > 0 ? 'text-gray-700 dark:text-gray-200 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                      <p
+                        className={`text-xs truncate ${unreadCount > 0 ? 'text-gray-700 dark:text-gray-200 font-medium' : 'text-gray-500 dark:text-gray-400'}`}
+                      >
                         {lastMessage}
                       </p>
                       {unreadCount > 0 && (
@@ -322,7 +350,6 @@ export default function Community() {
       {/* ── Three-column layout ── */}
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] gap-6">
-
           {/* Left sidebar */}
           {user && (
             <div className="sticky top-4 h-fit">
@@ -352,7 +379,9 @@ export default function Community() {
                 <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
                   <MessageSquare className="w-8 h-8 text-blue-400" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1">It's quiet here…</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                  It's quiet here…
+                </h3>
                 <p className="text-gray-500 text-sm">
                   {user
                     ? 'Be the first to share an update with the community!'
@@ -362,7 +391,11 @@ export default function Community() {
             ) : (
               <>
                 {posts.map((post) => (
-                  <PostCard key={post._id} post={post} showActions={Boolean(user)} />
+                  <PostCard
+                    key={post._id}
+                    post={post}
+                    showActions={Boolean(user)}
+                  />
                 ))}
 
                 {/* Pagination */}
@@ -379,7 +412,9 @@ export default function Community() {
                       Page {page} of {pagination.pages}
                     </span>
                     <button
-                      onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
+                      onClick={() =>
+                        setPage((p) => Math.min(pagination.pages, p + 1))
+                      }
                       disabled={page === pagination.pages}
                       className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
                     >
@@ -394,7 +429,10 @@ export default function Community() {
           {/* Right sidebar */}
           {user && (
             <div className="sticky top-4 h-fit">
-              <RightSidebar user={user} onOpenConversation={openConversationOnly} />
+              <RightSidebar
+                user={user}
+                onOpenConversation={openConversationOnly}
+              />
             </div>
           )}
           {!user && <div className="hidden lg:block" aria-hidden="true" />}

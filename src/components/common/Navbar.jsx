@@ -12,8 +12,8 @@ import {
   Trash2,
   ChevronDown,
   CheckCircle,
-    Moon,
-    Sun,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,9 +27,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 const navLinkClass = ({ isActive }) =>
-  `text-sm font-medium transition-colors relative pb-0.5 ${isActive
-    ? 'text-primary after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-primary after:rounded-full'
-    : 'text-foreground/70 hover:text-foreground'
+  `text-sm font-medium transition-colors relative pb-0.5 ${
+    isActive
+      ? 'text-primary after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-primary after:rounded-full'
+      : 'text-foreground/70 hover:text-foreground'
   }`;
 
 const ROLE_META = {
@@ -90,11 +91,11 @@ export default function Navbar() {
   const roleMeta = ROLE_META[role] || null;
   const initials = user?.name
     ? user.name
-      .split(' ')
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase()
+        .split(' ')
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase()
     : 'U';
 
   return (
@@ -132,11 +133,11 @@ export default function Navbar() {
               </NavLink>
             </>
           )}
-            {token && (
-                <NavLink to="/meetings" className={navLinkClass}>
-                    Meetings
-                </NavLink>
-            )}
+          {token && (
+            <NavLink to="/meetings" className={navLinkClass}>
+              Meetings
+            </NavLink>
+          )}
         </div>
       </div>
 
@@ -149,18 +150,20 @@ export default function Navbar() {
             </NavLink>
           </div>
         )}
-          {/* Theme Toggle */}
-          <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-lg border border-border/60 hover:border-primary/40 hover:bg-secondary/30 transition-all duration-200 text-foreground/70 hover:text-foreground"
-              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          >
-              {theme === 'dark' ? (
-                  <Sun className="w-4 h-4" />
-              ) : (
-                  <Moon className="w-4 h-4" />
-              )}
-          </button>
+        {/* Theme Toggle */}
+        <button
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="p-2 rounded-lg border border-border/60 hover:border-primary/40 hover:bg-secondary/30 transition-all duration-200 text-foreground/70 hover:text-foreground"
+          title={
+            theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'
+          }
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-4 h-4" />
+          ) : (
+            <Moon className="w-4 h-4" />
+          )}
+        </button>
         {!token ? (
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
@@ -265,7 +268,6 @@ export default function Navbar() {
                         </div>
                       </Link>
                     </DropdownMenuItem>
-
 
                     <DropdownMenuSeparator className="my-1.5 mx-2" />
                   </>
