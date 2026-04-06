@@ -1,7 +1,10 @@
 import API from '@/api/index.js';
 
-export const getDashboardOverview = async () => {
-  const response = await API.get('/analytics/dashboard');
+export const getDashboardOverview = async (startDate, endDate) => {
+  const params = new URLSearchParams();
+  if (startDate) params.append('startDate', startDate);
+  if (endDate) params.append('endDate', endDate);
+  const response = await API.get(`/analytics/dashboard?${params.toString()}`);
   return response.data; // Expected { success: true, data: { dashboard: { summary: {...}, ... } } }
 };
 
@@ -14,7 +17,9 @@ export const getCarbonOffsetSummary = async (startDate, endDate) => {
   const params = new URLSearchParams();
   if (startDate) params.append('startDate', startDate);
   if (endDate) params.append('endDate', endDate);
-  const response = await API.get(`/analytics/carbon-offset?${params.toString()}`);
+  const response = await API.get(
+    `/analytics/carbon-offset?${params.toString()}`
+  );
   return response.data;
 };
 
@@ -26,7 +31,9 @@ export const getSeverityRanking = async (limit = 10) => {
 export const getTrendPrediction = async (beachId, months = 3) => {
   const params = new URLSearchParams({ months });
   if (beachId) params.append('beachId', beachId);
-  const response = await API.get(`/analytics/trend-prediction?${params.toString()}`);
+  const response = await API.get(
+    `/analytics/trend-prediction?${params.toString()}`
+  );
   return response.data;
 };
 
@@ -57,4 +64,14 @@ export const getMLHealth = async () => {
   } catch (error) {
     return false;
   }
+};
+
+export const recalculateSeverity = async () => {
+  const response = await API.post('/analytics/severity/recalculate');
+  return response.data;
+};
+
+export const recalculateCarbonOffsets = async () => {
+  const response = await API.post('/analytics/carbon/recalculate');
+  return response.data;
 };

@@ -4,14 +4,16 @@ import { useTheme } from 'next-themes';
 import { logout } from '@/store/authSlice';
 import {
   Waves,
+  MessageSquare,
   LogOut,
   User,
   LayoutDashboard,
   ShieldCheck,
   Trash2,
   ChevronDown,
-  Moon,
-  Sun,
+  CheckCircle,
+    Moon,
+    Sun,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -63,6 +65,14 @@ const ROLE_META = {
     dashboardPath: '/collector',
     dashboardLabel: 'Waste Collection',
   },
+  agent: {
+    label: 'Agent',
+    color: 'bg-blue-500/15 text-blue-400 border border-blue-500/25',
+    gradient: 'from-blue-500 to-cyan-500',
+    icon: CheckCircle,
+    dashboardPath: '/agent',
+    dashboardLabel: 'Agent Dashboard',
+  },
 };
 
 export default function Navbar() {
@@ -104,41 +114,53 @@ export default function Navbar() {
           <NavLink to="/" end className={navLinkClass}>
             Home
           </NavLink>
-          <NavLink to="/analytics" className={navLinkClass}>
-            Analytics
-          </NavLink>
-          <NavLink to="/events" className={navLinkClass}>
-            Events
-          </NavLink>
+          {role && role !== 'agent' && (
+            <NavLink to="/analytics" className={navLinkClass}>
+              Analytics
+            </NavLink>
+          )}
           <NavLink to="/beaches" className={navLinkClass}>
             Beaches
           </NavLink>
-          <NavLink to="/community" className={navLinkClass}>
-            Community
-          </NavLink>
-          {token && (
-            <NavLink to="/meetings" className={navLinkClass}>
-              Meetings
-            </NavLink>
+          {role !== 'agent' && (
+            <>
+              <NavLink to="/events" className={navLinkClass}>
+                Events
+              </NavLink>
+              <NavLink to="/community" className={navLinkClass}>
+                Community
+              </NavLink>
+            </>
           )}
+            {token && (
+                <NavLink to="/meetings" className={navLinkClass}>
+                    Meetings
+                </NavLink>
+            )}
         </div>
       </div>
 
       {/* RIGHT — Auth */}
       <div className="flex items-center gap-3">
-        {/* Theme Toggle */}
-        <button
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="p-2 rounded-lg border border-border/60 hover:border-primary/40 hover:bg-secondary/30 transition-all duration-200 text-foreground/70 hover:text-foreground"
-          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-        >
-          {theme === 'dark' ? (
-            <Sun className="w-4 h-4" />
-          ) : (
-            <Moon className="w-4 h-4" />
-          )}
-        </button>
-
+        {role === 'admin' && (
+          <div className="me-3">
+            <NavLink to="/usermanagement" className={navLinkClass}>
+              Users
+            </NavLink>
+          </div>
+        )}
+          {/* Theme Toggle */}
+          <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="p-2 rounded-lg border border-border/60 hover:border-primary/40 hover:bg-secondary/30 transition-all duration-200 text-foreground/70 hover:text-foreground"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+              {theme === 'dark' ? (
+                  <Sun className="w-4 h-4" />
+              ) : (
+                  <Moon className="w-4 h-4" />
+              )}
+          </button>
         {!token ? (
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
@@ -248,6 +270,26 @@ export default function Navbar() {
                     <DropdownMenuSeparator className="my-1.5 mx-2" />
                   </>
                 )}
+
+                {/* Profile Link */}
+                <DropdownMenuItem
+                  asChild
+                  className="rounded-xl px-3 py-2.5 cursor-pointer gap-3"
+                >
+                  <Link to="/profile" className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+                      <User className="w-4 h-4 text-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">
+                        Profile Settings
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Security and preferences
+                      </p>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
 
                 {/* Logout */}
                 <DropdownMenuItem

@@ -17,7 +17,11 @@ import AdminDashboard from '@/pages/admin/Dashboard';
 import OraganizerPanel from '@/pages/OrganizerPanel';
 import VolunteerDashboard from '@/pages/volunteer/Dashboard';
 import CollectorDashboard from '@/pages/collector/Dashboard';
+import AgentDashboard from '@/pages/agent/Dashboard';
+import UserManagement from '@/pages/UserManagement';
 import AnalyticsDashboard from '@/pages/AnalyticsDashboard';
+import AgentRegister from '@/components/agent/AgentRegister';
+import ProfilePage from '@/pages/Profile';
 import GlobalChatWidget from '@/components/chat/GlobalChatWidget';
 
 function App() {
@@ -32,7 +36,18 @@ function App() {
             <Route path="/beaches" element={<Beaches />} />
             <Route path="/community" element={<Community />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/profile" element={<ProfileView />} />
+            <Route path="/usermanagement" element={<UserManagement />} />
+
+            {/* Admin only - Register new agent */}
+            <Route element={<PrivateRoute allowedRoles={['admin']} />}>
+              <Route path="/agent-form" element={<AgentRegister />} />
+            </Route>
+
+            {/* Protected routes under Layout for all authenticated roles */}
+            <Route element={<PrivateRoute allowedRoles={[]} />}>
+              <Route path="/analytics" element={<AnalyticsDashboard />} />
+              <Route path="/profile" element={<ProfilePage />} />
+            </Route>
 
             <Route
               element={
@@ -42,11 +57,6 @@ function App() {
               }
             >
               <Route path="/meetings" element={<MeetingsPage />} />
-            </Route>
-            
-            {/* Protected Analytics under Layout for all authenticated roles */}
-            <Route element={<PrivateRoute allowedRoles={[]} />}>
-              <Route path="/analytics" element={<AnalyticsDashboard />} />
             </Route>
           </Route>
 
@@ -84,11 +94,22 @@ function App() {
             <Route path="/collector" element={<CollectorDashboard />} />
           </Route>
 
+          {/* Agent */}
+          <Route element={<PrivateRoute allowedRoles={['agent', 'admin']} />}>
+            <Route path="/agent" element={<AgentDashboard />} />
+          </Route>
+
           {/* Chat */}
           <Route
             element={
               <PrivateRoute
-                allowedRoles={['volunteer', 'organizer', 'admin', 'collector']}
+                allowedRoles={[
+                  'volunteer',
+                  'organizer',
+                  'admin',
+                  'collector',
+                  'agent',
+                ]}
               />
             }
           >
