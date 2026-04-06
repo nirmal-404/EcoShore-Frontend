@@ -26,6 +26,14 @@ export const addMemberToGroup = async (groupId, userId) => {
   return response.data;
 };
 
+export const removeMemberFromGroup = async (groupId, userId) => {
+  const response = await axios.delete(
+    `${BASE_URL}/groups/${groupId}/members/${userId}`,
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
+
 export const getUserChatGroups = async () => {
   const response = await axios.get(`${BASE_URL}/groups`, {
     headers: getAuthHeaders(),
@@ -58,6 +66,29 @@ export const getUsersByRole = async () => {
   };
 };
 
+/**
+ * Fetch all users for direct messaging.
+ * Calls GET /api/auth/users (excludes current user).
+ * Returns: [{_id, name, email, role}]
+ */
+export const getAllUsers = async () => {
+  try {
+    const response = await axios.get(`${AUTH_URL}/auth/users`, {
+      headers: getAuthHeaders(),
+    });
+    console.log('getAllUsers response:', response);
+    return response.data?.data || [];
+  } catch (error) {
+    console.error(
+      'getAllUsers error:',
+      error.response?.status,
+      error.response?.data,
+      error.message
+    );
+    throw error;
+  }
+};
+
 // Messages
 export const getMessages = async (groupId, params = {}) => {
   const response = await axios.get(`${BASE_URL}/groups/${groupId}/messages`, {
@@ -71,6 +102,15 @@ export const sendMessage = async (groupId, text) => {
   const response = await axios.post(
     `${BASE_URL}/groups/${groupId}/messages`,
     { text },
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
+
+export const markMessageSeen = async (groupId, messageId) => {
+  const response = await axios.patch(
+    `${BASE_URL}/groups/${groupId}/messages/${messageId}/seen`,
+    {},
     { headers: getAuthHeaders() }
   );
   return response.data;

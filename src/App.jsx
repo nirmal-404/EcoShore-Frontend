@@ -10,6 +10,8 @@ import Event from '@/pages/Event';
 import Beaches from '@/pages/Beaches';
 import Contact from '@/pages/Contact';
 import Community from '@/pages/Community';
+import ProfileView from '@/pages/ProfileView';
+import MeetingsPage from '@/pages/MeetingsPage';
 import ChatApp from '@/pages/chat/ChatApp';
 import AdminDashboard from '@/pages/admin/Dashboard';
 import OraganizerPanel from '@/pages/OrganizerPanel';
@@ -20,6 +22,7 @@ import UserManagement from '@/pages/UserManagement';
 import AnalyticsDashboard from '@/pages/AnalyticsDashboard';
 import AgentRegister from '@/components/agent/AgentRegister';
 import ProfilePage from '@/pages/Profile';
+import GlobalChatWidget from '@/components/chat/GlobalChatWidget';
 
 function App() {
   return (
@@ -44,6 +47,21 @@ function App() {
             <Route element={<PrivateRoute allowedRoles={[]} />}>
               <Route path="/analytics" element={<AnalyticsDashboard />} />
               <Route path="/profile" element={<ProfilePage />} />
+            </Route>
+
+            <Route
+              element={
+                <PrivateRoute
+                  allowedRoles={[
+                    'volunteer',
+                    'organizer',
+                    'admin',
+                    'collector',
+                  ]}
+                />
+              }
+            >
+              <Route path="/meetings" element={<MeetingsPage />} />
             </Route>
           </Route>
 
@@ -103,6 +121,8 @@ function App() {
             <Route path="/chat" element={<ChatApp />} />
           </Route>
         </Routes>
+
+        <GlobalChatWidget />
       </BrowserRouter>
     </AuthProvider>
   );

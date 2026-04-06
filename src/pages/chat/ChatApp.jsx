@@ -1,154 +1,1127 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getChatGroupById } from '@/api/chatApi';
-import { Loader2, Info, PanelLeftOpen, Waves } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  MessageCircle,
+  Search,
+  Plus,
+  Phone,
+  Info,
+  UserPlus,
+} from 'lucide-react';
+import { io } from 'socket.io-client';
+import Cookies from 'js-cookie';
+import { useSelector } from 'react-redux';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { GroupList } from '@/components/chat/GroupList';
 import { MessageList } from '@/components/chat/MessageList';
 import { MessageInput } from '@/components/chat/MessageInput';
-import { cn } from '@/lib/utils';
+import { UserPickerModal } from '@/components/chat/UserPickerModal';
+import { AddMembersModal } from '@/components/chat/AddMembersModal';
+import { CallScreen } from '@/components/chat/CallScreen';
+import {
+  addMemberToGroup,
+  createChatGroup,
+  getChatGroupById,
+  getUserChatGroups,
+  removeMemberFromGroup,
+} from '@/api/chatApi';
 
-const TYPE_BADGE = {
-  GLOBAL_VOLUNTEER: {
-    label: 'Global Volunteer',
-    color: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/20',
-  },
-  ORGANIZER_PRIVATE: {
-    label: 'Organizer Private',
-    color: 'bg-purple-500/15 text-purple-400 border-purple-500/20',
-  },
-  EVENT_GROUP: {
-    label: 'Event Group',
-    color: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
-  },
+const rtcConfig = {
+  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
 };
 
-export default function ChatApp() {
-  const [selectedGroupId, setSelectedGroupId] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+const getSocketServerUrl = () => {
+  const apiBaseUrl =
+    import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+  return apiBaseUrl.replace(/\/api\/?$/, '');
+};
 
-  const { data: activeGroupData, isLoading: isLoadingGroup } = useQuery({
-    queryKey: ['chat-group-details', selectedGroupId],
-    queryFn: () => getChatGroupById(selectedGroupId),
-    enabled: !!selectedGroupId,
+const initialCallState = {
+  isVisible: false,
+  phase: 'idle',
+  callId: null,
+  chatGroupId: null,
+  peerUserId: null,
+  peerName: '',
+};
+
+export default function ChatApp({
+  isOpen: externalIsOpen,
+  onOpen: externalOnOpen,
+  onClose: externalOnClose,
+  showFloatingButton = true,
+  initialSelectedGroupId = null,
+  hideConversationList = false,
+}) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [chatFilter, setChatFilter] = useState('all');
+  const [userPickerOpen, setUserPickerOpen] = useState(false);
+  const [addMembersOpen, setAddMembersOpen] = useState(false);
+  const [creatingChat, setCreatingChat] = useState(false);
+  const [callState, setCallState] = useState({ ...initialCallState });
+  const [isCallMuted, setIsCallMuted] = useState(false);
+  const [callDurationSeconds, setCallDurationSeconds] = useState(0);
+
+  const callSocketRef = useRef(null);
+  const peerConnectionRef = useRef(null);
+  const localAudioStreamRef = useRef(null);
+  const remoteAudioRef = useRef(null);
+  const disconnectedTimerRef = useRef(null);
+  const pendingIceCandidatesRef = useRef([]);
+  const activeCallStateRef = useRef(callState);
+  const externalOnOpenRef = useRef(externalOnOpen);
+  const externalOnCloseRef = useRef(externalOnClose);
+
+  const { user } = useSelector((s) => s.auth);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    activeCallStateRef.current = callState;
+  }, [callState]);
+
+  useEffect(() => {
+    externalOnOpenRef.current = externalOnOpen;
+    externalOnCloseRef.current = externalOnClose;
+  }, [externalOnOpen, externalOnClose]);
+
+  // Use external state if provided, otherwise use internal state
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
+  const setIsOpen = useCallback((val) => {
+    if (externalOnCloseRef.current) {
+      if (val) {
+        externalOnOpenRef.current?.();
+      } else {
+        externalOnCloseRef.current?.();
+      }
+      return;
+    }
+
+    setInternalIsOpen(val);
+  }, []);
+
+  const createDirectChatMutation = useMutation({
+    mutationFn: async (selectedUser) => {
+      return createChatGroup({
+        name: 'Direct Message',
+        description: 'Direct message conversation',
+        type: 'DIRECT_MESSAGE',
+        members: [selectedUser._id],
+      });
+    },
+    onSuccess: (data) => {
+      const newGroupId = data.data?._id;
+      // Invalidate queries to refresh the chat list
+      queryClient.invalidateQueries(['chat-groups']);
+      // Set a small delay to ensure the group is fetched before selecting
+      setTimeout(() => {
+        setSelectedGroupId(newGroupId);
+        setUserPickerOpen(false);
+        setCreatingChat(false);
+      }, 500);
+    },
+    onError: (error) => {
+      console.error('Failed to create direct chat:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error message:', error.message);
+      setCreatingChat(false);
+      alert(
+        `Failed to create chat: ${error.response?.data?.message || error.message || 'Unknown error'}`
+      );
+    },
   });
 
-  const activeGroup = activeGroupData?.data;
-  const typeBadge =
-    TYPE_BADGE[activeGroup?.type] || TYPE_BADGE.GLOBAL_VOLUNTEER;
+  const currentUserId = user?._id || user?.id;
 
-  const handleSelectGroup = (id) => {
-    setSelectedGroupId(id);
-    setSidebarOpen(false); // close mobile sidebar after selecting
+  const deleteConversationMutation = useMutation({
+    mutationFn: async ({ groupId, userId }) => {
+      return removeMemberFromGroup(groupId, userId);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries(['chat-groups']);
+
+      if (selectedGroupId === variables.groupId) {
+        setSelectedGroupId(null);
+      }
+    },
+    onError: (error) => {
+      alert(
+        `Failed to delete conversation: ${
+          error.response?.data?.message || error.message || 'Unknown error'
+        }`
+      );
+    },
+  });
+
+  const addGroupMemberMutation = useMutation({
+    mutationFn: async ({ groupId, userId }) => {
+      return addMemberToGroup(groupId, userId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['chat-groups']);
+      queryClient.invalidateQueries(['chat-group', selectedGroupId]);
+    },
+    onError: (error) => {
+      alert(
+        `Failed to add member: ${
+          error.response?.data?.message || error.message || 'Unknown error'
+        }`
+      );
+    },
+  });
+
+  const cleanupCallMedia = useCallback(() => {
+    if (disconnectedTimerRef.current) {
+      clearTimeout(disconnectedTimerRef.current);
+      disconnectedTimerRef.current = null;
+    }
+
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.onicecandidate = null;
+      peerConnectionRef.current.ontrack = null;
+      peerConnectionRef.current.onconnectionstatechange = null;
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+
+    if (localAudioStreamRef.current) {
+      localAudioStreamRef.current.getTracks().forEach((track) => track.stop());
+      localAudioStreamRef.current = null;
+    }
+
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.srcObject = null;
+    }
+
+    pendingIceCandidatesRef.current = [];
+
+    setIsCallMuted(false);
+  }, []);
+
+  const closeCallScreen = useCallback(() => {
+    cleanupCallMedia();
+    setCallState({ ...initialCallState });
+    setCallDurationSeconds(0);
+  }, [cleanupCallMedia]);
+
+  const emitCallEndAndClose = useCallback(
+    (reason = 'ended') => {
+      const activeCall = activeCallStateRef.current;
+
+      if (activeCall.callId && callSocketRef.current?.connected) {
+        callSocketRef.current.emit('call-end', {
+          callId: activeCall.callId,
+          reason,
+        });
+      }
+
+      closeCallScreen();
+    },
+    [closeCallScreen]
+  );
+
+  const ensureLocalAudioStream = useCallback(async () => {
+    if (localAudioStreamRef.current) {
+      return localAudioStreamRef.current;
+    }
+
+    const localStream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: false,
+    });
+
+    localAudioStreamRef.current = localStream;
+    setIsCallMuted(false);
+
+    return localStream;
+  }, []);
+
+  const createPeerConnection = useCallback(
+    async (remoteUserId, callId) => {
+      if (!remoteUserId || !callId) {
+        return null;
+      }
+
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
+
+      const localStream = await ensureLocalAudioStream();
+      const peerConnection = new RTCPeerConnection(rtcConfig);
+
+      localStream.getTracks().forEach((track) => {
+        peerConnection.addTrack(track, localStream);
+      });
+
+      peerConnection.onicecandidate = (event) => {
+        if (!event.candidate || !callSocketRef.current) {
+          return;
+        }
+
+        callSocketRef.current.emit('ice-candidate', {
+          callId,
+          toUserId: String(remoteUserId),
+          candidate: event.candidate,
+        });
+      };
+
+      peerConnection.ontrack = (event) => {
+        const [remoteStream] = event.streams;
+
+        if (remoteAudioRef.current && remoteStream) {
+          remoteAudioRef.current.srcObject = remoteStream;
+          remoteAudioRef.current.play().catch(() => {});
+        }
+      };
+
+      peerConnection.onconnectionstatechange = () => {
+        const connectionState = peerConnection.connectionState;
+
+        if (connectionState === 'connected') {
+          if (disconnectedTimerRef.current) {
+            clearTimeout(disconnectedTimerRef.current);
+            disconnectedTimerRef.current = null;
+          }
+
+          setCallState((previous) => {
+            if (previous.callId && String(previous.callId) !== String(callId)) {
+              return previous;
+            }
+
+            if (previous.phase === 'active') {
+              return previous;
+            }
+
+            return {
+              ...previous,
+              callId: previous.callId || callId,
+              phase: 'active',
+            };
+          });
+
+          return;
+        }
+
+        if (connectionState === 'disconnected') {
+          if (disconnectedTimerRef.current) {
+            clearTimeout(disconnectedTimerRef.current);
+          }
+
+          disconnectedTimerRef.current = setTimeout(() => {
+            const currentPeerConnection = peerConnectionRef.current;
+
+            if (
+              currentPeerConnection &&
+              currentPeerConnection.connectionState === 'disconnected'
+            ) {
+              closeCallScreen();
+            }
+          }, 8000);
+
+          return;
+        }
+
+        if (connectionState === 'failed' || connectionState === 'closed') {
+          if (disconnectedTimerRef.current) {
+            clearTimeout(disconnectedTimerRef.current);
+            disconnectedTimerRef.current = null;
+          }
+
+          closeCallScreen();
+        }
+      };
+
+      peerConnectionRef.current = peerConnection;
+      return peerConnection;
+    },
+    [closeCallScreen, ensureLocalAudioStream]
+  );
+
+  const flushPendingIceCandidates = useCallback(async (callId) => {
+    const peerConnection = peerConnectionRef.current;
+
+    if (!peerConnection || !peerConnection.remoteDescription || !callId) {
+      return;
+    }
+
+    const targetCallId = String(callId);
+    const pendingCandidates = pendingIceCandidatesRef.current.filter(
+      (item) => item.callId === targetCallId
+    );
+
+    pendingIceCandidatesRef.current = pendingIceCandidatesRef.current.filter(
+      (item) => item.callId !== targetCallId
+    );
+
+    for (const item of pendingCandidates) {
+      try {
+        await peerConnection.addIceCandidate(
+          new RTCIceCandidate(item.candidate)
+        );
+      } catch {
+        // Ignore invalid or stale candidates.
+      }
+    }
+  }, []);
+
+  const handleClose = () => {
+    if (activeCallStateRef.current.isVisible) {
+      emitCallEndAndClose('ended');
+    }
+
+    setIsOpen(false);
   };
 
+  const handleSelectGroup = (groupId) => {
+    setSelectedGroupId(groupId);
+  };
+
+  useEffect(() => {
+    if (!isOpen || !initialSelectedGroupId) {
+      return;
+    }
+
+    setSelectedGroupId(initialSelectedGroupId);
+  }, [initialSelectedGroupId, isOpen]);
+
+  const handleUserSelected = (selectedUser) => {
+    setCreatingChat(true);
+    createDirectChatMutation.mutate(selectedUser);
+  };
+
+  const handleDeleteConversation = (group) => {
+    if (!currentUserId) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete conversation "${group.displayName || group.name || 'Chat'}" from your list?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    deleteConversationMutation.mutate({
+      groupId: group._id,
+      userId: currentUserId,
+    });
+  };
+
+  const handleAddMemberToCurrentGroup = (selectedUser) => {
+    if (!selectedGroupId || !selectedUser?._id) {
+      return;
+    }
+
+    addGroupMemberMutation.mutate({
+      groupId: selectedGroupId,
+      userId: selectedUser._id,
+    });
+  };
+
+  const handleToggleMute = useCallback(() => {
+    setIsCallMuted((previousMuted) => {
+      const nextMuted = !previousMuted;
+
+      if (localAudioStreamRef.current) {
+        localAudioStreamRef.current.getAudioTracks().forEach((track) => {
+          track.enabled = !nextMuted;
+        });
+      }
+
+      return nextMuted;
+    });
+  }, []);
+
+  const handleAcceptIncomingCall = useCallback(async () => {
+    const activeCall = activeCallStateRef.current;
+
+    if (!activeCall.callId || !callSocketRef.current?.connected) {
+      return;
+    }
+
+    try {
+      await ensureLocalAudioStream();
+      setCallState((previous) => ({
+        ...previous,
+        phase: 'connecting',
+      }));
+
+      callSocketRef.current.emit('call-accept', {
+        callId: activeCall.callId,
+      });
+    } catch {
+      alert('Microphone permission is required to accept calls.');
+      callSocketRef.current.emit('call-decline', {
+        callId: activeCall.callId,
+      });
+      closeCallScreen();
+    }
+  }, [closeCallScreen, ensureLocalAudioStream]);
+
+  const handleDeclineIncomingCall = useCallback(() => {
+    const activeCall = activeCallStateRef.current;
+
+    if (activeCall.callId && callSocketRef.current?.connected) {
+      callSocketRef.current.emit('call-decline', {
+        callId: activeCall.callId,
+      });
+    }
+
+    closeCallScreen();
+  }, [closeCallScreen]);
+
+  const handleEndCall = useCallback(() => {
+    emitCallEndAndClose('ended');
+  }, [emitCallEndAndClose]);
+
+  const { data: chatGroupsSummary } = useQuery({
+    queryKey: ['chat-groups'],
+    queryFn: getUserChatGroups,
+    enabled: Boolean(currentUserId) && showFloatingButton,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+  });
+
+  const totalUnreadCount = (chatGroupsSummary?.data || []).reduce(
+    (sum, group) => sum + Number(group?.unreadCount || 0),
+    0
+  );
+
+  const unreadBadgeText =
+    totalUnreadCount > 99 ? '99+' : String(totalUnreadCount);
+
+  // Fetch current group details
+  const { data: currentGroup } = useQuery({
+    queryKey: ['chat-group', selectedGroupId],
+    queryFn: () => getChatGroupById(selectedGroupId),
+    enabled: !!selectedGroupId,
+    refetchInterval: selectedGroupId ? 3000 : false,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+  });
+
+  const currentGroupName =
+    currentGroup?.data?.displayName || currentGroup?.data?.name || 'Chat';
+  const currentGroupType = currentGroup?.data?.type || 'DIRECT_MESSAGE';
+  const currentGroupRecipientUserId = currentGroup?.data?.recipientUserId;
+  const currentGroupRecipientIsOnline = Boolean(
+    currentGroup?.data?.recipientIsOnline
+  );
+  const currentGroupRecipientLastSeen = currentGroup?.data?.recipientLastSeen;
+  const canManageGroupMembers = ['admin', 'organizer'].includes(
+    (user?.role || '').toLowerCase()
+  );
+  const currentGroupMemberIds = (currentGroup?.data?.members || [])
+    .map(
+      (member) =>
+        (typeof member === 'object' && member?._id?.toString?.()) ||
+        member?.toString?.()
+    )
+    .filter(Boolean);
+  const currentGroupMemberNameMap = (currentGroup?.data?.members || []).reduce(
+    (accumulator, member) => {
+      const memberId =
+        (typeof member === 'object' && member?._id?.toString?.()) ||
+        member?.toString?.();
+
+      if (!memberId) {
+        return accumulator;
+      }
+
+      accumulator[memberId] =
+        (typeof member === 'object' && (member?.name || member?.email)) ||
+        'Member';
+      return accumulator;
+    },
+    {}
+  );
+
+  const handleStartDirectCall = async () => {
+    if (currentGroupType !== 'DIRECT_MESSAGE' || !selectedGroupId) {
+      return;
+    }
+
+    if (!currentGroupRecipientUserId) {
+      alert('Could not determine the recipient for this chat.');
+      return;
+    }
+
+    if (!currentGroupRecipientIsOnline) {
+      alert('Recipient is offline right now.');
+      return;
+    }
+
+    if (!callSocketRef.current?.connected) {
+      alert('Calling service is not connected. Please try again.');
+      return;
+    }
+
+    try {
+      await ensureLocalAudioStream();
+    } catch {
+      alert('Microphone permission is required to start a call.');
+      return;
+    }
+
+    setCallState({
+      isVisible: true,
+      phase: 'outgoing',
+      callId: null,
+      chatGroupId: selectedGroupId,
+      peerUserId: String(currentGroupRecipientUserId),
+      peerName: currentGroupName,
+    });
+    setCallDurationSeconds(0);
+
+    callSocketRef.current.emit('call-request', {
+      toUserId: String(currentGroupRecipientUserId),
+      chatGroupId: selectedGroupId,
+    });
+  };
+
+  useEffect(() => {
+    if (callState.phase !== 'active') {
+      setCallDurationSeconds(0);
+      return undefined;
+    }
+
+    const startedAt = Date.now();
+    const intervalId = setInterval(() => {
+      setCallDurationSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [callState.phase, callState.callId]);
+
+  useEffect(() => {
+    if (!currentUserId) {
+      return undefined;
+    }
+
+    const token = Cookies.get('token') || localStorage.getItem('token');
+
+    if (!token) {
+      return undefined;
+    }
+
+    const socket = io(`${getSocketServerUrl()}/chat-call`, {
+      auth: { token },
+      transports: ['websocket'],
+    });
+
+    callSocketRef.current = socket;
+
+    socket.on('presence-updated', () => {
+      queryClient.invalidateQueries(['chat-groups']);
+      queryClient.invalidateQueries(['chat-group']);
+    });
+
+    socket.on('outgoing-ringing', (payload = {}) => {
+      setCallState((previous) => ({
+        ...previous,
+        isVisible: true,
+        phase: 'outgoing',
+        callId: payload.callId || previous.callId,
+      }));
+    });
+
+    socket.on('call-unavailable', () => {
+      alert('Recipient is currently unavailable for calls.');
+      closeCallScreen();
+    });
+
+    socket.on('incoming-call', (payload = {}) => {
+      const activeCall = activeCallStateRef.current;
+
+      if (activeCall.isVisible && activeCall.callId) {
+        socket.emit('call-decline', { callId: payload.callId });
+        return;
+      }
+
+      setIsOpen(true);
+
+      if (payload.chatGroupId) {
+        setSelectedGroupId(payload.chatGroupId);
+      }
+
+      setCallState({
+        isVisible: true,
+        phase: 'incoming',
+        callId: payload.callId || null,
+        chatGroupId: payload.chatGroupId || null,
+        peerUserId: payload.fromUserId ? String(payload.fromUserId) : null,
+        peerName: payload.fromUserName || 'User',
+      });
+      setCallDurationSeconds(0);
+    });
+
+    socket.on('call-accepted', async (payload = {}) => {
+      const peerUserId =
+        String(payload.fromUserId) === String(currentUserId)
+          ? String(payload.toUserId)
+          : String(payload.fromUserId);
+
+      setCallState((previous) => ({
+        ...previous,
+        isVisible: true,
+        phase: 'connecting',
+        callId: payload.callId || previous.callId,
+        chatGroupId: payload.chatGroupId || previous.chatGroupId,
+        peerUserId,
+      }));
+      setCallDurationSeconds(0);
+
+      try {
+        const peerConnection = await createPeerConnection(
+          peerUserId,
+          payload.callId
+        );
+
+        if (!peerConnection) {
+          return;
+        }
+
+        const shouldCreateOffer =
+          String(payload.fromUserId) === String(currentUserId);
+
+        if (shouldCreateOffer) {
+          const offer = await peerConnection.createOffer();
+          await peerConnection.setLocalDescription(offer);
+
+          socket.emit('offer', {
+            callId: payload.callId,
+            toUserId: peerUserId,
+            sdp: offer,
+          });
+        }
+      } catch {
+        alert('Failed to establish call connection.');
+        closeCallScreen();
+      }
+    });
+
+    socket.on('offer', async (payload = {}) => {
+      const { callId, fromUserId, sdp } = payload;
+      const activeCall = activeCallStateRef.current;
+
+      if (activeCall.callId && String(activeCall.callId) !== String(callId)) {
+        return;
+      }
+
+      setCallState((previous) => ({
+        ...previous,
+        isVisible: true,
+        phase:
+          previous.phase === 'incoming' || previous.phase === 'active'
+            ? 'connecting'
+            : previous.phase,
+        callId: previous.callId || callId,
+        peerUserId: previous.peerUserId || String(fromUserId),
+      }));
+
+      try {
+        const peerConnection = await createPeerConnection(fromUserId, callId);
+
+        if (!peerConnection) {
+          return;
+        }
+
+        if (peerConnection.signalingState === 'have-local-offer') {
+          await peerConnection.setLocalDescription({ type: 'rollback' });
+        }
+
+        await peerConnection.setRemoteDescription(
+          new RTCSessionDescription(sdp)
+        );
+
+        await flushPendingIceCandidates(callId);
+
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+
+        socket.emit('answer', {
+          callId,
+          toUserId: fromUserId,
+          sdp: answer,
+        });
+      } catch {
+        alert('Failed to process incoming call offer.');
+      }
+    });
+
+    socket.on('answer', async (payload = {}) => {
+      const { callId, sdp } = payload;
+      const peerConnection = peerConnectionRef.current;
+      const activeCall = activeCallStateRef.current;
+
+      if (
+        !peerConnection ||
+        (activeCall.callId && String(activeCall.callId) !== String(callId))
+      ) {
+        return;
+      }
+
+      setCallState((previous) => ({
+        ...previous,
+        callId: previous.callId || callId,
+      }));
+
+      try {
+        await peerConnection.setRemoteDescription(
+          new RTCSessionDescription(sdp)
+        );
+        await flushPendingIceCandidates(callId);
+      } catch {
+        // Ignore transient answer sync failures.
+      }
+    });
+
+    socket.on('ice-candidate', async (payload = {}) => {
+      const { callId, candidate } = payload;
+      const peerConnection = peerConnectionRef.current;
+      const activeCall = activeCallStateRef.current;
+
+      if (
+        !candidate ||
+        (activeCall.callId && String(activeCall.callId) !== String(callId))
+      ) {
+        return;
+      }
+
+      if (!peerConnection || !peerConnection.remoteDescription) {
+        pendingIceCandidatesRef.current.push({
+          callId: String(callId),
+          candidate,
+        });
+        return;
+      }
+
+      try {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch {
+        // Ignore stale ICE candidates.
+      }
+    });
+
+    socket.on('call-declined', () => {
+      alert('Call was declined.');
+      closeCallScreen();
+    });
+
+    socket.on('call-ended', () => {
+      closeCallScreen();
+    });
+
+    socket.on('disconnect', () => {
+      if (activeCallStateRef.current.isVisible) {
+        closeCallScreen();
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+
+      if (callSocketRef.current === socket) {
+        callSocketRef.current = null;
+      }
+    };
+  }, [
+    closeCallScreen,
+    createPeerConnection,
+    currentUserId,
+    flushPendingIceCandidates,
+    queryClient,
+    setIsOpen,
+  ]);
+
   return (
-    <div className="flex h-full bg-background overflow-hidden relative">
-      {/* Mobile sidebar backdrop */}
-      {sidebarOpen && (
+    <>
+      {/* Floating Button - only show if showFloatingButton is true */}
+      {showFloatingButton && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="fixed bottom-6 left-6 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 group"
+          title="Open Messages"
+        >
+          <MessageCircle
+            size={24}
+            className="group-hover:rotate-12 transition-transform"
+          />
+
+          {totalUnreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center border-2 border-blue-700">
+              {unreadBadgeText}
+            </span>
+          )}
+        </button>
+      )}
+
+      {/* Modal Backdrop */}
+      {isOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/40 backdrop-blur-sm md:hidden"
-          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity"
+          onClick={handleClose}
         />
       )}
 
-      {/* Sidebar */}
-      <div
-        className={cn(
-          'w-80 flex-shrink-0 flex flex-col border-r border-border/50 transition-all duration-300',
-          // Desktop: always visible, part of normal flow
-          'md:relative md:translate-x-0 md:z-auto md:flex',
-          // Mobile: slide in/out over the page
-          sidebarOpen
-            ? 'fixed top-[73px] bottom-0 left-0 z-30 translate-x-0 shadow-2xl'
-            : 'fixed top-[73px] bottom-0 left-0 z-30 -translate-x-full md:translate-x-0'
-        )}
-      >
-        <GroupList
-          selectedGroupId={selectedGroupId}
-          onSelectGroup={handleSelectGroup}
-        />
-      </div>
-
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col relative overflow-hidden">
-        {selectedGroupId && activeGroup ? (
-          <>
-            {/* Chat Header */}
-            <div className="h-[68px] flex items-center justify-between px-4 md:px-6 border-b border-border/50 bg-card/80 backdrop-blur-md z-10 shrink-0 shadow-sm gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                {/* Mobile toggle */}
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="md:hidden p-2 rounded-lg text-muted-foreground hover:bg-secondary/50 transition-colors -ml-1 mr-1 shrink-0"
-                >
-                  <PanelLeftOpen className="w-5 h-5" />
-                </button>
-
-                {/* Avatar */}
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-primary/60 flex items-center justify-center font-bold text-white text-base shadow-md shrink-0">
-                  {activeGroup.name?.charAt(0) || '?'}
-                </div>
-
-                <div className="min-w-0">
-                  <h2 className="font-bold text-foreground text-[16px] leading-tight truncate">
-                    {activeGroup.name}
-                  </h2>
-                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    <span
-                      className={cn(
-                        'text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border',
-                        typeBadge.color
-                      )}
+      {/* Modal Window */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+          onClick={(e) => e.target === e.currentTarget && handleClose()}
+        >
+          <div className="w-full max-w-5xl h-[90vh] sm:h-[85vh] rounded-2xl shadow-2xl overflow-hidden bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 relative">
+            <div
+              className={`absolute inset-0 flex flex-col sm:flex-row transition-all duration-300 ${
+                callState.isVisible
+                  ? 'opacity-0 pointer-events-none translate-y-3'
+                  : 'opacity-100 translate-y-0'
+              }`}
+            >
+              {!hideConversationList && (
+                <div className="w-full sm:w-96 bg-gray-800 dark:bg-gray-800 flex flex-col border-r border-gray-700 dark:border-gray-700 min-h-0">
+                  {/* Header */}
+                  <div className="p-4 border-b border-gray-700 dark:border-gray-700 flex items-center justify-between bg-gray-800 dark:bg-gray-800">
+                    <h2 className="text-xl font-bold text-white dark:text-white">
+                      Chats
+                    </h2>
+                    <button
+                      onClick={() => setUserPickerOpen(true)}
+                      className="p-1.5 rounded-full hover:bg-gray-700 dark:hover:bg-gray-700 transition-colors text-blue-400 dark:text-blue-400"
+                      title="Start new chat"
                     >
-                      {typeBadge.label}
-                    </span>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
-                      {activeGroup.members?.length || 0} members
-                    </p>
+                      <Plus size={20} />
+                    </button>
+                  </div>
+
+                  {/* Search Bar */}
+                  <div className="px-4 py-3 border-b border-gray-700 dark:border-gray-700 bg-gray-800 dark:bg-gray-800">
+                    <div className="relative">
+                      <Search
+                        size={18}
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-700 dark:border-gray-700 bg-gray-700 dark:bg-gray-700 text-gray-100 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Filter Tabs */}
+                  <div className="px-2 py-3 border-b border-gray-700 dark:border-gray-700 flex gap-1 bg-gray-800 dark:bg-gray-800">
+                    <button
+                      onClick={() => setChatFilter('all')}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+                        chatFilter === 'all'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 dark:bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      All
+                    </button>
+                    <button
+                      onClick={() => setChatFilter('unread')}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+                        chatFilter === 'unread'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 dark:bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      Unread
+                    </button>
+                    <button
+                      onClick={() => setChatFilter('favorites')}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+                        chatFilter === 'favorites'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 dark:bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      Favorites
+                    </button>
+                    <button
+                      onClick={() => setChatFilter('archived')}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+                        chatFilter === 'archived'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 dark:bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      Archived
+                    </button>
+                  </div>
+
+                  {/* Group List */}
+                  <div className="flex-1 overflow-y-auto min-h-0">
+                    <GroupList
+                      currentUserId={currentUserId}
+                      selectedGroupId={selectedGroupId}
+                      onSelectGroup={handleSelectGroup}
+                      onDeleteGroup={handleDeleteConversation}
+                      deletingGroupId={
+                        deleteConversationMutation.isPending
+                          ? deleteConversationMutation.variables?.groupId
+                          : null
+                      }
+                      searchTerm={searchTerm}
+                      chatFilter={chatFilter}
+                    />
                   </div>
                 </div>
+              )}
+
+              {/* Right Side - Chat Window */}
+              <div className="flex-1 min-h-0 bg-gray-900 dark:bg-gray-900 flex flex-col">
+                {selectedGroupId ? (
+                  <>
+                    {/* Chat Header */}
+                    <div className="px-6 py-4 bg-gray-800 dark:bg-gray-800 border-b border-gray-700 dark:border-gray-700 flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-lg font-bold shrink-0">
+                          {currentGroupName.charAt(0)?.toUpperCase() || 'C'}
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-lg font-bold text-white dark:text-white truncate">
+                            {currentGroupName}
+                          </h3>
+                          {currentGroupType === 'DIRECT_MESSAGE' && (
+                            <p className="text-xs text-gray-400 truncate">
+                              {currentGroupRecipientIsOnline
+                                ? 'Online'
+                                : currentGroupRecipientLastSeen
+                                  ? `Last seen ${new Date(
+                                      currentGroupRecipientLastSeen
+                                    ).toLocaleString()}`
+                                  : 'Offline'}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {canManageGroupMembers &&
+                          currentGroupType !== 'DIRECT_MESSAGE' && (
+                            <button
+                              onClick={() => setAddMembersOpen(true)}
+                              className="p-2 hover:bg-gray-700 dark:hover:bg-gray-700 rounded-full transition-colors"
+                              title="Add members"
+                            >
+                              <UserPlus
+                                size={20}
+                                className="text-gray-400 dark:text-gray-400"
+                              />
+                            </button>
+                          )}
+
+                        {currentGroupType === 'DIRECT_MESSAGE' && (
+                          <button
+                            onClick={handleStartDirectCall}
+                            disabled={
+                              !currentGroupRecipientIsOnline ||
+                              callState.isVisible
+                            }
+                            className="p-2 hover:bg-gray-700 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={
+                              currentGroupRecipientIsOnline
+                                ? 'Start call'
+                                : 'User is offline'
+                            }
+                          >
+                            <Phone
+                              size={20}
+                              className="text-gray-400 dark:text-gray-400"
+                            />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Messages Container */}
+                    <div className="flex-1 min-h-0 overflow-hidden bg-white dark:bg-gray-900">
+                      <MessageList
+                        groupId={selectedGroupId}
+                        groupType={currentGroupType}
+                        memberNameMap={currentGroupMemberNameMap}
+                      />
+                    </div>
+
+                    {/* Message Input */}
+                    <div className="bg-gray-900 dark:bg-gray-900 border-t border-gray-800 dark:border-gray-800 shadow-sm">
+                      <MessageInput groupId={selectedGroupId} />
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center px-6 bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-900 dark:to-gray-800">
+                    <div className="p-4 rounded-full bg-blue-900/30 dark:bg-blue-900/30 mb-4">
+                      <MessageCircle
+                        className="text-blue-400 dark:text-blue-400"
+                        size={40}
+                      />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white dark:text-white mb-2">
+                      Select a chat to start
+                    </h3>
+                  </div>
+                )}
               </div>
-
-              <button className="p-2 text-muted-foreground hover:bg-secondary/50 rounded-full transition-colors shrink-0">
-                <Info className="w-5 h-5" />
-              </button>
             </div>
 
-            {/* Messages */}
-            <MessageList groupId={selectedGroupId} />
-
-            {/* Input */}
-            <MessageInput groupId={selectedGroupId} />
-          </>
-        ) : (
-          /* Empty State */
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-            {/* Mobile sidebar toggle in empty state */}
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="md:hidden absolute top-4 left-4 p-2 rounded-lg text-muted-foreground hover:bg-secondary/50 transition-colors"
+            <div
+              className={`absolute inset-0 transition-all duration-300 ${
+                callState.isVisible
+                  ? 'opacity-100 translate-y-0'
+                  : 'opacity-0 pointer-events-none -translate-y-3'
+              }`}
             >
-              <PanelLeftOpen className="w-5 h-5" />
-            </button>
+              <CallScreen
+                phase={callState.phase}
+                peerName={callState.peerName}
+                isMuted={isCallMuted}
+                durationSeconds={callDurationSeconds}
+                onAccept={handleAcceptIncomingCall}
+                onDecline={handleDeclineIncomingCall}
+                onEnd={handleEndCall}
+                onToggleMute={handleToggleMute}
+              />
 
-            <div className="w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6 shadow-lg shadow-primary/5">
-              <Waves className="w-10 h-10 text-primary/60" />
+              <audio
+                ref={remoteAudioRef}
+                autoPlay
+                playsInline
+                className="hidden"
+              />
             </div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">
-              Welcome to EcoChat
-            </h2>
-            <p className="max-w-sm text-muted-foreground text-[15px] leading-relaxed">
-              Select a group from the sidebar to coordinate cleanups, share
-              updates, and connect with fellow volunteers.
-            </p>
-            <p className="text-xs text-muted-foreground/50 mt-6 md:hidden">
-              Tap the <span className="font-semibold">☰</span> icon to browse
-              your groups
-            </p>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+
+      {/* User Picker Modal */}
+      <UserPickerModal
+        isOpen={userPickerOpen}
+        onClose={() => setUserPickerOpen(false)}
+        onUserSelected={handleUserSelected}
+      />
+
+      <AddMembersModal
+        isOpen={addMembersOpen}
+        onClose={() => setAddMembersOpen(false)}
+        onAddMember={handleAddMemberToCurrentGroup}
+        currentMemberIds={currentGroupMemberIds}
+        isAdding={addGroupMemberMutation.isPending}
+        addingUserId={
+          addGroupMemberMutation.isPending
+            ? addGroupMemberMutation.variables?.userId
+            : null
+        }
+      />
+    </>
   );
 }

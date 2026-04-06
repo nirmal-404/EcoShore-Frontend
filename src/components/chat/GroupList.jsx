@@ -1,155 +1,391 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Archive, Loader2, Pin, Star, Trash2 } from 'lucide-react';
 import { getUserChatGroups } from '@/api/chatApi';
-import { useSelector } from 'react-redux';
-import { Users, Loader2, Plus, MessageSquare } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { CreateGroupModal } from './CreateGroupModal';
 
-const TYPE_BADGE = {
-  GLOBAL_VOLUNTEER: {
-    label: 'Volunteer',
-    color: 'bg-emerald-500/15 text-emerald-400',
-  },
-  ORGANIZER_PRIVATE: {
-    label: 'Organizer',
-    color: 'bg-purple-500/15 text-purple-400',
-  },
-  EVENT_GROUP: { label: 'Event', color: 'bg-blue-500/15 text-blue-400' },
-};
+const CHAT_GROUP_PREFERENCES_PREFIX = 'chat-group-preferences-v1';
 
-export function GroupList({ selectedGroupId, onSelectGroup }) {
-  const { user } = useSelector((state) => state.auth);
-  const [showCreate, setShowCreate] = useState(false);
+function getPreferenceStorageKey(userId) {
+  return `${CHAT_GROUP_PREFERENCES_PREFIX}:${userId || 'guest'}`;
+}
 
-  const canCreateGroup = user?.role === 'organizer' || user?.role === 'admin';
+function readGroupPreferences(userId) {
+  if (!userId) {
+    return {};
+  }
+
+  try {
+    const raw = localStorage.getItem(getPreferenceStorageKey(userId));
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeGroupPreferences(userId, preferences) {
+  if (!userId) {
+    return;
+  }
+
+  try {
+    localStorage.setItem(
+      getPreferenceStorageKey(userId),
+      JSON.stringify(preferences)
+    );
+  } catch {
+    // Ignore localStorage failures (private mode/quota limits)
+  }
+}
+
+export function GroupList({
+  currentUserId,
+  selectedGroupId,
+  onSelectGroup,
+  onDeleteGroup,
+  deletingGroupId = null,
+  searchTerm = '',
+  chatFilter = 'all',
+}) {
+  const [groupPreferences, setGroupPreferences] = useState({});
+  const [contextMenu, setContextMenu] = useState(null);
+
+  useEffect(() => {
+    setGroupPreferences(readGroupPreferences(currentUserId));
+  }, [currentUserId]);
+
+  useEffect(() => {
+    writeGroupPreferences(currentUserId, groupPreferences);
+  }, [currentUserId, groupPreferences]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['chat-groups'],
     queryFn: getUserChatGroups,
+    refetchInterval: 3000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
   });
 
-  const groups = data?.data || [];
+  let groups = (data?.data || []).map((group) => {
+    const preferences = groupPreferences[group._id] || {};
+    const isOnline =
+      group.type === 'DIRECT_MESSAGE'
+        ? Boolean(group.recipientIsOnline)
+        : Boolean(group.isOnline);
+
+    return {
+      ...group,
+      isFavorite: preferences.isFavorite ?? group.isFavorite ?? false,
+      isArchived: preferences.isArchived ?? false,
+      isPinned: preferences.isPinned ?? false,
+      isOnline,
+    };
+  });
+
+  // Search filter
+  if (searchTerm.trim()) {
+    groups = groups.filter((g) => {
+      const displayName = g.displayName || g.name || '';
+      return displayName.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+  }
+
+  // Filter by unread/favorites/archive
+  if (chatFilter === 'unread') {
+    groups = groups.filter((g) => !g.isArchived && (g.unreadCount || 0) > 0);
+  } else if (chatFilter === 'favorites') {
+    groups = groups.filter((g) => !g.isArchived && g.isFavorite === true);
+  } else if (chatFilter === 'archived') {
+    groups = groups.filter((g) => g.isArchived === true);
+  } else {
+    groups = groups.filter((g) => !g.isArchived);
+  }
+
+  groups = [...groups].sort((a, b) => {
+    if (a.isPinned !== b.isPinned) {
+      return a.isPinned ? -1 : 1;
+    }
+
+    const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    return bTime - aTime;
+  });
+
+  const toggleGroupPreference = (groupId, key) => {
+    setGroupPreferences((prev) => ({
+      ...prev,
+      [groupId]: {
+        ...(prev[groupId] || {}),
+        [key]: !(prev[groupId]?.[key] || false),
+      },
+    }));
+  };
+
+  const handleOpenContextMenu = (event, group) => {
+    event.preventDefault();
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      group,
+    });
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenu(null);
+  };
+
+  const handleTogglePinned = () => {
+    if (!contextMenu?.group) {
+      return;
+    }
+
+    toggleGroupPreference(contextMenu.group._id, 'isPinned');
+    handleCloseContextMenu();
+  };
+
+  const handleToggleFavorite = () => {
+    if (!contextMenu?.group) {
+      return;
+    }
+
+    toggleGroupPreference(contextMenu.group._id, 'isFavorite');
+    handleCloseContextMenu();
+  };
+
+  const handleToggleArchived = () => {
+    if (!contextMenu?.group) {
+      return;
+    }
+
+    const shouldArchive = !contextMenu.group.isArchived;
+    toggleGroupPreference(contextMenu.group._id, 'isArchived');
+
+    if (
+      shouldArchive &&
+      selectedGroupId === contextMenu.group._id &&
+      chatFilter !== 'archived'
+    ) {
+      onSelectGroup(null);
+    }
+
+    handleCloseContextMenu();
+  };
+
+  const handleDeleteConversation = () => {
+    if (!contextMenu?.group || !onDeleteGroup) {
+      return;
+    }
+
+    onDeleteGroup(contextMenu.group);
+    handleCloseContextMenu();
+  };
+
+  const menuPosition = (() => {
+    if (!contextMenu) {
+      return { left: 0, top: 0 };
+    }
+
+    const width = typeof window !== 'undefined' ? window.innerWidth : 0;
+    const height = typeof window !== 'undefined' ? window.innerHeight : 0;
+    const menuWidth = 220;
+    const menuHeight = 210;
+
+    return {
+      left:
+        width > 0
+          ? Math.min(Math.max(contextMenu.x, 8), width - menuWidth)
+          : contextMenu.x,
+      top:
+        height > 0
+          ? Math.min(Math.max(contextMenu.y, 8), height - menuHeight)
+          : contextMenu.y,
+    };
+  })();
 
   return (
-    <div className="flex flex-col h-full bg-card">
-      {/* Header */}
-      <div className="px-4 py-3.5 border-b border-border/50 bg-secondary/5 flex items-center justify-between shrink-0">
-        <h2 className="text-[15px] font-bold flex items-center gap-2 text-foreground">
-          <MessageSquare className="w-4 h-4 text-primary" />
-          My Chats
-          {groups.length > 0 && (
-            <span className="text-[11px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-              {groups.length}
-            </span>
-          )}
-        </h2>
-        {canCreateGroup && (
-          <button
-            onClick={() => setShowCreate((v) => !v)}
-            title="Create new group"
-            className={cn(
-              'p-1.5 rounded-lg transition-all duration-200',
-              showCreate
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-primary hover:bg-secondary/50'
-            )}
-          >
-            <Plus className="w-4 h-4" />
-          </button>
+    <div className="relative flex flex-col h-full bg-gray-800 dark:bg-gray-800">
+      {/* Chat List */}
+      <div className="flex-1 overflow-y-auto">
+        {isLoading && (
+          <div className="flex justify-center py-10">
+            <Loader2 className="animate-spin text-blue-600" />
+          </div>
         )}
-      </div>
 
-      {/* Create Group Panel */}
-      <CreateGroupModal
-        isOpen={showCreate}
-        onClose={() => setShowCreate(false)}
-      />
+        {error && (
+          <p className="text-center text-red-500 py-4">Failed to load chats</p>
+        )}
 
-      {/* Group List */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-7 h-7 animate-spin text-primary/60" />
-          </div>
-        ) : error ? (
-          <div className="text-center text-sm text-destructive/80 bg-destructive/5 rounded-xl p-4 m-2 border border-destructive/10">
-            Failed to load groups.
-          </div>
-        ) : groups.length === 0 ? (
-          <div className="text-center p-6 mt-4">
-            <div className="w-14 h-14 rounded-full bg-primary/8 flex items-center justify-center mx-auto mb-3">
-              <Users className="w-7 h-7 text-primary/40" />
-            </div>
-            <p className="text-sm font-medium text-muted-foreground">
-              No chats yet
-            </p>
-            <p className="text-xs text-muted-foreground/60 mt-1 leading-relaxed">
-              {canCreateGroup
-                ? 'Create a group to start coordinating.'
-                : 'Join an event to get added to a chat group.'}
-            </p>
-          </div>
-        ) : (
-          groups.map((group) => {
-            const badge = TYPE_BADGE[group.type] || TYPE_BADGE.GLOBAL_VOLUNTEER;
-            const isSelected = selectedGroupId === group._id;
-            return (
+        {!isLoading && groups.length === 0 && (
+          <p className="text-center text-gray-500 py-6">No chats available</p>
+        )}
+
+        {groups.map((group) => {
+          const isSelected = selectedGroupId === group._id;
+          const groupDisplayName = (
+            group.displayName ||
+            group.name ||
+            'Chat'
+          ).trim();
+
+          const lastMessage = group.lastMessage?.text || 'No messages yet';
+          const lastTime = group.lastMessage?.createdAt;
+          const unreadCount = Number(group.unreadCount || 0);
+
+          // Avatar color generator
+          const colors = [
+            'bg-blue-500',
+            'bg-green-500',
+            'bg-purple-500',
+            'bg-pink-500',
+            'bg-yellow-500',
+          ];
+
+          let hash = 0;
+          for (let i = 0; i < groupDisplayName.length; i++) {
+            hash = groupDisplayName.charCodeAt(i) + ((hash << 5) - hash);
+          }
+          const bg = colors[Math.abs(hash) % colors.length];
+
+          return (
+            <div
+              key={group._id}
+              onContextMenu={(event) => handleOpenContextMenu(event, group)}
+              className={`w-full flex items-center gap-3 px-4 py-3 transition-colors ${
+                isSelected
+                  ? 'bg-gray-700/60 dark:bg-gray-700/60'
+                  : 'hover:bg-gray-700/40 dark:hover:bg-gray-700/40'
+              }`}
+            >
               <button
-                key={group._id}
+                type="button"
                 onClick={() => onSelectGroup(group._id)}
-                className={cn(
-                  'w-full text-left p-3 flex items-center gap-3 rounded-xl transition-all duration-200 group',
-                  isSelected
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'hover:bg-secondary/30 text-foreground'
-                )}
+                className="flex items-center gap-3 min-w-0 flex-1 text-left"
               >
                 {/* Avatar */}
-                <div
-                  className={cn(
-                    'w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 shadow-sm',
-                    isSelected
-                      ? 'bg-white/20 text-white'
-                      : 'bg-gradient-to-tr from-primary/70 to-primary/40 text-primary-foreground'
+                <div className="relative shrink-0">
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-lg ${bg}`}
+                  >
+                    {groupDisplayName.charAt(0)?.toUpperCase()}
+                  </div>
+
+                  {/* Online indicator */}
+                  {group.isOnline && (
+                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-gray-800 dark:border-gray-800 rounded-full"></span>
                   )}
-                >
-                  {group.name?.charAt(0)?.toUpperCase() || '?'}
                 </div>
 
-                {/* Info */}
+                {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-[14px] leading-tight truncate">
-                      {group.name}
-                    </span>
+                  {/* Top row - Name and Time */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="text-sm font-bold text-white truncate">
+                        {groupDisplayName}
+                      </p>
+                      {group.isPinned && (
+                        <Pin className="h-3.5 w-3.5 text-blue-300 shrink-0" />
+                      )}
+                      {group.isFavorite && (
+                        <Star className="h-3.5 w-3.5 text-amber-300 shrink-0 fill-amber-300" />
+                      )}
+                    </div>
+                    {lastTime && (
+                      <span className="text-xs text-gray-400 shrink-0">
+                        {new Date(lastTime).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span
-                      className={cn(
-                        'text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full',
-                        isSelected ? 'bg-white/20 text-white' : badge.color
-                      )}
+
+                  {/* Bottom row - Last message */}
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <p
+                      className={`text-xs truncate min-w-0 flex-1 ${
+                        unreadCount > 0
+                          ? 'text-gray-100 font-medium'
+                          : 'text-gray-400'
+                      }`}
                     >
-                      {badge.label}
-                    </span>
-                    <span
-                      className={cn(
-                        'text-[11px] truncate',
-                        isSelected
-                          ? 'text-primary-foreground/70'
-                          : 'text-muted-foreground'
-                      )}
-                    >
-                      {group.members?.length ?? 0} members
-                    </span>
+                      {lastMessage}
+                    </p>
+
+                    {unreadCount > 0 && (
+                      <span className="min-w-5 h-5 px-1 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
                   </div>
                 </div>
               </button>
-            );
-          })
-        )}
+            </div>
+          );
+        })}
       </div>
+
+      {contextMenu && (
+        <div
+          className="fixed inset-0 z-50"
+          onClick={handleCloseContextMenu}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            handleCloseContextMenu();
+          }}
+        >
+          <div
+            className="absolute w-52 rounded-lg border border-gray-700 bg-gray-800 shadow-2xl py-1"
+            style={{ left: menuPosition.left, top: menuPosition.top }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={handleTogglePinned}
+              className="w-full px-3 py-2 text-left text-sm text-gray-100 hover:bg-gray-700 flex items-center gap-2"
+            >
+              <Pin className="h-4 w-4" />
+              {contextMenu.group.isPinned ? 'Unpin chat' : 'Pin chat'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleToggleFavorite}
+              className="w-full px-3 py-2 text-left text-sm text-gray-100 hover:bg-gray-700 flex items-center gap-2"
+            >
+              <Star className="h-4 w-4" />
+              {contextMenu.group.isFavorite
+                ? 'Remove from favorites'
+                : 'Add to favorites'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleToggleArchived}
+              className="w-full px-3 py-2 text-left text-sm text-gray-100 hover:bg-gray-700 flex items-center gap-2"
+            >
+              <Archive className="h-4 w-4" />
+              {contextMenu.group.isArchived ? 'Unarchive chat' : 'Archive chat'}
+            </button>
+
+            {onDeleteGroup && (
+              <button
+                type="button"
+                onClick={handleDeleteConversation}
+                disabled={deletingGroupId === contextMenu.group._id}
+                className="w-full px-3 py-2 text-left text-sm text-red-300 hover:bg-gray-700 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {deletingGroupId === contextMenu.group._id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                Delete conversation
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

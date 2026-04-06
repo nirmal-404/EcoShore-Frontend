@@ -1,5 +1,6 @@
 import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTheme } from 'next-themes';
 import { logout } from '@/store/authSlice';
 import {
   Waves,
@@ -11,6 +12,8 @@ import {
   Trash2,
   ChevronDown,
   CheckCircle,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -75,6 +78,7 @@ const ROLE_META = {
 
 export default function Navbar() {
   const { user, token } = useSelector((state) => state.auth);
+  const { theme, setTheme } = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -95,7 +99,7 @@ export default function Navbar() {
     : 'U';
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-3 flex items-center justify-between">
+    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 dark:bg-slate-950/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:supports-[backdrop-filter]:bg-slate-950/60 px-6 py-3 flex items-center justify-between">
       {/* LEFT — Logo + Nav Links */}
       <div className="flex items-center gap-8">
         <Link to="/" className="flex items-center gap-2 group shrink-0">
@@ -129,13 +133,9 @@ export default function Navbar() {
               </NavLink>
             </>
           )}
-
-          {user && (
-            <NavLink to="/chat" className={navLinkClass}>
-              <span className="flex items-center gap-1.5">
-                <MessageSquare className="w-4 h-4" />
-                Chat
-              </span>
+          {token && (
+            <NavLink to="/meetings" className={navLinkClass}>
+              Meetings
             </NavLink>
           )}
         </div>
@@ -150,6 +150,20 @@ export default function Navbar() {
             </NavLink>
           </div>
         )}
+        {/* Theme Toggle */}
+        <button
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="p-2 rounded-lg border border-border/60 hover:border-primary/40 hover:bg-secondary/30 transition-all duration-200 text-foreground/70 hover:text-foreground"
+          title={
+            theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'
+          }
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-4 h-4" />
+          ) : (
+            <Moon className="w-4 h-4" />
+          )}
+        </button>
         {!token ? (
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
@@ -250,25 +264,6 @@ export default function Navbar() {
                           </p>
                           <p className="text-[11px] text-muted-foreground">
                             View your workspace
-                          </p>
-                        </div>
-                      </Link>
-                    </DropdownMenuItem>
-
-                    <DropdownMenuItem
-                      asChild
-                      className="rounded-xl px-3 py-2.5 cursor-pointer"
-                    >
-                      <Link to="/chat" className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-                          <MessageSquare className="w-4 h-4 text-foreground" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">
-                            Group Chats
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            Open your chat groups
                           </p>
                         </div>
                       </Link>

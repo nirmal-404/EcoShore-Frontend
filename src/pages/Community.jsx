@@ -1,283 +1,455 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { getPosts } from '@/api/communityApi';
-import { getUserChatGroups } from '@/api/chatApi';
+import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { PostCard } from '@/components/community/PostCard';
-import { CreatePostModal } from '@/components/community/CreatePostModal';
+import { getPosts } from '@/services/api';
+import { getUserChatGroups } from '@/api/chatApi';
+import { getMyMeetings } from '@/api/meetingsApi';
+import PostCard from '@/components/PostCard';
+import PostCreate from '@/components/PostCreate';
+import ChatApp from '@/pages/chat/ChatApp';
 import {
-  Loader2,
-  Users,
   MessageSquare,
-  BookOpen,
-  ArrowRight,
-  Waves,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
-const TYPE_BADGE = {
-  GLOBAL_VOLUNTEER: {
-    label: 'Volunteer',
-    color: 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/20',
-  },
-  ORGANIZER_PRIVATE: {
-    label: 'Organizer',
-    color: 'bg-purple-500/15 text-purple-400 border border-purple-500/20',
-  },
-  EVENT_GROUP: {
-    label: 'Event',
-    color: 'bg-blue-500/15 text-blue-400 border border-blue-500/20',
-  },
-};
+/* ── helpers ─────────────────────────────────────────────────────── */
+function avatarColor(name = '') {
+  const colors = [
+    'bg-blue-500',
+    'bg-emerald-500',
+    'bg-violet-500',
+    'bg-rose-500',
+    'bg-amber-500',
+    'bg-cyan-500',
+    'bg-pink-500',
+  ];
+  let h = 0;
+  for (let i = 0; i < name.length; i++)
+    h = (h + name.charCodeAt(i)) % colors.length;
+  return colors[h];
+}
 
-function GroupChatsTab() {
-  const navigate = useNavigate();
-  const { user } = useSelector((state) => state.auth);
+function formatChatTimestamp(timestamp) {
+  if (!timestamp) {
+    return '';
+  }
 
+  const date = new Date(timestamp);
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+
+  if (isToday) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+function formatMeetingTimestamp(timestamp) {
+  if (!timestamp) {
+    return 'Instant meeting';
+  }
+
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return 'Invalid date';
+  }
+
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function sortMeetingsForSidebar(meetings = []) {
+  const statusPriority = {
+    ongoing: 0,
+    scheduled: 1,
+    ended: 2,
+  };
+
+  const getTime = (meeting) =>
+    new Date(
+      meeting?.scheduledAt || meeting?.updatedAt || meeting?.createdAt || 0
+    ).getTime();
+
+  return [...meetings].sort((a, b) => {
+    const priorityDiff =
+      (statusPriority[a?.status] ?? Number.MAX_SAFE_INTEGER) -
+      (statusPriority[b?.status] ?? Number.MAX_SAFE_INTEGER);
+
+    if (priorityDiff !== 0) {
+      return priorityDiff;
+    }
+
+    if (a?.status === 'scheduled') {
+      return getTime(a) - getTime(b);
+    }
+
+    return getTime(b) - getTime(a);
+  });
+}
+
+/* ── Left sidebar (Meetings quick panel) ────────────────────────── */
+function LeftSidebar({ user }) {
   const { data, isLoading, error } = useQuery({
-    queryKey: ['chat-groups'],
-    queryFn: getUserChatGroups,
-    enabled: !!user,
+    queryKey: ['my-meetings'],
+    queryFn: getMyMeetings,
+    enabled: Boolean(user),
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
   });
 
-  const groups = data?.data || [];
+  const topMeetings = sortMeetingsForSidebar(data || []).slice(0, 5);
 
   if (!user) {
-    return (
-      <div className="text-center py-14 bg-secondary/10 rounded-3xl border border-dashed border-border/60">
-        <MessageSquare className="w-14 h-14 text-muted-foreground/25 mx-auto mb-4" />
-        <h3 className="text-lg font-bold text-foreground">
-          Sign in to access group chats
-        </h3>
-        <p className="text-muted-foreground mt-2 font-medium">
-          Group chats are available for registered volunteers and organizers.
-        </p>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="w-8 h-8 animate-spin text-primary/60" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-10 bg-destructive/5 rounded-2xl border border-destructive/10 text-destructive/80 font-medium">
-        Failed to load groups. Please try again later.
-      </div>
-    );
-  }
-
-  if (groups.length === 0) {
-    return (
-      <div className="text-center py-16 bg-secondary/5 rounded-3xl border border-dashed border-border/60">
-        <div className="w-16 h-16 rounded-full bg-primary/8 flex items-center justify-center mx-auto mb-4">
-          <MessageSquare className="w-8 h-8 text-primary/35" />
-        </div>
-        <h3 className="text-xl font-bold text-foreground">No groups yet</h3>
-        <p className="text-muted-foreground mt-2 font-medium max-w-sm mx-auto text-sm leading-relaxed">
-          Group chats are automatically created for events you join. Check back
-          after registering for a cleanup!
-        </p>
-      </div>
-    );
+    return null;
   }
 
   return (
-    <div className="space-y-3 max-w-2xl mx-auto">
-      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-4">
-        {groups.length} group{groups.length !== 1 ? 's' : ''} you're part of
-      </p>
-      {groups.map((group) => {
-        const badge = TYPE_BADGE[group.type] || TYPE_BADGE.GLOBAL_VOLUNTEER;
-        return (
-          <button
-            key={group._id}
-            onClick={() => navigate('/chat')}
-            className="w-full flex items-center gap-4 p-4 bg-card/60 hover:bg-card border border-border/50 hover:border-primary/30 rounded-2xl text-left transition-all duration-200 group shadow-sm hover:shadow-md"
-          >
-            {/* Avatar */}
-            <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary/70 to-primary/40 flex items-center justify-center font-bold text-white text-lg shrink-0 shadow-inner">
-              {group.name?.charAt(0)?.toUpperCase() || '?'}
-            </div>
+    <aside className="hidden lg:flex flex-col gap-4">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-gray-900 dark:text-white">Meetings</h3>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
+            {topMeetings.length}
+          </span>
+        </div>
 
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-foreground text-[15px] truncate">
-                {group.name}
-              </h3>
-              <div className="flex items-center gap-2 mt-1">
-                <span
-                  className={cn(
-                    'text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full',
-                    badge.color
-                  )}
+        {isLoading && (
+          <div className="py-6 flex justify-center">
+            <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+          </div>
+        )}
+
+        {error && (
+          <p className="text-sm text-red-500 py-4 text-center">
+            Failed to load meetings.
+          </p>
+        )}
+
+        {!isLoading && !error && topMeetings.length === 0 && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">
+            No meetings yet.
+          </p>
+        )}
+
+        {!isLoading && !error && topMeetings.length > 0 && (
+          <div className="space-y-2">
+            {topMeetings.map((meeting) => {
+              const isOngoing = meeting.status === 'ongoing';
+
+              return (
+                <div
+                  key={meeting._id}
+                  className="rounded-lg border border-gray-200 dark:border-gray-800 px-3 py-2.5"
                 >
-                  {badge.label}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {group.members?.length ?? 0} members
-                </span>
-                {group.description && (
-                  <span className="text-xs text-muted-foreground/60 truncate hidden sm:block">
-                    · {group.description}
-                  </span>
-                )}
-              </div>
-            </div>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                      {meeting.title}
+                    </p>
+                    <span
+                      className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 ${
+                        meeting.status === 'ongoing'
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                          : meeting.status === 'scheduled'
+                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                            : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                      }`}
+                    >
+                      {meeting.status}
+                    </span>
+                  </div>
 
-            {/* Arrow */}
-            <div className="shrink-0 flex items-center gap-1 text-muted-foreground group-hover:text-primary transition-colors">
-              <span className="text-xs font-medium hidden sm:block">
-                Open Chat
-              </span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            </div>
-          </button>
-        );
-      })}
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                    {formatMeetingTimestamp(meeting.scheduledAt)}
+                  </p>
 
-      {/* CTA */}
-      <div className="pt-4 text-center">
-        <button
-          onClick={() => navigate('/chat')}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-sm hover:shadow-md hover:shadow-primary/20"
-        >
-          <MessageSquare className="w-4 h-4" />
-          Open Full Chat View
-        </button>
+                  {isOngoing && (
+                    <Link
+                      to="/meetings"
+                      state={{ autoJoinMeetingId: meeting._id }}
+                      className="inline-flex mt-2 text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      Join now
+                    </Link>
+                  )}
+                </div>
+              );
+            })}
+
+            <Link
+              to="/meetings"
+              className="inline-flex text-xs font-semibold text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white pt-1"
+            >
+              View all meetings
+            </Link>
+          </div>
+        )}
       </div>
-    </div>
+    </aside>
   );
 }
 
+/* ── Right sidebar (Chat List) ──────────── */
+function RightSidebar({ user, onOpenConversation }) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['community-sidebar-chat-groups'],
+    queryFn: getUserChatGroups,
+    enabled: !!user,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+  });
+
+  const chatGroups = data?.data || [];
+  const recentChatGroups = [...chatGroups]
+    .sort((a, b) => {
+      const aTime = new Date(
+        a?.lastMessage?.createdAt || a?.updatedAt || a?.createdAt || 0
+      ).getTime();
+      const bTime = new Date(
+        b?.lastMessage?.createdAt || b?.updatedAt || b?.createdAt || 0
+      ).getTime();
+      return bTime - aTime;
+    })
+    .slice(0, 5);
+
+  if (!user) {
+    return null;
+  }
+
+  return (
+    <aside className="hidden lg:flex flex-col gap-6">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-gray-900 dark:text-white">Chats</h3>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
+            {recentChatGroups.length}
+          </span>
+        </div>
+
+        {isLoading && (
+          <div className="py-12 flex justify-center">
+            <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+          </div>
+        )}
+
+        {error && (
+          <p className="text-sm text-red-500 py-8 text-center">
+            Failed to load chat list.
+          </p>
+        )}
+
+        {!isLoading && !error && recentChatGroups.length === 0 && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
+            No conversations yet.
+          </p>
+        )}
+
+        {!isLoading && !error && recentChatGroups.length > 0 && (
+          <div className="space-y-1 max-h-[28rem] overflow-y-auto pr-1">
+            {recentChatGroups.map((group) => {
+              const displayName = (
+                group.displayName ||
+                group.name ||
+                'Chat'
+              ).trim();
+              const unreadCount = Number(group.unreadCount || 0);
+              const lastMessage = group.lastMessage?.text || 'No messages yet';
+              const lastMessageTime = formatChatTimestamp(
+                group.lastMessage?.createdAt
+              );
+
+              return (
+                <button
+                  key={group._id}
+                  onClick={() => onOpenConversation(group._id)}
+                  className="w-full flex items-center gap-3 rounded-lg px-2.5 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition text-left"
+                >
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 ${avatarColor(displayName)}`}
+                  >
+                    {displayName.slice(0, 2).toUpperCase()}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                        {displayName}
+                      </p>
+                      <span className="text-[11px] text-gray-400 shrink-0">
+                        {lastMessageTime}
+                      </span>
+                    </div>
+                    <div className="mt-0.5 flex items-center justify-between gap-2">
+                      <p
+                        className={`text-xs truncate ${unreadCount > 0 ? 'text-gray-700 dark:text-gray-200 font-medium' : 'text-gray-500 dark:text-gray-400'}`}
+                      >
+                        {lastMessage}
+                      </p>
+                      {unreadCount > 0 && (
+                        <span className="min-w-5 h-5 px-1 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </aside>
+  );
+}
+
+/* ══════ Main Community Page ════════════════════════════════════ */
 export default function Community() {
   const [page, setPage] = useState(1);
-  const [activeTab, setActiveTab] = useState('posts');
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatLaunchMode, setChatLaunchMode] = useState('full');
+  const [selectedConversationId, setSelectedConversationId] = useState(null);
+  const { user } = useSelector((s) => s.auth);
+  const feedScope = user ? 'all' : 'public';
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['community-posts', page],
-    queryFn: () => getPosts({ page, limit: 10 }),
+    queryKey: ['posts', feedScope, page],
+    queryFn: () =>
+      getPosts({
+        page,
+        limit: 10,
+        visibility: user ? undefined : 'public',
+      }),
     keepPreviousData: true,
-    enabled: activeTab === 'posts',
   });
 
   const posts = data?.data?.posts || [];
   const pagination = data?.data?.pagination || { page: 1, pages: 1 };
 
-  const TABS = [
-    { id: 'posts', label: 'Posts', icon: BookOpen },
-    { id: 'groups', label: 'Group Chats', icon: MessageSquare },
-  ];
+  const openConversationOnly = (groupId) => {
+    setChatLaunchMode('conversation-only');
+    setSelectedConversationId(groupId);
+    setIsChatOpen(true);
+  };
+
+  const closeChat = () => {
+    setIsChatOpen(false);
+    setChatLaunchMode('full');
+    setSelectedConversationId(null);
+  };
 
   return (
-    <div className="min-h-screen bg-secondary/5 pt-28 pb-16 px-4 sm:px-6">
-      <div className="max-w-3xl mx-auto space-y-8">
-        {/* Hero */}
-        <div className="text-center space-y-4 mb-8">
-          <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-2 border border-primary/20 shadow-sm text-primary">
-            <Users className="w-8 h-8" />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-foreground italic">
-            Community Hub
-          </h1>
-          <p className="text-muted-foreground text-lg max-w-xl mx-auto font-medium leading-relaxed">
-            Connect, share updates, and inspire others through environmental
-            action.
-          </p>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-1 p-1 bg-secondary/20 border border-border/40 rounded-2xl max-w-xs mx-auto">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  'flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-sm font-semibold transition-all duration-200',
-                  activeTab === tab.id
-                    ? 'bg-background text-foreground shadow-sm border border-border/40'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Posts Tab */}
-        {activeTab === 'posts' && (
-          <div className="space-y-6">
-            {/* Create Post */}
-            <CreatePostModal />
-
-            {/* Feed */}
-            <div className="space-y-6 max-w-2xl mx-auto">
-              {isLoading ? (
-                <div className="flex justify-center py-20">
-                  <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                </div>
-              ) : error ? (
-                <div className="text-center text-destructive py-10 bg-destructive/5 rounded-2xl border border-destructive/20 font-medium">
-                  Failed to load community posts. Please try again later.
-                </div>
-              ) : posts.length === 0 ? (
-                <div className="text-center py-20 bg-muted/20 rounded-3xl border border-dashed border-border/60">
-                  <Users className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-foreground">
-                    It's quiet here...
-                  </h3>
-                  <p className="text-muted-foreground mt-2 font-medium">
-                    Be the first to share an update with the community!
-                  </p>
-                </div>
-              ) : (
-                <>
-                  {posts.map((post) => (
-                    <PostCard key={post._id} post={post} />
-                  ))}
-
-                  {pagination.pages > 1 && (
-                    <div className="flex justify-center items-center gap-4 mt-10 p-4 bg-card/30 rounded-2xl backdrop-blur-sm border border-border/50 w-full">
-                      <button
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                        className="px-6 py-2 rounded-xl bg-secondary text-secondary-foreground text-sm font-bold hover:bg-secondary/80 disabled:opacity-50 transition-colors"
-                      >
-                        Previous
-                      </button>
-                      <span className="text-sm font-semibold text-muted-foreground px-4 bg-card py-2 rounded-lg border border-border/50">
-                        Page {page} of {pagination.pages}
-                      </span>
-                      <button
-                        onClick={() =>
-                          setPage((p) => Math.min(pagination.pages, p + 1))
-                        }
-                        disabled={page === pagination.pages}
-                        className="px-6 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-sm"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-950 pt-4">
+      {/* ── Three-column layout ── */}
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] gap-6">
+          {/* Left sidebar */}
+          {user && (
+            <div className="sticky top-4 h-fit">
+              <LeftSidebar user={user} />
             </div>
-          </div>
-        )}
+          )}
+          {!user && <div className="hidden lg:block" aria-hidden="true" />}
 
-        {/* Group Chats Tab */}
-        {activeTab === 'groups' && <GroupChatsTab />}
+          {/* Center feed */}
+          <main className="space-y-4 min-w-0">
+            {/* Create Post */}
+            {user && <PostCreate />}
+
+            {/* Posts */}
+            {isLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <PostCard key={`post-skeleton-${index}`} loading />
+                ))}
+              </div>
+            ) : error ? (
+              <div className="bg-white rounded-lg shadow p-8 text-center text-red-500 font-medium">
+                Failed to load posts. Please try again later.
+              </div>
+            ) : posts.length === 0 ? (
+              <div className="bg-white rounded-lg shadow p-12 text-center">
+                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MessageSquare className="w-8 h-8 text-blue-400" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                  It's quiet here…
+                </h3>
+                <p className="text-gray-500 text-sm">
+                  {user
+                    ? 'Be the first to share an update with the community!'
+                    : 'No public posts yet.'}
+                </p>
+              </div>
+            ) : (
+              <>
+                {posts.map((post) => (
+                  <PostCard
+                    key={post._id}
+                    post={post}
+                    showActions={Boolean(user)}
+                  />
+                ))}
+
+                {/* Pagination */}
+                {pagination.pages > 1 && (
+                  <div className="flex items-center justify-center gap-3 py-4">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      <ChevronLeft className="w-4 h-4" /> Previous
+                    </button>
+                    <span className="text-sm font-medium text-gray-500">
+                      Page {page} of {pagination.pages}
+                    </span>
+                    <button
+                      onClick={() =>
+                        setPage((p) => Math.min(pagination.pages, p + 1))
+                      }
+                      disabled={page === pagination.pages}
+                      className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      Next <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </main>
+
+          {/* Right sidebar */}
+          {user && (
+            <div className="sticky top-4 h-fit">
+              <RightSidebar
+                user={user}
+                onOpenConversation={openConversationOnly}
+              />
+            </div>
+          )}
+          {!user && <div className="hidden lg:block" aria-hidden="true" />}
+        </div>
       </div>
+
+      {/* Chat Modal */}
+      {user && (
+        <ChatApp
+          isOpen={isChatOpen}
+          onOpen={() => setIsChatOpen(true)}
+          onClose={closeChat}
+          showFloatingButton={Boolean(user)}
+          initialSelectedGroupId={selectedConversationId}
+          hideConversationList={chatLaunchMode === 'conversation-only'}
+        />
+      )}
     </div>
   );
 }
