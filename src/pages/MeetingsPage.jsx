@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import MeetingForm from '@/components/MeetingForm';
@@ -25,16 +26,21 @@ const initialMeetingState = {
 export default function MeetingsPage() {
   const { user, token } = useSelector((state) => state.auth);
   const queryClient = useQueryClient();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [meetingState, setMeetingState] = useState(initialMeetingState);
   const [actionLoading, setActionLoading] = useState('');
 
   const currentUserId = String(user?.id || user?._id || '');
+  const role = String(user?.role || '').toLowerCase();
+  const canCreateMeetings = role === 'admin' || role === 'organizer';
+  const isListOnlyView = !canCreateMeetings;
 
   const usersQuery = useQuery({
     queryKey: ['meeting-users'],
     queryFn: getMeetingUsers,
-    enabled: Boolean(token),
+    enabled: Boolean(token) && canCreateMeetings,
   });
 
   const meetingsQuery = useQuery({
@@ -82,6 +88,7 @@ export default function MeetingsPage() {
   }, [usersQuery.data, currentUserId]);
 
   const myMeetings = meetingsQuery.data || [];
+  const autoJoinMeetingId = location.state?.autoJoinMeetingId;
 
   const handleCreateMeeting = async (payload) => {
     await createMeetingMutation.mutateAsync(payload);
@@ -97,7 +104,7 @@ export default function MeetingsPage() {
     }
   };
 
-  const handleJoinMeeting = (meeting) => {
+  const handleJoinMeeting = useCallback((meeting) => {
     const scheduledAtMs = meeting.scheduledAt
       ? new Date(meeting.scheduledAt).getTime()
       : null;
@@ -119,7 +126,39 @@ export default function MeetingsPage() {
     }));
 
     setTimeout(() => setActionLoading(''), 100);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!autoJoinMeetingId || meetingsQuery.isLoading || meetingState.currentMeeting) {
+      return;
+    }
+
+    const targetMeeting = myMeetings.find(
+      (meeting) => String(meeting._id) === String(autoJoinMeetingId)
+    );
+
+    if (!targetMeeting) {
+      toast.error('Meeting not found.');
+      navigate('/meetings', { replace: true });
+      return;
+    }
+
+    if (targetMeeting.status !== 'ongoing') {
+      toast.error('This meeting is not ongoing right now.');
+      navigate('/meetings', { replace: true });
+      return;
+    }
+
+    handleJoinMeeting(targetMeeting);
+    navigate('/meetings', { replace: true });
+  }, [
+    autoJoinMeetingId,
+    meetingsQuery.isLoading,
+    meetingState.currentMeeting,
+    myMeetings,
+    navigate,
+    handleJoinMeeting,
+  ]);
 
   const handleEndMeeting = async (meeting) => {
     setActionLoading(`end-${meeting._id}`);
@@ -173,12 +212,6 @@ export default function MeetingsPage() {
     <div className="h-full min-h-0 px-6 py-6 overflow-auto lg:overflow-hidden">
       <div className="h-full min-h-0 flex flex-col gap-4">
         <div className="flex flex-wrap items-start justify-between gap-4 shrink-0">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Meetings</h1>
-            <p className="text-muted-foreground">
-              Create and join video meetings with up to 5 participants.
-            </p>
-          </div>
 
           <Button
             variant="outline"
@@ -198,16 +231,24 @@ export default function MeetingsPage() {
           </p>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-2 flex-1 min-h-0 lg:overflow-hidden">
-          <div className="lg:min-h-0">
-            <MeetingForm
-              users={availableUsers}
-              onSubmit={handleCreateMeeting}
-              isSubmitting={createMeetingMutation.isPending}
-            />
-          </div>
+        <div
+          className={`grid gap-6 ${
+            canCreateMeetings
+              ? 'flex-1 min-h-0 lg:overflow-hidden lg:grid-cols-2'
+              : 'lg:grid-cols-1 lg:max-w-4xl w-full mx-auto'
+          }`}
+        >
+          {canCreateMeetings && (
+            <div className="lg:min-h-0">
+              <MeetingForm
+                users={availableUsers}
+                onSubmit={handleCreateMeeting}
+                isSubmitting={createMeetingMutation.isPending}
+              />
+            </div>
+          )}
 
-          <div className="lg:min-h-0">
+          <div className={canCreateMeetings ? 'lg:min-h-0' : ''}>
             <MeetingList
               meetings={myMeetings}
               currentUserId={currentUserId}
@@ -215,6 +256,8 @@ export default function MeetingsPage() {
               onJoin={handleJoinMeeting}
               onEnd={handleEndMeeting}
               actionLoading={actionLoading}
+              allowManageActions={canCreateMeetings}
+              compact={isListOnlyView}
             />
           </div>
         </div>

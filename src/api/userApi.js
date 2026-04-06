@@ -74,7 +74,7 @@ export const getUserWasteRecords = async (userId) => {
  */
 export const getUserCommunityPosts = async (userId) => {
   try {
-    const response = await axios.get(`${BASE_URL}/community/posts`, {
+    const response = await axios.get(`${BASE_URL}/posts`, {
       params: {
         authorId: userId,
         limit: 100,
@@ -82,8 +82,8 @@ export const getUserCommunityPosts = async (userId) => {
       headers: getAuthHeaders(),
     });
 
-    if (response.data.data && response.data.data.data) {
-      return response.data.data.data;
+    if (response.data.data && response.data.data.posts) {
+      return response.data.data.posts;
     }
     return [];
   } catch (error) {

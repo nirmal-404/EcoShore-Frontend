@@ -14,6 +14,7 @@ import {
   addMemberToGroup,
   createChatGroup,
   getChatGroupById,
+  getUserChatGroups,
   removeMemberFromGroup,
 } from '@/api/chatApi';
 
@@ -40,6 +41,8 @@ export default function ChatApp({
   onOpen: externalOnOpen,
   onClose: externalOnClose,
   showFloatingButton = true,
+  initialSelectedGroupId = null,
+  hideConversationList = false,
 }) {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
@@ -367,6 +370,14 @@ export default function ChatApp({
     setSelectedGroupId(groupId);
   };
 
+  useEffect(() => {
+    if (!isOpen || !initialSelectedGroupId) {
+      return;
+    }
+
+    setSelectedGroupId(initialSelectedGroupId);
+  }, [initialSelectedGroupId, isOpen]);
+
   const handleUserSelected = (selectedUser) => {
     setCreatingChat(true);
     createDirectChatMutation.mutate(selectedUser);
@@ -457,6 +468,22 @@ export default function ChatApp({
   const handleEndCall = useCallback(() => {
     emitCallEndAndClose('ended');
   }, [emitCallEndAndClose]);
+
+  const { data: chatGroupsSummary } = useQuery({
+    queryKey: ['chat-groups'],
+    queryFn: getUserChatGroups,
+    enabled: Boolean(currentUserId) && showFloatingButton,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+  });
+
+  const totalUnreadCount = (chatGroupsSummary?.data || []).reduce(
+    (sum, group) => sum + Number(group?.unreadCount || 0),
+    0
+  );
+
+  const unreadBadgeText = totalUnreadCount > 99 ? '99+' : String(totalUnreadCount);
 
   // Fetch current group details
   const { data: currentGroup } = useQuery({
@@ -807,10 +834,16 @@ export default function ChatApp({
       {showFloatingButton && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 group"
+          className="fixed bottom-6 left-6 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 group"
           title="Open Messages"
         >
           <MessageCircle size={24} className="group-hover:rotate-12 transition-transform" />
+
+          {totalUnreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center border-2 border-blue-700">
+              {unreadBadgeText}
+            </span>
+          )}
         </button>
       )}
 
@@ -836,95 +869,96 @@ export default function ChatApp({
                   : 'opacity-100 translate-y-0'
               }`}
             >
-              {/* Left Sidebar - Conversations List */}
-              <div className="w-full sm:w-96 bg-gray-800 dark:bg-gray-800 flex flex-col border-r border-gray-700 dark:border-gray-700 min-h-0">
-                {/* Header */}
-                <div className="p-4 border-b border-gray-700 dark:border-gray-700 flex items-center justify-between bg-gray-800 dark:bg-gray-800">
-                  <h2 className="text-xl font-bold text-white dark:text-white">Chats</h2>
-                  <button
-                    onClick={() => setUserPickerOpen(true)}
-                    className="p-1.5 rounded-full hover:bg-gray-700 dark:hover:bg-gray-700 transition-colors text-blue-400 dark:text-blue-400"
-                    title="Start new chat"
-                  >
-                    <Plus size={20} />
-                  </button>
-                </div>
+              {!hideConversationList && (
+                <div className="w-full sm:w-96 bg-gray-800 dark:bg-gray-800 flex flex-col border-r border-gray-700 dark:border-gray-700 min-h-0">
+                  {/* Header */}
+                  <div className="p-4 border-b border-gray-700 dark:border-gray-700 flex items-center justify-between bg-gray-800 dark:bg-gray-800">
+                    <h2 className="text-xl font-bold text-white dark:text-white">Chats</h2>
+                    <button
+                      onClick={() => setUserPickerOpen(true)}
+                      className="p-1.5 rounded-full hover:bg-gray-700 dark:hover:bg-gray-700 transition-colors text-blue-400 dark:text-blue-400"
+                      title="Start new chat"
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
 
-                {/* Search Bar */}
-                <div className="px-4 py-3 border-b border-gray-700 dark:border-gray-700 bg-gray-800 dark:bg-gray-800">
-                  <div className="relative">
-                    <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                    <input
-                      type="text"
-                      placeholder="Search..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-700 dark:border-gray-700 bg-gray-700 dark:bg-gray-700 text-gray-100 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  {/* Search Bar */}
+                  <div className="px-4 py-3 border-b border-gray-700 dark:border-gray-700 bg-gray-800 dark:bg-gray-800">
+                    <div className="relative">
+                      <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                      <input
+                        type="text"
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-700 dark:border-gray-700 bg-gray-700 dark:bg-gray-700 text-gray-100 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Filter Tabs */}
+                  <div className="px-2 py-3 border-b border-gray-700 dark:border-gray-700 flex gap-1 bg-gray-800 dark:bg-gray-800">
+                    <button
+                      onClick={() => setChatFilter('all')}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+                        chatFilter === 'all'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 dark:bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      All
+                    </button>
+                    <button
+                      onClick={() => setChatFilter('unread')}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+                        chatFilter === 'unread'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 dark:bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      Unread
+                    </button>
+                    <button
+                      onClick={() => setChatFilter('favorites')}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+                        chatFilter === 'favorites'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 dark:bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      Favorites
+                    </button>
+                    <button
+                      onClick={() => setChatFilter('archived')}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+                        chatFilter === 'archived'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 dark:bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      Archived
+                    </button>
+                  </div>
+
+                  {/* Group List */}
+                  <div className="flex-1 overflow-y-auto min-h-0">
+                    <GroupList
+                      currentUserId={currentUserId}
+                      selectedGroupId={selectedGroupId}
+                      onSelectGroup={handleSelectGroup}
+                      onDeleteGroup={handleDeleteConversation}
+                      deletingGroupId={
+                        deleteConversationMutation.isPending
+                          ? deleteConversationMutation.variables?.groupId
+                          : null
+                      }
+                      searchTerm={searchTerm}
+                      chatFilter={chatFilter}
                     />
                   </div>
                 </div>
-
-                {/* Filter Tabs */}
-                <div className="px-2 py-3 border-b border-gray-700 dark:border-gray-700 flex gap-1 bg-gray-800 dark:bg-gray-800">
-                  <button
-                    onClick={() => setChatFilter('all')}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
-                      chatFilter === 'all'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 dark:bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    All
-                  </button>
-                  <button
-                    onClick={() => setChatFilter('unread')}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
-                      chatFilter === 'unread'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 dark:bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    Unread
-                  </button>
-                  <button
-                    onClick={() => setChatFilter('favorites')}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
-                      chatFilter === 'favorites'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 dark:bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    Favorites
-                  </button>
-                  <button
-                    onClick={() => setChatFilter('archived')}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
-                      chatFilter === 'archived'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 dark:bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    Archived
-                  </button>
-                </div>
-
-                {/* Group List */}
-                <div className="flex-1 overflow-y-auto min-h-0">
-                  <GroupList
-                    currentUserId={currentUserId}
-                    selectedGroupId={selectedGroupId}
-                    onSelectGroup={handleSelectGroup}
-                    onDeleteGroup={handleDeleteConversation}
-                    deletingGroupId={
-                      deleteConversationMutation.isPending
-                        ? deleteConversationMutation.variables?.groupId
-                        : null
-                    }
-                    searchTerm={searchTerm}
-                    chatFilter={chatFilter}
-                  />
-                </div>
-              </div>
+              )}
 
               {/* Right Side - Chat Window */}
               <div className="flex-1 min-h-0 bg-gray-900 dark:bg-gray-900 flex flex-col">

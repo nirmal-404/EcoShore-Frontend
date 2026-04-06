@@ -19,7 +19,7 @@ import {
   unlikePost,
   getComments,
   createComment,
-} from '@/api/communityApi';
+} from '@/services/api';
 
 // ─── Utility ─────────────────────────────────────────────────────────────────
 
@@ -638,7 +638,7 @@ function PostComments({ postId }) {
     setLoading(true);
     try {
       const res = await getComments(postId);
-      setComments(res?.data || []);
+      setComments(res?.data?.comments || res?.data || []);
     } catch {
       /* ignore */
     } finally {
@@ -718,7 +718,7 @@ function PostComments({ postId }) {
 function PostCard({ post, onLikeToggle }) {
   const { user } = useSelector((state) => state.auth);
   const [liking, setLiking] = useState(false);
-  const isLiked = post.likes?.includes(user?.id);
+  const isLiked = Boolean(post?.isLiked || post?.likes?.includes(user?.id));
 
   const handleLike = async () => {
     if (!user || liking) return;
@@ -782,7 +782,7 @@ function PostCard({ post, onLikeToggle }) {
           )}
         >
           {liking ? <Spinner /> : isLiked ? '❤️' : '🤍'}
-          {post.likes?.length || 0} {isLiked ? 'Liked' : 'Like'}
+          {post.likesCount || post.likes?.length || 0} {isLiked ? 'Liked' : 'Like'}
         </button>
         <div className="flex-1">
           <PostComments postId={post._id} />
