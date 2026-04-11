@@ -1,31 +1,96 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
-  User,
+  Briefcase,
+  Loader,
+  Lock,
   Mail,
   MapPin,
-  Shield,
   Power,
   PowerOff,
+  Shield,
   Trash2,
-  Loader,
-  Users,
-  CheckCircle,
-  XCircle,
-  Zap,
+  User,
   Users2,
-  Lock,
-  Briefcase,
+  Zap,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
-  getAllUsers,
   activateUser,
   deactivateUser,
   deleteUser,
+  getAllUsers,
 } from '@/api/authApi';
 import { useSelector } from 'react-redux';
+
+const ROLE_TABS = [
+  {
+    key: 'volunteers',
+    role: 'volunteer',
+    label: 'Volunteers',
+    icon: Users2,
+    cardClass: 'border-sky-500/25 bg-sky-500/10',
+    accentClass: 'text-sky-600 dark:text-sky-400',
+    ringClass: 'ring-sky-500/45',
+    emptyText: 'No volunteers found',
+  },
+  {
+    key: 'agents',
+    role: 'agent',
+    label: 'Agents',
+    icon: Zap,
+    cardClass: 'border-cyan-500/25 bg-cyan-500/10',
+    accentClass: 'text-cyan-600 dark:text-cyan-400',
+    ringClass: 'ring-cyan-500/45',
+    emptyText: 'No agents found',
+  },
+  {
+    key: 'organizers',
+    role: 'organizer',
+    label: 'Organizers',
+    icon: Briefcase,
+    cardClass: 'border-emerald-500/25 bg-emerald-500/10',
+    accentClass: 'text-emerald-600 dark:text-emerald-400',
+    ringClass: 'ring-emerald-500/45',
+    emptyText: 'No organizers found',
+  },
+  {
+    key: 'admins',
+    role: 'admin',
+    label: 'Admins',
+    icon: Lock,
+    cardClass: 'border-rose-500/25 bg-rose-500/10',
+    accentClass: 'text-rose-600 dark:text-rose-400',
+    ringClass: 'ring-rose-500/45',
+    emptyText: 'No admins found',
+  },
+];
+
+const getRoleBadgeClass = (role) => {
+  switch (role) {
+    case 'volunteer':
+      return 'border-sky-500/35 bg-sky-500/10 text-sky-700 dark:text-sky-300';
+    case 'agent':
+      return 'border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300';
+    case 'organizer':
+      return 'border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
+    case 'admin':
+      return 'border-rose-500/35 bg-rose-500/10 text-rose-700 dark:text-rose-300';
+    default:
+      return 'border-border bg-muted/60 text-muted-foreground';
+  }
+};
+
+const getRoleMetaByRole = (role) => {
+  return ROLE_TABS.find((tab) => tab.role === role) || ROLE_TABS[0];
+};
 
 export default function ManageUsers() {
   const { user: currentUser } = useSelector((state) => state.auth);
@@ -48,8 +113,9 @@ export default function ManageUsers() {
       setIsLoading(true);
       setError(null);
       const response = await getAllUsers();
+
       if (response.success) {
-        setUsers(response.data);
+        setUsers(response.data || []);
       } else {
         setError('Failed to fetch users');
       }
@@ -69,9 +135,12 @@ export default function ManageUsers() {
     try {
       setActioningId(userId);
       const response = await activateUser(userId);
+
       if (response.success) {
-        setUsers(
-          users.map((u) => (u._id === userId ? { ...u, isActive: true } : u))
+        setUsers((previousUsers) =>
+          previousUsers.map((item) =>
+            item._id === userId ? { ...item, isActive: true } : item
+          )
         );
       } else {
         alert('Failed to activate user');
@@ -92,9 +161,12 @@ export default function ManageUsers() {
     try {
       setActioningId(userId);
       const response = await deactivateUser(userId);
+
       if (response.success) {
-        setUsers(
-          users.map((u) => (u._id === userId ? { ...u, isActive: false } : u))
+        setUsers((previousUsers) =>
+          previousUsers.map((item) =>
+            item._id === userId ? { ...item, isActive: false } : item
+          )
         );
       } else {
         alert('Failed to deactivate user');
@@ -119,9 +191,12 @@ export default function ManageUsers() {
     try {
       setActioningId(userId);
       const response = await deleteUser(userId);
+
       if (response.success) {
-        setUsers(
-          users.map((u) => (u._id === userId ? { ...u, isDeleted: true } : u))
+        setUsers((previousUsers) =>
+          previousUsers.map((item) =>
+            item._id === userId ? { ...item, isDeleted: true } : item
+          )
         );
       } else {
         alert('Failed to delete user');
@@ -134,13 +209,193 @@ export default function ManageUsers() {
     }
   };
 
+  const usersByRole = useMemo(() => {
+    const visibleUsers = users.filter((item) => !item.isDeleted);
+
+    return {
+      volunteers: visibleUsers.filter((item) => item.role === 'volunteer'),
+      agents: visibleUsers.filter((item) => item.role === 'agent'),
+      organizers: visibleUsers.filter((item) => item.role === 'organizer'),
+      admins: visibleUsers.filter((item) => item.role === 'admin'),
+    };
+  }, [users]);
+
+  const selectedTab =
+    ROLE_TABS.find((tab) => tab.key === activeRole) || ROLE_TABS[0];
+  const selectedUsers = usersByRole[selectedTab.key] || [];
+
+  const totalVisibleUsers =
+    usersByRole.volunteers.length +
+    usersByRole.agents.length +
+    usersByRole.organizers.length +
+    usersByRole.admins.length;
+
+  const renderUserTable = (userList, roleLabel) => (
+    <div className="space-y-4">
+      <h3 className="text-xl font-semibold text-foreground">
+        {roleLabel} ({userList.length})
+      </h3>
+
+      <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card">
+        <table className="w-full min-w-[980px] text-sm">
+          <thead className="bg-muted/45">
+            <tr className="border-b border-border/70">
+              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Name
+              </th>
+              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Email
+              </th>
+              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Role
+              </th>
+              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Beach
+              </th>
+              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Actions
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {userList.map((item) => {
+              const roleMeta = getRoleMetaByRole(item.role);
+              const RoleIcon = roleMeta.icon;
+              const isActioning = actioningId === item._id;
+
+              return (
+                <tr
+                  key={item._id}
+                  className="border-b border-border/60 last:border-b-0 hover:bg-accent/30"
+                >
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-primary">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <span className="font-semibold text-foreground">
+                        {item.name || '-'}
+                      </span>
+                    </div>
+                  </td>
+
+                  <td className="px-5 py-3 text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      <span>{item.email}</span>
+                    </div>
+                  </td>
+
+                  <td className="px-5 py-3">
+                    <span
+                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold capitalize ${getRoleBadgeClass(
+                        item.role
+                      )}`}
+                    >
+                      <RoleIcon className="h-3.5 w-3.5" />
+                      {item.role}
+                    </span>
+                  </td>
+
+                  <td className="px-5 py-3 text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      <span>{item.assignedBeach?.name || 'Not assigned'}</span>
+                    </div>
+                  </td>
+
+                  <td className="px-5 py-3">
+                    <div className="flex flex-wrap gap-2">
+                      {!item.isActive && (
+                        <Button
+                          onClick={() =>
+                            handleActivateUser(item._id, item.name || item.email)
+                          }
+                          disabled={isActioning}
+                          size="sm"
+                          className="h-8 whitespace-nowrap"
+                        >
+                          {isActioning ? (
+                            <>
+                              <Loader className="mr-1 h-3.5 w-3.5 animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>
+                              <Power className="mr-1 h-3.5 w-3.5" />
+                              Activate
+                            </>
+                          )}
+                        </Button>
+                      )}
+
+                      {item.isActive && (
+                        <Button
+                          onClick={() =>
+                            handleDeactivateUser(
+                              item._id,
+                              item.name || item.email
+                            )
+                          }
+                          disabled={isActioning}
+                          variant="outline"
+                          size="sm"
+                          className="h-8 whitespace-nowrap border-amber-500/30 text-amber-700 hover:bg-amber-500/10 dark:text-amber-300"
+                        >
+                          {isActioning ? (
+                            <>
+                              <Loader className="mr-1 h-3.5 w-3.5 animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>
+                              <PowerOff className="mr-1 h-3.5 w-3.5" />
+                              Deactivate
+                            </>
+                          )}
+                        </Button>
+                      )}
+
+                      <Button
+                        onClick={() =>
+                          handleDeleteUser(item._id, item.name || item.email)
+                        }
+                        disabled={isActioning}
+                        variant="destructive"
+                        size="sm"
+                        className="h-8 whitespace-nowrap"
+                      >
+                        {isActioning ? (
+                          <>
+                            <Loader className="mr-1 h-3.5 w-3.5 animate-spin" />
+                            Loading...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="mr-1 h-3.5 w-3.5" />
+                            Delete
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
   if (!isAdmin) {
     return (
-      <Card className="rounded-2xl border-amber-200/50 bg-amber-50/30">
-        <CardContent className="pt-6 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-amber-700">
-            You do not have permission to access this section
+      <Card className="rounded-2xl border-amber-500/25 bg-amber-500/10">
+        <CardContent className="flex items-start gap-3 pt-6">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            You do not have permission to access this section.
           </p>
         </CardContent>
       </Card>
@@ -149,19 +404,21 @@ export default function ManageUsers() {
 
   if (isLoading) {
     return (
-      <Card className="rounded-2xl border-border">
+      <Card className="rounded-3xl border-border/70 bg-card/80 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
+            <Shield className="h-5 w-5 text-primary" />
             Manage Users
           </CardTitle>
+          <CardDescription>Loading user records...</CardDescription>
         </CardHeader>
+
         <CardContent>
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
+          <div className="space-y-3">
+            {Array.from({ length: 6 }).map((_, index) => (
               <div
-                key={i}
-                className="p-4 rounded-lg border border-border animate-pulse bg-muted/20 h-20"
+                key={index}
+                className="h-16 animate-pulse rounded-xl border border-border/60 bg-muted/35"
               />
             ))}
           </div>
@@ -172,20 +429,13 @@ export default function ManageUsers() {
 
   if (error) {
     return (
-      <Card className="rounded-2xl border-destructive/20 bg-destructive/5">
-        <CardContent className="pt-6 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+      <Card className="rounded-3xl border-destructive/30 bg-destructive/10">
+        <CardContent className="flex items-start gap-3 pt-6">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
           <div>
-            <p className="font-semibold text-destructive">
-              Error loading users
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">{error}</p>
-            <Button
-              onClick={fetchUsers}
-              size="sm"
-              variant="outline"
-              className="mt-3"
-            >
+            <p className="font-semibold text-destructive">Error loading users</p>
+            <p className="mt-1 text-sm text-muted-foreground">{error}</p>
+            <Button onClick={fetchUsers} size="sm" variant="outline" className="mt-3">
               Retry
             </Button>
           </div>
@@ -194,346 +444,73 @@ export default function ManageUsers() {
     );
   }
 
-  const activeUsers = users.filter((u) => !u.isDeleted && u.isActive);
-  const inactiveUsers = users.filter((u) => !u.isDeleted && !u.isActive);
-  const deletedUsers = users.filter((u) => u.isDeleted);
-
-  // Role-based filters - exclude deleted users
-  const volunteers = users.filter(
-    (u) => u.role === 'volunteer' && !u.isDeleted
-  );
-  const agents = users.filter((u) => u.role === 'agent' && !u.isDeleted);
-  const admins = users.filter((u) => u.role === 'admin' && !u.isDeleted);
-  const organizers = users.filter(
-    (u) => u.role === 'organizer' && !u.isDeleted
-  );
-
-  const getRoleIcon = (role) => {
-    switch (role) {
-      case 'volunteer':
-        return <Users2 className="w-5 h-5" />;
-      case 'agent':
-        return <Zap className="w-5 h-5" />;
-      case 'admin':
-        return <Lock className="w-5 h-5" />;
-      case 'organizer':
-        return <Briefcase className="w-5 h-5" />;
-      default:
-        return <User className="w-5 h-5" />;
-    }
-  };
-
-  const getRoleColor = (role) => {
-    switch (role) {
-      case 'volunteer':
-        return 'bg-blue-500/10 border-blue-500/20 text-blue-700';
-      case 'agent':
-        return 'bg-blue-500/10 border-blue-500/20 text-blue-700';
-      case 'admin':
-        return ' bg-blue-500/10 border-blue-500/20 text-blue-700';
-      case 'organizer':
-        return ' bg-blue-500/10 border-blue-500/20 text-blue-700';
-      default:
-        return ' ';
-    }
-  };
-
-  const renderUserTable = (userList, title) => (
-    <div className="mb-8">
-      <h3 className="text-lg font-semibold mb-4">
-        {title} ({userList.length})
-      </h3>
-      {userList.length === 0 ? (
-        <div className="text-center py-8 bg-muted/20 rounded-lg">
-          <User className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-          <p className="text-muted-foreground text-sm">
-            No users in this category
-          </p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto border border-border rounded-lg">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/30">
-              <tr className="border-b border-border">
-                <th className="text-left py-3 px-4 font-semibold">Name</th>
-                <th className="text-left py-3 px-4 font-semibold">Email</th>
-                <th className="text-left py-3 px-4 font-semibold">Role</th>
-                <th className="text-left py-3 px-4 font-semibold">Beach</th>
-                <th className="text-left py-3 px-4 font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {userList.map((user) => (
-                <tr
-                  key={user._id}
-                  className="border-b border-border hover:bg-muted/50 transition-colors"
-                >
-                  <td className="py-3 px-4 flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                      <User className="w-4 h-4 text-primary" />
-                    </div>
-                    <span className="font-medium">{user.name || '-'}</span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="w-4 h-4" />
-                      {user.email}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-primary" />
-                      <span className="capitalize font-medium">
-                        {user.role}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <MapPin className="w-4 h-4" />
-                      {user.assignedBeach?.name || 'Not Assigned'}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex gap-2 flex-wrap">
-                      {!user.isActive && (
-                        <Button
-                          onClick={() =>
-                            handleActivateUser(
-                              user._id,
-                              user.name || user.email
-                            )
-                          }
-                          disabled={actioningId === user._id}
-                          variant="default"
-                          size="sm"
-                          className="whitespace-nowrap"
-                        >
-                          {actioningId === user._id ? (
-                            <>
-                              <Loader className="w-4 h-4 animate-spin mr-1" />
-                              Loading...
-                            </>
-                          ) : (
-                            <>
-                              <Power className="w-4 h-4 mr-1" />
-                              Activate
-                            </>
-                          )}
-                        </Button>
-                      )}
-                      {user.isActive && (
-                        <Button
-                          onClick={() =>
-                            handleDeactivateUser(
-                              user._id,
-                              user.name || user.email
-                            )
-                          }
-                          disabled={actioningId === user._id}
-                          variant="secondary"
-                          size="sm"
-                          className="whitespace-nowrap"
-                        >
-                          {actioningId === user._id ? (
-                            <>
-                              <Loader className="w-4 h-4 animate-spin mr-1" />
-                              Loading...
-                            </>
-                          ) : (
-                            <>
-                              <PowerOff className="w-4 h-4 mr-1" />
-                              Deactivate
-                            </>
-                          )}
-                        </Button>
-                      )}
-                      <Button
-                        onClick={() =>
-                          handleDeleteUser(user._id, user.name || user.email)
-                        }
-                        disabled={actioningId === user._id}
-                        variant="destructive"
-                        size="sm"
-                        className="whitespace-nowrap"
-                      >
-                        {actioningId === user._id ? (
-                          <>
-                            <Loader className="w-4 h-4 animate-spin mr-1" />
-                            Loading...
-                          </>
-                        ) : (
-                          <>
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Delete
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-
   return (
-    <Card className="rounded-2xl border-border">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <User className="w-5 h-5" />
-          Manage Users (Total: {users.length})
+    <Card className="rounded-3xl border-border/70 bg-card/85 shadow-sm backdrop-blur-sm">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-xl">
+          <Shield className="h-5 w-5 text-primary" />
+          Manage Users (Total: {totalVisibleUsers})
         </CardTitle>
+        <CardDescription>
+          Filter users by role and manage account status securely.
+        </CardDescription>
       </CardHeader>
+
       <CardContent>
-        {users.length === 0 ? (
-          <div className="text-center py-12">
-            <User className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-            <p className="text-muted-foreground">No users found</p>
+        {totalVisibleUsers === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 py-12 text-center">
+            <User className="mx-auto mb-4 h-12 w-12 text-muted-foreground/60" />
+            <p className="text-sm text-muted-foreground">No users found.</p>
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* Role Summary Stats */}
-            <div className="grid md:grid-cols-4 gap-4 mb-8">
-              {/* Volunteers */}
-              <Card
-                className={`rounded-2xl border cursor-pointer transition-all ${getRoleColor('volunteer')} ${activeRole === 'volunteers' ? 'ring-2 ring-blue-500' : ''}`}
-                onClick={() => setActiveRole('volunteers')}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Volunteers</p>
-                      <p className="text-3xl font-bold mt-1">
-                        {volunteers.length}
-                      </p>
-                      <p className="text-xs mt-2 opacity-70">
-                        Active:{' '}
-                        {
-                          volunteers.filter((u) => u.isActive && !u.isDeleted)
-                            .length
-                        }
-                      </p>
-                    </div>
-                    <Users2 className="w-10 h-10 opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
+          <div className="space-y-8">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {ROLE_TABS.map((tab) => {
+                const TabIcon = tab.icon;
+                const tabUsers = usersByRole[tab.key] || [];
+                const activeCount = tabUsers.filter((item) => item.isActive).length;
+                const isSelected = activeRole === tab.key;
 
-              {/* Agents */}
-              <Card
-                className={`rounded-2xl border cursor-pointer transition-all ${getRoleColor('agent')} ${activeRole === 'agents' ? 'ring-2 ring-purple-500' : ''}`}
-                onClick={() => setActiveRole('agents')}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Agents</p>
-                      <p className="text-3xl font-bold mt-1">{agents.length}</p>
-                      <p className="text-xs mt-2 opacity-70">
-                        Active:{' '}
-                        {
-                          agents.filter((u) => u.isActive && !u.isDeleted)
-                            .length
-                        }
-                      </p>
-                    </div>
-                    <Zap className="w-10 h-10 opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setActiveRole(tab.key)}
+                    className={`rounded-2xl border p-5 text-left transition-all ${tab.cardClass} ${
+                      isSelected
+                        ? `ring-2 ${tab.ringClass} shadow-sm`
+                        : 'hover:border-primary/30 hover:bg-accent/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className={`text-sm font-semibold ${tab.accentClass}`}>
+                          {tab.label}
+                        </p>
+                        <p className="mt-1 text-3xl font-bold text-foreground">
+                          {tabUsers.length}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Active: {activeCount}
+                        </p>
+                      </div>
 
-              {/* Organizers */}
-              <Card
-                className={`rounded-2xl border cursor-pointer transition-all ${getRoleColor('organizer')} ${activeRole === 'organizers' ? 'ring-2 ring-green-500' : ''}`}
-                onClick={() => setActiveRole('organizers')}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Organizers</p>
-                      <p className="text-3xl font-bold mt-1">
-                        {organizers.length}
-                      </p>
-                      <p className="text-xs mt-2 opacity-70">
-                        Active:{' '}
-                        {
-                          organizers.filter((u) => u.isActive && !u.isDeleted)
-                            .length
-                        }
-                      </p>
+                      <TabIcon className={`h-9 w-9 opacity-80 ${tab.accentClass}`} />
                     </div>
-                    <Briefcase className="w-10 h-10 opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Admins */}
-              <Card
-                className={`rounded-2xl border cursor-pointer transition-all ${getRoleColor('admin')} ${activeRole === 'admins' ? 'ring-2 ring-red-500' : ''}`}
-                onClick={() => setActiveRole('admins')}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Admins</p>
-                      <p className="text-3xl font-bold mt-1">{admins.length}</p>
-                      <p className="text-xs mt-2 opacity-70">
-                        Active:{' '}
-                        {
-                          admins.filter((u) => u.isActive && !u.isDeleted)
-                            .length
-                        }
-                      </p>
-                    </div>
-                    <Lock className="w-10 h-10 opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Tab Content */}
-            <div className="space-y-6">
-              {activeRole === 'volunteers' &&
-                volunteers.length > 0 &&
-                renderUserTable(volunteers, ' Volunteers')}
-              {activeRole === 'volunteers' && volunteers.length === 0 && (
-                <div className="text-center py-12 bg-muted/20 rounded-lg">
-                  <Users2 className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                  <p className="text-muted-foreground">No volunteers found</p>
-                </div>
-              )}
-
-              {activeRole === 'agents' &&
-                agents.length > 0 &&
-                renderUserTable(agents, ' Agents')}
-              {activeRole === 'agents' && agents.length === 0 && (
-                <div className="text-center py-12 bg-muted/20 rounded-lg">
-                  <Zap className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                  <p className="text-muted-foreground">No agents found</p>
-                </div>
-              )}
-
-              {activeRole === 'organizers' &&
-                organizers.length > 0 &&
-                renderUserTable(organizers, ' Organizers')}
-              {activeRole === 'organizers' && organizers.length === 0 && (
-                <div className="text-center py-12 bg-muted/20 rounded-lg">
-                  <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                  <p className="text-muted-foreground">No organizers found</p>
-                </div>
-              )}
-
-              {activeRole === 'admins' &&
-                admins.length > 0 &&
-                renderUserTable(admins, ' Admins')}
-              {activeRole === 'admins' && admins.length === 0 && (
-                <div className="text-center py-12 bg-muted/20 rounded-lg">
-                  <Lock className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                  <p className="text-muted-foreground">No admins found</p>
+            <div className="space-y-4">
+              {selectedUsers.length > 0 ? (
+                renderUserTable(selectedUsers, selectedTab.label)
+              ) : (
+                <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 py-12 text-center">
+                  <selectedTab.icon className="mx-auto mb-4 h-12 w-12 text-muted-foreground/60" />
+                  <p className="text-sm text-muted-foreground">
+                    {selectedTab.emptyText}
+                  </p>
                 </div>
               )}
             </div>

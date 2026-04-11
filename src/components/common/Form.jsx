@@ -19,6 +19,7 @@ function CommonForm({
   onSubmit,
   buttonText,
   isBtnDisabled,
+  autoComplete = 'on',
 }) {
   function renderInputsByComponentType(getControlItem) {
     let element = null;
@@ -32,6 +33,7 @@ function CommonForm({
             placeholder={getControlItem.placeholder}
             id={getControlItem.name}
             type={getControlItem.type}
+            autoComplete={getControlItem.autoComplete}
             value={value}
             onChange={(event) =>
               setFormData({
@@ -72,6 +74,7 @@ function CommonForm({
             name={getControlItem.name}
             placeholder={getControlItem.placeholder}
             id={getControlItem.id}
+            autoComplete={getControlItem.autoComplete}
             value={value}
             onChange={(event) =>
               setFormData({
@@ -122,7 +125,7 @@ function CommonForm({
   }
 
   return (
-    <form onSubmit={onSubmit}>
+    <form onSubmit={onSubmit} autoComplete={autoComplete}>
       <div className="flex flex-col gap-3">
         {formControls.map((controlItem) => (
           <div className="grid w-full gap-1.5" key={controlItem.name}>

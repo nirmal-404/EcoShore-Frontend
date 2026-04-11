@@ -125,7 +125,7 @@ export function MessageList({
 
   if (isLoading && messages.length === 0) {
     return (
-      <div className="w-full h-full flex justify-center items-center bg-gray-900 dark:bg-gray-900">
+      <div className="w-full h-full flex justify-center items-center bg-gray-50 dark:bg-gray-900">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     );
@@ -136,11 +136,11 @@ export function MessageList({
   return (
     <div
       ref={scrollRef}
-      className="w-full h-full overflow-y-auto overflow-x-hidden px-4 md:px-6 py-4 bg-gray-900 dark:bg-gray-900 flex flex-col gap-4"
+      className="w-full h-full overflow-y-auto overflow-x-hidden px-4 md:px-6 py-4 bg-gray-50 dark:bg-gray-900 flex flex-col gap-4"
     >
       {messages.length === 0 ? (
         <div className="flex items-center justify-center py-12">
-          <div className="bg-gray-800 dark:bg-gray-800 px-6 py-3 rounded-full text-sm text-gray-400 dark:text-gray-400 shadow-sm border border-gray-700 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 px-6 py-3 rounded-full text-sm text-gray-600 dark:text-gray-400 shadow-sm border border-gray-200 dark:border-gray-700">
             No messages yet
           </div>
         </div>
@@ -152,7 +152,7 @@ export function MessageList({
                 key={`date-${idx}`}
                 className="flex items-center justify-center my-2"
               >
-                <span className="bg-gray-800 dark:bg-gray-800 text-xs text-gray-400 dark:text-gray-400 font-medium px-3 py-1 rounded-full shadow-sm border border-gray-700 dark:border-gray-700">
+                <span className="bg-white dark:bg-gray-800 text-xs text-gray-600 dark:text-gray-400 font-medium px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-700">
                   {item.label}
                 </span>
               </div>
@@ -201,9 +201,9 @@ export function MessageList({
                 key={msg._id || msg.id || idx}
                 className="flex items-center justify-center"
               >
-                <span className="inline-flex items-center gap-2 rounded-full bg-gray-800/80 border border-gray-700 px-3 py-1 text-xs text-gray-300">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/90 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 px-3 py-1 text-xs text-gray-700 dark:text-gray-300">
                   <span>{msg.text || 'Voice call'}</span>
-                  <span className="text-gray-500">{timeStr}</span>
+                  <span className="text-gray-500 dark:text-gray-400">{timeStr}</span>
                 </span>
               </div>
             );
@@ -231,7 +231,7 @@ export function MessageList({
               >
                 {/* Sender name for group chats only */}
                 {showSenderMeta && isFirstInGroup && (
-                  <span className="text-xs text-gray-400 dark:text-gray-400 font-semibold ml-1 mb-1">
+                  <span className="text-xs text-gray-600 dark:text-gray-400 font-semibold ml-1 mb-1">
                     {avatarName}
                   </span>
                 )}
@@ -241,12 +241,12 @@ export function MessageList({
                   className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed break-words ${
                     isMine
                       ? 'bg-blue-600 dark:bg-blue-500 text-white rounded-br-none'
-                      : 'bg-gray-700 dark:bg-gray-700 text-gray-100 dark:text-gray-100 rounded-bl-none border border-gray-600 dark:border-gray-600'
+                      : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-bl-none border border-gray-200 dark:border-gray-600'
                   } shadow-sm`}
                 >
                   <p className="whitespace-pre-wrap">{msg.text}</p>
                   <div
-                    className={`text-xs mt-1 flex items-center gap-1 ${isMine ? 'text-blue-100 dark:text-blue-200 justify-end' : 'text-gray-400 dark:text-gray-400'}`}
+                    className={`text-xs mt-1 flex items-center gap-1 ${isMine ? 'text-blue-100 dark:text-blue-200 justify-end' : 'text-gray-500 dark:text-gray-400'}`}
                   >
                     <span>{timeStr}</span>
                     {isMine &&

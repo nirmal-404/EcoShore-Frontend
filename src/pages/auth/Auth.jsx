@@ -21,6 +21,24 @@ export default function Login() {
   const { mutate: login, isPending, isError, error } = useLogin();
   const { resolveToken } = useGoogleCallback();
 
+  const loginControls = loginFormControls.map((controlItem) => {
+    if (controlItem.name === 'email') {
+      return {
+        ...controlItem,
+        autoComplete: 'off',
+      };
+    }
+
+    if (controlItem.name === 'password') {
+      return {
+        ...controlItem,
+        autoComplete: 'new-password',
+      };
+    }
+
+    return controlItem;
+  });
+
   // 🔥 Handle Google OAuth token from URL query param
   useEffect(() => {
     const token = searchParams.get('token');
@@ -36,6 +54,11 @@ export default function Login() {
     if (user) navigate('/', { replace: true });
   }, [user, navigate]);
 
+  // Keep fields blank when the page loads.
+  useEffect(() => {
+    setFormData(initialFormData);
+  }, []);
+
   function onSubmit(e) {
     e.preventDefault();
     login(formData);
@@ -45,36 +68,37 @@ export default function Login() {
   const handleQuickLogin = (email, password) => login({ email, password });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden transition-colors duration-300">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-sky-50 via-background to-cyan-100/40 px-4 py-12 transition-colors duration-300 sm:px-6 lg:px-8 dark:from-slate-950 dark:via-slate-900 dark:to-[#061d39]">
       {/* Decorative background blobs */}
-      <div className="absolute top-0 -left-10 w-96 h-96 bg-emerald-400 opacity-20 dark:opacity-10 rounded-full blur-3xl mix-blend-multiply" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-400 opacity-20 dark:opacity-10 rounded-full blur-3xl mix-blend-multiply delay-1000" />
+      <div className="absolute -left-10 top-0 h-96 w-96 rounded-full bg-primary/20 blur-3xl dark:bg-primary/15" />
+      <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-secondary/20 blur-3xl dark:bg-secondary/15" />
 
-      <div className="max-w-md w-full relative z-10">
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/20 dark:border-gray-700/50">
+      <div className="relative z-10 w-full max-w-md">
+        <div className="overflow-hidden rounded-3xl border border-border/70 bg-card/90 shadow-[0_24px_60px_-24px_rgba(15,118,110,0.35)] backdrop-blur-xl dark:bg-card/85 dark:shadow-[0_24px_60px_-24px_rgba(14,165,233,0.25)]">
           <div className="p-8 sm:p-10">
             <div className="text-center mb-10">
-              <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">
+              <h2 className="mb-2 text-3xl font-extrabold tracking-tight text-foreground">
                 Welcome Back
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 Sign in to continue to EcoShore
               </p>
             </div>
 
             {/* CommonForm replaces the hand-rolled inputs */}
             <CommonForm
-              formControls={loginFormControls}
+              formControls={loginControls}
               formData={formData}
               setFormData={setFormData}
               onSubmit={onSubmit}
               isBtnDisabled={isPending}
               buttonText={isPending ? 'Authenticating...' : 'Sign In'}
+              autoComplete="off"
             />
 
             {isError && (
-              <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl text-center">
-                <p className="text-sm font-medium text-red-600 dark:text-red-400">
+              <div className="mt-4 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-center">
+                <p className="text-sm font-medium text-destructive">
                   {error?.response?.data?.error ||
                     'Login failed. Please check your credentials.'}
                 </p>
@@ -85,10 +109,10 @@ export default function Login() {
             <div className="mt-8">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+                  <div className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                  <span className="bg-card px-4 text-muted-foreground">
                     or continue with
                   </span>
                 </div>
@@ -98,11 +122,11 @@ export default function Login() {
               </div>
             </div>
 
-            <p className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
+            <p className="mt-8 text-center text-sm text-muted-foreground">
               Don't have an account?{' '}
               <Link
                 to="/register"
-                className="font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors"
+                className="font-semibold text-primary transition-colors hover:text-primary/80"
               >
                 Create one now
               </Link>
@@ -113,15 +137,15 @@ export default function Login() {
               DEVELOPER TOOLS: QUICK LOGIN SECTION
               Note: Remove this entire block below for Production deployment
               ============================================================== */}
-          <div className="bg-gray-100 dark:bg-gray-900/50 p-6 border-t border-dashed border-gray-300 dark:border-gray-700">
-            <div className="flex items-center justify-center gap-2 mb-4 text-xs font-bold tracking-widest text-gray-400 uppercase">
+          <div className="border-t border-dashed border-border bg-muted/30 p-6">
+            <div className="mb-4 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
               <Code2 className="w-4 h-4" />
               Testing Quick Logins
             </div>
             <div className="grid grid-cols-4 gap-3">
               <button
                 onClick={() => handleQuickLogin('admin@gmail.com', 'admin')}
-                className="py-2 px-3 text-xs font-semibold rounded-xl bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 transition-colors"
+                className="rounded-xl bg-primary/15 px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/25"
                 title="Log in as Admin"
               >
                 Admin
@@ -130,7 +154,7 @@ export default function Login() {
                 onClick={() =>
                   handleQuickLogin('organizer@gmail.com', 'organizer')
                 }
-                className="py-2 px-3 text-xs font-semibold rounded-xl bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 transition-colors"
+                className="rounded-xl bg-secondary/15 px-3 py-2 text-xs font-semibold text-secondary transition-colors hover:bg-secondary/25"
                 title="Log in as Organizer"
               >
                 Organizer
@@ -139,7 +163,7 @@ export default function Login() {
                 onClick={() =>
                   handleQuickLogin('volunteer@gmail.com', 'volunteer')
                 }
-                className="py-2 px-3 text-xs font-semibold rounded-xl bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 transition-colors"
+                className="rounded-xl bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-600 transition-colors hover:bg-emerald-500/25 dark:text-emerald-400"
                 title="Log in as Volunteer"
               >
                 Volunteer
@@ -148,7 +172,7 @@ export default function Login() {
                 onClick={() =>
                   handleQuickLogin('agent@gmail.com', 'AgentPassword123')
                 }
-                className="py-2 px-3 text-xs font-semibold rounded-xl bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 transition-colors"
+                className="rounded-xl bg-cyan-500/15 px-3 py-2 text-xs font-semibold text-cyan-600 transition-colors hover:bg-cyan-500/25 dark:text-cyan-400"
                 title="Log in as Agent"
               >
                 Agent

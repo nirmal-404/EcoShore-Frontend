@@ -73,7 +73,7 @@ export default function ChatApp({
   const externalOnOpenRef = useRef(externalOnOpen);
   const externalOnCloseRef = useRef(externalOnClose);
 
-  const { user } = useSelector((s) => s.auth);
+  const { user, token: authToken } = useSelector((s) => s.auth);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -434,6 +434,51 @@ export default function ChatApp({
     });
   }, []);
 
+  const ensureCallSocketConnected = useCallback((timeoutMs = 5000) => {
+    return new Promise((resolve) => {
+      const socket = callSocketRef.current;
+
+      if (!socket) {
+        resolve(false);
+        return;
+      }
+
+      if (socket.connected) {
+        resolve(true);
+        return;
+      }
+
+      let settled = false;
+
+      const cleanup = () => {
+        socket.off('connect', handleConnect);
+        socket.off('connect_error', handleConnectError);
+        clearTimeout(timeoutId);
+      };
+
+      const complete = (connected) => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        cleanup();
+        resolve(connected);
+      };
+
+      const handleConnect = () => complete(true);
+      const handleConnectError = () => complete(Boolean(socket.connected));
+
+      const timeoutId = setTimeout(() => {
+        complete(Boolean(socket.connected));
+      }, timeoutMs);
+
+      socket.on('connect', handleConnect);
+      socket.on('connect_error', handleConnectError);
+      socket.connect();
+    });
+  }, []);
+
   const handleAcceptIncomingCall = useCallback(async () => {
     const activeCall = activeCallStateRef.current;
 
@@ -549,13 +594,10 @@ export default function ChatApp({
       return;
     }
 
-    if (!currentGroupRecipientIsOnline) {
-      alert('Recipient is offline right now.');
-      return;
-    }
+    const isConnected = await ensureCallSocketConnected();
 
-    if (!callSocketRef.current?.connected) {
-      alert('Calling service is not connected. Please try again.');
+    if (!isConnected) {
+      alert('Calling service is unavailable right now. Please try again.');
       return;
     }
 
@@ -603,7 +645,8 @@ export default function ChatApp({
       return undefined;
     }
 
-    const token = Cookies.get('token') || localStorage.getItem('token');
+    const token =
+      authToken || Cookies.get('token') || localStorage.getItem('token');
 
     if (!token) {
       return undefined;
@@ -611,7 +654,7 @@ export default function ChatApp({
 
     const socket = io(`${getSocketServerUrl()}/chat-call`, {
       auth: { token },
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
     });
 
     callSocketRef.current = socket;
@@ -630,8 +673,13 @@ export default function ChatApp({
       }));
     });
 
-    socket.on('call-unavailable', () => {
-      alert('Recipient is currently unavailable for calls.');
+    socket.on('call-unavailable', (payload = {}) => {
+      alert(payload.message || 'Recipient is currently unavailable for calls.');
+      closeCallScreen();
+    });
+
+    socket.on('call-error', (payload = {}) => {
+      alert(payload.message || 'Failed to start call.');
       closeCallScreen();
     });
 
@@ -823,6 +871,13 @@ export default function ChatApp({
       }
     });
 
+    socket.on('connect_error', () => {
+      if (activeCallStateRef.current.isVisible) {
+        alert('Calling service connection failed.');
+        closeCallScreen();
+      }
+    });
+
     return () => {
       socket.disconnect();
 
@@ -831,9 +886,11 @@ export default function ChatApp({
       }
     };
   }, [
+    authToken,
     closeCallScreen,
     createPeerConnection,
     currentUserId,
+    ensureCallSocketConnected,
     flushPendingIceCandidates,
     queryClient,
     setIsOpen,
@@ -884,15 +941,15 @@ export default function ChatApp({
               }`}
             >
               {!hideConversationList && (
-                <div className="w-full sm:w-96 bg-gray-800 dark:bg-gray-800 flex flex-col border-r border-gray-700 dark:border-gray-700 min-h-0">
+                <div className="w-full sm:w-96 bg-white dark:bg-gray-800 flex flex-col border-r border-gray-200 dark:border-gray-700 min-h-0">
                   {/* Header */}
-                  <div className="p-4 border-b border-gray-700 dark:border-gray-700 flex items-center justify-between bg-gray-800 dark:bg-gray-800">
-                    <h2 className="text-xl font-bold text-white dark:text-white">
+                  <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                       Chats
                     </h2>
                     <button
                       onClick={() => setUserPickerOpen(true)}
-                      className="p-1.5 rounded-full hover:bg-gray-700 dark:hover:bg-gray-700 transition-colors text-blue-400 dark:text-blue-400"
+                      className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-blue-600 dark:text-blue-400"
                       title="Start new chat"
                     >
                       <Plus size={20} />
@@ -900,30 +957,30 @@ export default function ChatApp({
                   </div>
 
                   {/* Search Bar */}
-                  <div className="px-4 py-3 border-b border-gray-700 dark:border-gray-700 bg-gray-800 dark:bg-gray-800">
+                  <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                     <div className="relative">
                       <Search
                         size={18}
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500"
                       />
                       <input
                         type="text"
                         placeholder="Search..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-700 dark:border-gray-700 bg-gray-700 dark:bg-gray-700 text-gray-100 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                       />
                     </div>
                   </div>
 
                   {/* Filter Tabs */}
-                  <div className="px-2 py-3 border-b border-gray-700 dark:border-gray-700 flex gap-1 bg-gray-800 dark:bg-gray-800">
+                  <div className="px-2 py-3 border-b border-gray-200 dark:border-gray-700 flex gap-1 bg-white dark:bg-gray-800">
                     <button
                       onClick={() => setChatFilter('all')}
                       className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
                         chatFilter === 'all'
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-700 dark:bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-600'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                       }`}
                     >
                       All
@@ -933,7 +990,7 @@ export default function ChatApp({
                       className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
                         chatFilter === 'unread'
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-700 dark:bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-600'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                       }`}
                     >
                       Unread
@@ -943,7 +1000,7 @@ export default function ChatApp({
                       className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
                         chatFilter === 'favorites'
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-700 dark:bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-600'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                       }`}
                     >
                       Favorites
@@ -953,7 +1010,7 @@ export default function ChatApp({
                       className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
                         chatFilter === 'archived'
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-700 dark:bg-gray-700 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-600'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                       }`}
                     >
                       Archived
@@ -980,21 +1037,21 @@ export default function ChatApp({
               )}
 
               {/* Right Side - Chat Window */}
-              <div className="flex-1 min-h-0 bg-gray-900 dark:bg-gray-900 flex flex-col">
+              <div className="flex-1 min-h-0 bg-gray-50 dark:bg-gray-900 flex flex-col">
                 {selectedGroupId ? (
                   <>
                     {/* Chat Header */}
-                    <div className="px-6 py-4 bg-gray-800 dark:bg-gray-800 border-b border-gray-700 dark:border-gray-700 flex items-center justify-between">
+                    <div className="px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-lg font-bold shrink-0">
                           {currentGroupName.charAt(0)?.toUpperCase() || 'C'}
                         </div>
                         <div className="min-w-0">
-                          <h3 className="text-lg font-bold text-white dark:text-white truncate">
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">
                             {currentGroupName}
                           </h3>
                           {currentGroupType === 'DIRECT_MESSAGE' && (
-                            <p className="text-xs text-gray-400 truncate">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                               {currentGroupRecipientIsOnline
                                 ? 'Online'
                                 : currentGroupRecipientLastSeen
@@ -1011,12 +1068,12 @@ export default function ChatApp({
                           currentGroupType !== 'DIRECT_MESSAGE' && (
                             <button
                               onClick={() => setAddMembersOpen(true)}
-                              className="p-2 hover:bg-gray-700 dark:hover:bg-gray-700 rounded-full transition-colors"
+                              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                               title="Add members"
                             >
                               <UserPlus
                                 size={20}
-                                className="text-gray-400 dark:text-gray-400"
+                                className="text-gray-600 dark:text-gray-400"
                               />
                             </button>
                           )}
@@ -1024,20 +1081,13 @@ export default function ChatApp({
                         {currentGroupType === 'DIRECT_MESSAGE' && (
                           <button
                             onClick={handleStartDirectCall}
-                            disabled={
-                              !currentGroupRecipientIsOnline ||
-                              callState.isVisible
-                            }
-                            className="p-2 hover:bg-gray-700 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={
-                              currentGroupRecipientIsOnline
-                                ? 'Start call'
-                                : 'User is offline'
-                            }
+                            disabled={callState.isVisible}
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Start call"
                           >
                             <Phone
                               size={20}
-                              className="text-gray-400 dark:text-gray-400"
+                              className="text-gray-600 dark:text-gray-400"
                             />
                           </button>
                         )}
@@ -1054,19 +1104,19 @@ export default function ChatApp({
                     </div>
 
                     {/* Message Input */}
-                    <div className="bg-gray-900 dark:bg-gray-900 border-t border-gray-800 dark:border-gray-800 shadow-sm">
+                    <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-sm">
                       <MessageInput groupId={selectedGroupId} />
                     </div>
                   </>
                 ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center px-6 bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-900 dark:to-gray-800">
-                    <div className="p-4 rounded-full bg-blue-900/30 dark:bg-blue-900/30 mb-4">
+                  <div className="flex-1 flex flex-col items-center justify-center text-center px-6 bg-gradient-to-br from-gray-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
+                    <div className="p-4 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-4">
                       <MessageCircle
-                        className="text-blue-400 dark:text-blue-400"
+                        className="text-blue-600 dark:text-blue-400"
                         size={40}
                       />
                     </div>
-                    <h3 className="text-lg font-semibold text-white dark:text-white mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                       Select a chat to start
                     </h3>
                   </div>

@@ -202,21 +202,25 @@ export function GroupList({
   })();
 
   return (
-    <div className="relative flex flex-col h-full bg-gray-800 dark:bg-gray-800">
+    <div className="relative flex flex-col h-full bg-gray-50 dark:bg-gray-800">
       {/* Chat List */}
       <div className="flex-1 overflow-y-auto">
         {isLoading && (
           <div className="flex justify-center py-10">
-            <Loader2 className="animate-spin text-blue-600" />
+            <Loader2 className="animate-spin text-blue-600 dark:text-blue-400" />
           </div>
         )}
 
         {error && (
-          <p className="text-center text-red-500 py-4">Failed to load chats</p>
+          <p className="text-center text-red-500 dark:text-red-400 py-4">
+            Failed to load chats
+          </p>
         )}
 
         {!isLoading && groups.length === 0 && (
-          <p className="text-center text-gray-500 py-6">No chats available</p>
+          <p className="text-center text-gray-500 dark:text-gray-400 py-6">
+            No chats available
+          </p>
         )}
 
         {groups.map((group) => {
@@ -252,8 +256,8 @@ export function GroupList({
               onContextMenu={(event) => handleOpenContextMenu(event, group)}
               className={`w-full flex items-center gap-3 px-4 py-3 transition-colors ${
                 isSelected
-                  ? 'bg-gray-700/60 dark:bg-gray-700/60'
-                  : 'hover:bg-gray-700/40 dark:hover:bg-gray-700/40'
+                  ? 'bg-blue-50 dark:bg-gray-700/60'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/40'
               }`}
             >
               <button
@@ -271,7 +275,7 @@ export function GroupList({
 
                   {/* Online indicator */}
                   {group.isOnline && (
-                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-gray-800 dark:border-gray-800 rounded-full"></span>
+                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></span>
                   )}
                 </div>
 
@@ -280,18 +284,18 @@ export function GroupList({
                   {/* Top row - Name and Time */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <p className="text-sm font-bold text-white truncate">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
                         {groupDisplayName}
                       </p>
                       {group.isPinned && (
-                        <Pin className="h-3.5 w-3.5 text-blue-300 shrink-0" />
+                        <Pin className="h-3.5 w-3.5 text-blue-500 dark:text-blue-300 shrink-0" />
                       )}
                       {group.isFavorite && (
-                        <Star className="h-3.5 w-3.5 text-amber-300 shrink-0 fill-amber-300" />
+                        <Star className="h-3.5 w-3.5 text-amber-500 dark:text-amber-300 shrink-0 fill-amber-500 dark:fill-amber-300" />
                       )}
                     </div>
                     {lastTime && (
-                      <span className="text-xs text-gray-400 shrink-0">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
                         {new Date(lastTime).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit',
@@ -305,8 +309,8 @@ export function GroupList({
                     <p
                       className={`text-xs truncate min-w-0 flex-1 ${
                         unreadCount > 0
-                          ? 'text-gray-100 font-medium'
-                          : 'text-gray-400'
+                          ? 'text-gray-700 dark:text-gray-100 font-medium'
+                          : 'text-gray-500 dark:text-gray-400'
                       }`}
                     >
                       {lastMessage}
@@ -335,14 +339,14 @@ export function GroupList({
           }}
         >
           <div
-            className="absolute w-52 rounded-lg border border-gray-700 bg-gray-800 shadow-2xl py-1"
+            className="absolute w-52 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl py-1"
             style={{ left: menuPosition.left, top: menuPosition.top }}
             onClick={(event) => event.stopPropagation()}
           >
             <button
               type="button"
               onClick={handleTogglePinned}
-              className="w-full px-3 py-2 text-left text-sm text-gray-100 hover:bg-gray-700 flex items-center gap-2"
+              className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
             >
               <Pin className="h-4 w-4" />
               {contextMenu.group.isPinned ? 'Unpin chat' : 'Pin chat'}
@@ -351,7 +355,7 @@ export function GroupList({
             <button
               type="button"
               onClick={handleToggleFavorite}
-              className="w-full px-3 py-2 text-left text-sm text-gray-100 hover:bg-gray-700 flex items-center gap-2"
+              className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
             >
               <Star className="h-4 w-4" />
               {contextMenu.group.isFavorite
@@ -362,7 +366,7 @@ export function GroupList({
             <button
               type="button"
               onClick={handleToggleArchived}
-              className="w-full px-3 py-2 text-left text-sm text-gray-100 hover:bg-gray-700 flex items-center gap-2"
+              className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
             >
               <Archive className="h-4 w-4" />
               {contextMenu.group.isArchived ? 'Unarchive chat' : 'Archive chat'}
@@ -373,7 +377,7 @@ export function GroupList({
                 type="button"
                 onClick={handleDeleteConversation}
                 disabled={deletingGroupId === contextMenu.group._id}
-                className="w-full px-3 py-2 text-left text-sm text-red-300 hover:bg-gray-700 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {deletingGroupId === contextMenu.group._id ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
