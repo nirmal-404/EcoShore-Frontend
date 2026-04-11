@@ -73,7 +73,7 @@ export default function ChatApp({
   const externalOnOpenRef = useRef(externalOnOpen);
   const externalOnCloseRef = useRef(externalOnClose);
 
-  const { user } = useSelector((s) => s.auth);
+  const { user, token: authToken } = useSelector((s) => s.auth);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -434,6 +434,51 @@ export default function ChatApp({
     });
   }, []);
 
+  const ensureCallSocketConnected = useCallback((timeoutMs = 5000) => {
+    return new Promise((resolve) => {
+      const socket = callSocketRef.current;
+
+      if (!socket) {
+        resolve(false);
+        return;
+      }
+
+      if (socket.connected) {
+        resolve(true);
+        return;
+      }
+
+      let settled = false;
+
+      const cleanup = () => {
+        socket.off('connect', handleConnect);
+        socket.off('connect_error', handleConnectError);
+        clearTimeout(timeoutId);
+      };
+
+      const complete = (connected) => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        cleanup();
+        resolve(connected);
+      };
+
+      const handleConnect = () => complete(true);
+      const handleConnectError = () => complete(Boolean(socket.connected));
+
+      const timeoutId = setTimeout(() => {
+        complete(Boolean(socket.connected));
+      }, timeoutMs);
+
+      socket.on('connect', handleConnect);
+      socket.on('connect_error', handleConnectError);
+      socket.connect();
+    });
+  }, []);
+
   const handleAcceptIncomingCall = useCallback(async () => {
     const activeCall = activeCallStateRef.current;
 
@@ -549,13 +594,10 @@ export default function ChatApp({
       return;
     }
 
-    if (!currentGroupRecipientIsOnline) {
-      alert('Recipient is offline right now.');
-      return;
-    }
+    const isConnected = await ensureCallSocketConnected();
 
-    if (!callSocketRef.current?.connected) {
-      alert('Calling service is not connected. Please try again.');
+    if (!isConnected) {
+      alert('Calling service is unavailable right now. Please try again.');
       return;
     }
 
@@ -603,7 +645,8 @@ export default function ChatApp({
       return undefined;
     }
 
-    const token = Cookies.get('token') || localStorage.getItem('token');
+    const token =
+      authToken || Cookies.get('token') || localStorage.getItem('token');
 
     if (!token) {
       return undefined;
@@ -611,7 +654,7 @@ export default function ChatApp({
 
     const socket = io(`${getSocketServerUrl()}/chat-call`, {
       auth: { token },
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
     });
 
     callSocketRef.current = socket;
@@ -630,8 +673,13 @@ export default function ChatApp({
       }));
     });
 
-    socket.on('call-unavailable', () => {
-      alert('Recipient is currently unavailable for calls.');
+    socket.on('call-unavailable', (payload = {}) => {
+      alert(payload.message || 'Recipient is currently unavailable for calls.');
+      closeCallScreen();
+    });
+
+    socket.on('call-error', (payload = {}) => {
+      alert(payload.message || 'Failed to start call.');
       closeCallScreen();
     });
 
@@ -823,6 +871,13 @@ export default function ChatApp({
       }
     });
 
+    socket.on('connect_error', () => {
+      if (activeCallStateRef.current.isVisible) {
+        alert('Calling service connection failed.');
+        closeCallScreen();
+      }
+    });
+
     return () => {
       socket.disconnect();
 
@@ -831,9 +886,11 @@ export default function ChatApp({
       }
     };
   }, [
+    authToken,
     closeCallScreen,
     createPeerConnection,
     currentUserId,
+    ensureCallSocketConnected,
     flushPendingIceCandidates,
     queryClient,
     setIsOpen,
@@ -1024,16 +1081,9 @@ export default function ChatApp({
                         {currentGroupType === 'DIRECT_MESSAGE' && (
                           <button
                             onClick={handleStartDirectCall}
-                            disabled={
-                              !currentGroupRecipientIsOnline ||
-                              callState.isVisible
-                            }
+                            disabled={callState.isVisible}
                             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={
-                              currentGroupRecipientIsOnline
-                                ? 'Start call'
-                                : 'User is offline'
-                            }
+                            title="Start call"
                           >
                             <Phone
                               size={20}
