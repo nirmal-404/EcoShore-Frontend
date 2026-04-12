@@ -6,6 +6,7 @@ import { Plus, Users, CheckCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import API from '@/api';
 
 export default function OrganizerPanel() {
   const { user } = useSelector((state) => state.auth);
@@ -23,7 +24,7 @@ export default function OrganizerPanel() {
   const { data: beaches } = useQuery({
     queryKey: ['beaches'],
     queryFn: async () => {
-      const { data } = await axios.get('http://localhost:4000/api/beaches');
+      const { data } = await API.get('beaches');
       return data;
     },
   });
@@ -31,16 +32,14 @@ export default function OrganizerPanel() {
   const { data: events } = useQuery({
     queryKey: ['my-organized-events'],
     queryFn: async () => {
-      const { data } = await axios.get('http://localhost:4000/api/events');
+      const { data } = await API.get('/events');
       return data.filter((e) => e.organizer?._id === user.id);
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async (payload) => {
-      return axios.post('http://localhost:4000/api/events', payload, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
+      return API.post('/events', payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['my-organized-events']);
