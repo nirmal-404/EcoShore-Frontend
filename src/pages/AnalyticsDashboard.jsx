@@ -407,16 +407,6 @@ export default function AnalyticsDashboard() {
               <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-4xl bg-gradient-to-r from-emerald-600 to-teal-400 bg-clip-text text-transparent flex items-center gap-3">
                 Analytics Dashboard
               </h1>
-              <span
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${mlHealth ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}
-              >
-                {mlHealth ? (
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                ) : (
-                  <XCircle className="w-3.5 h-3.5" />
-                )}
-                ML Service: {mlHealth ? 'Online' : 'Offline'}
-              </span>
             </div>
             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mt-2">
               <Calendar className="w-5 h-5 text-emerald-500" />
