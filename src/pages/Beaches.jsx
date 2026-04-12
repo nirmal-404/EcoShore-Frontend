@@ -81,7 +81,7 @@ export default function BeachesPage() {
     initialAletDialogState
   );
 
-  if (isLoading) return <Spinner />;
+  if (isLoading) return <Spinner fullPage />;
   if (isBechFetchError) return <p>Something went wrong.</p>;
 
   if (beaches.length === 0) {

@@ -65,7 +65,7 @@ export default function Login() {
   }
 
   // Developer helper — kept isolated for easy removal before production
-  const handleQuickLogin = (email, password) => login({ email, password });
+  // const handleQuickLogin = (email, password) => login({ email, password });
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-sky-50 via-background to-cyan-100/40 px-4 py-12 transition-colors duration-300 sm:px-6 lg:px-8 dark:from-slate-950 dark:via-slate-900 dark:to-[#061d39]">
@@ -137,7 +137,7 @@ export default function Login() {
               DEVELOPER TOOLS: QUICK LOGIN SECTION
               Note: Remove this entire block below for Production deployment
               ============================================================== */}
-          <div className="border-t border-dashed border-border bg-muted/30 p-6">
+          {/* <div className="border-t border-dashed border-border bg-muted/30 p-6">
             <div className="mb-4 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
               <Code2 className="w-4 h-4" />
               Testing Quick Logins
@@ -178,7 +178,7 @@ export default function Login() {
                 Agent
               </button>
             </div>
-          </div>
+          </div> */}
           {/* ============================================================== */}
         </div>
       </div>

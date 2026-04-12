@@ -117,7 +117,7 @@ export default function EventsPage() {
   const [uploadedImageUrl, setUploadedImageUrl] = useState('');
   const [imageLoadingState, setImageLoadingState] = useState(false);
 
-  if (isEventLoading || isBeachLoading) return <Spinner />;
+  if (isEventLoading || isBeachLoading) return <Spinner fullPage />;
   if (isEventError || isBeachError) return <p>Something went wrong.</p>;
 
   const onEventAddSubmit = (event) => {
