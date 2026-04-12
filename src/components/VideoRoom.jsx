@@ -5,30 +5,34 @@ import { toast } from 'sonner';
 import { Loader2, Mic, MicOff, PhoneOff, Video, VideoOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  getRtcConfig,
+  getSocketServerUrl,
+  realtimeDebugLog,
+} from '@/lib/realtime';
 
-const rtcConfig = {
-  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-};
-
-const getSocketServerUrl = () => {
-  const apiBaseUrl =
-    import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
-  return apiBaseUrl.replace(/\/api\/?$/, '');
-};
+const rtcConfig = getRtcConfig();
+const JOIN_TIMEOUT_MS = 15000;
 
 const shouldInitiateOffer = (localUserId, remoteUserId) => {
   return String(localUserId) > String(remoteUserId);
 };
 
-function StreamTile({ label, stream, muted = false }) {
+function StreamTile({ label, stream, muted = false, onPlaybackBlocked }) {
   const videoRef = useRef(null);
 
   useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
-      videoRef.current.play().catch(() => {});
+      const playPromise = videoRef.current.play();
+
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+          onPlaybackBlocked?.();
+        });
+      }
     }
-  }, [stream]);
+  }, [onPlaybackBlocked, stream]);
 
   return (
     <div className="relative overflow-hidden rounded-xl border bg-black/95">
@@ -37,6 +41,7 @@ function StreamTile({ label, stream, muted = false }) {
         autoPlay
         playsInline
         muted={muted}
+        data-video-room-stream="true"
         className="h-52 w-full object-cover sm:h-64"
       />
       <div className="absolute bottom-2 left-2 rounded bg-black/70 px-2 py-1 text-xs text-white">
@@ -60,11 +65,14 @@ export default function VideoRoom({
   const [localStream, setLocalStream] = useState(null);
   const [remoteStreams, setRemoteStreams] = useState({});
   const [participants, setParticipants] = useState([]);
+  const [isPlaybackBlocked, setIsPlaybackBlocked] = useState(false);
 
   const localStreamRef = useRef(null);
   const socketRef = useRef(null);
   const peerConnectionsRef = useRef({});
   const participantsRef = useRef([]);
+  const pendingIceCandidatesRef = useRef({});
+  const joinTimeoutRef = useRef(null);
   const onLeaveRef = useRef(onLeave);
   const onMeetingStateChangeRef = useRef(onMeetingStateChange);
 
@@ -102,6 +110,78 @@ export default function VideoRoom({
     [meeting]
   );
 
+  const clearJoinTimeout = useCallback(() => {
+    if (joinTimeoutRef.current) {
+      clearTimeout(joinTimeoutRef.current);
+      joinTimeoutRef.current = null;
+    }
+  }, []);
+
+  const queuePendingIceCandidate = useCallback((remoteUserId, candidate) => {
+    const candidateQueue = pendingIceCandidatesRef.current[remoteUserId] || [];
+
+    pendingIceCandidatesRef.current[remoteUserId] = [
+      ...candidateQueue,
+      candidate,
+    ];
+  }, []);
+
+  const flushPendingIceCandidates = useCallback(
+    async (remoteUserId, peerConnection) => {
+      const queuedCandidates = pendingIceCandidatesRef.current[remoteUserId];
+
+      if (
+        !queuedCandidates ||
+        queuedCandidates.length === 0 ||
+        !peerConnection ||
+        !peerConnection.remoteDescription
+      ) {
+        return;
+      }
+
+      pendingIceCandidatesRef.current[remoteUserId] = [];
+
+      for (const candidate of queuedCandidates) {
+        try {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch {
+          // Ignore stale ICE candidates during reconnects.
+        }
+      }
+    },
+    []
+  );
+
+  const handlePlaybackBlocked = useCallback(() => {
+    setIsPlaybackBlocked(true);
+  }, []);
+
+  const handleResumePlayback = useCallback(async () => {
+    const streamElements = Array.from(
+      document.querySelectorAll('video[data-video-room-stream="true"]')
+    );
+
+    if (streamElements.length === 0) {
+      setIsPlaybackBlocked(false);
+      return;
+    }
+
+    const playResults = await Promise.allSettled(
+      streamElements.map((streamElement) => streamElement.play())
+    );
+
+    const isStillBlocked = playResults.some(
+      (result) => result.status === 'rejected'
+    );
+
+    if (isStillBlocked) {
+      toast.error('Playback is still blocked. Please allow autoplay in browser settings.');
+      return;
+    }
+
+    setIsPlaybackBlocked(false);
+  }, []);
+
   const removePeerConnection = useCallback(
     (remoteUserId) => {
       const peerConnection = peerConnectionsRef.current[remoteUserId];
@@ -110,9 +190,12 @@ export default function VideoRoom({
         peerConnection.ontrack = null;
         peerConnection.onicecandidate = null;
         peerConnection.onconnectionstatechange = null;
+        peerConnection.oniceconnectionstatechange = null;
         peerConnection.close();
         delete peerConnectionsRef.current[remoteUserId];
       }
+
+      delete pendingIceCandidatesRef.current[remoteUserId];
 
       setRemoteStreams((previousStreams) => {
         if (!previousStreams[remoteUserId]) {
@@ -173,12 +256,26 @@ export default function VideoRoom({
       };
 
       peerConnection.onconnectionstatechange = () => {
+        realtimeDebugLog('Meeting peer connection state change', {
+          meetingId,
+          remoteUserId,
+          connectionState: peerConnection.connectionState,
+        });
+
         if (
           peerConnection.connectionState === 'failed' ||
           peerConnection.connectionState === 'closed'
         ) {
           removePeerConnection(remoteUserId);
         }
+      };
+
+      peerConnection.oniceconnectionstatechange = () => {
+        realtimeDebugLog('Meeting ICE state change', {
+          meetingId,
+          remoteUserId,
+          iceConnectionState: peerConnection.iceConnectionState,
+        });
       };
 
       peerConnectionsRef.current[remoteUserId] = peerConnection;
@@ -214,15 +311,22 @@ export default function VideoRoom({
   );
 
   const disconnectAndCleanup = useCallback(() => {
+    clearJoinTimeout();
+
     if (socketRef.current) {
       socketRef.current.disconnect();
       socketRef.current = null;
     }
 
     Object.values(peerConnectionsRef.current).forEach((peerConnection) => {
+      peerConnection.ontrack = null;
+      peerConnection.onicecandidate = null;
+      peerConnection.onconnectionstatechange = null;
+      peerConnection.oniceconnectionstatechange = null;
       peerConnection.close();
     });
     peerConnectionsRef.current = {};
+    pendingIceCandidatesRef.current = {};
 
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => track.stop());
@@ -235,8 +339,9 @@ export default function VideoRoom({
     participantsRef.current = [];
     setIsMuted(false);
     setIsCameraOff(false);
+    setIsPlaybackBlocked(false);
     setIsJoining(false);
-  }, []);
+  }, [clearJoinTimeout]);
 
   useEffect(() => {
     if (!meetingId || !currentUserId) {
@@ -280,16 +385,42 @@ export default function VideoRoom({
         socketRef.current = socket;
 
         socket.on('connect', () => {
+          realtimeDebugLog('Meeting socket connected', {
+            meetingId,
+            socketId: socket.id,
+          });
+
           socket.emit('join-meeting', {
             meetingId,
             userId: currentUserId,
           });
+
+          clearJoinTimeout();
+          joinTimeoutRef.current = setTimeout(() => {
+            if (!isMounted) {
+              return;
+            }
+
+            setIsJoining(false);
+            toast.error('Meeting connection is taking too long. Please leave and try again.');
+            realtimeDebugLog('Meeting join timeout', {
+              meetingId,
+              currentUserId,
+            });
+          }, JOIN_TIMEOUT_MS);
         });
 
         socket.on('existing-participants', async ({ participants = [] }) => {
+          clearJoinTimeout();
+
           const uniqueParticipants = [
             ...new Set(participants.map(String)),
           ].filter((participantId) => participantId !== currentUserId);
+
+          realtimeDebugLog('Meeting existing participants', {
+            meetingId,
+            participantCount: uniqueParticipants.length,
+          });
 
           participantsRef.current = uniqueParticipants;
           setParticipants(uniqueParticipants);
@@ -308,6 +439,11 @@ export default function VideoRoom({
 
         socket.on('participant-joined', ({ userId }) => {
           const joinedUserId = String(userId || '');
+
+          realtimeDebugLog('Meeting participant joined', {
+            meetingId,
+            joinedUserId,
+          });
 
           if (!joinedUserId || joinedUserId === currentUserId) {
             return;
@@ -331,6 +467,11 @@ export default function VideoRoom({
 
         socket.on('participant-left', ({ userId }) => {
           const leftUserId = String(userId || '');
+
+          realtimeDebugLog('Meeting participant left', {
+            meetingId,
+            leftUserId,
+          });
 
           if (!leftUserId) {
             return;
@@ -356,6 +497,11 @@ export default function VideoRoom({
           const remoteUserId = String(fromUserId);
           const peerConnection = createPeerConnection(remoteUserId);
 
+          realtimeDebugLog('Meeting offer received', {
+            meetingId,
+            fromUserId: remoteUserId,
+          });
+
           if (!peerConnection) {
             return;
           }
@@ -368,6 +514,8 @@ export default function VideoRoom({
             await peerConnection.setRemoteDescription(
               new RTCSessionDescription(sdp)
             );
+
+            await flushPendingIceCandidates(remoteUserId, peerConnection);
 
             const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
@@ -390,6 +538,11 @@ export default function VideoRoom({
           const remoteUserId = String(fromUserId);
           const peerConnection = createPeerConnection(remoteUserId);
 
+          realtimeDebugLog('Meeting answer received', {
+            meetingId,
+            fromUserId: remoteUserId,
+          });
+
           if (!peerConnection) {
             return;
           }
@@ -398,6 +551,8 @@ export default function VideoRoom({
             await peerConnection.setRemoteDescription(
               new RTCSessionDescription(sdp)
             );
+
+            await flushPendingIceCandidates(remoteUserId, peerConnection);
           } catch (error) {
             toast.error('Failed to finalize peer connection answer.');
           }
@@ -421,6 +576,11 @@ export default function VideoRoom({
               return;
             }
 
+            if (!peerConnection.remoteDescription) {
+              queuePendingIceCandidate(remoteUserId, candidate);
+              return;
+            }
+
             try {
               await peerConnection.addIceCandidate(
                 new RTCIceCandidate(candidate)
@@ -432,6 +592,8 @@ export default function VideoRoom({
         );
 
         socket.on('join-error', ({ message }) => {
+          clearJoinTimeout();
+
           toast.error(message || 'Failed to join meeting.');
           disconnectAndCleanup();
           if (onLeaveRef.current) {
@@ -440,8 +602,22 @@ export default function VideoRoom({
         });
 
         socket.on('connect_error', (error) => {
+          clearJoinTimeout();
+
+          realtimeDebugLog('Meeting socket connect_error', {
+            meetingId,
+            message: error?.message,
+          });
+
           toast.error(error.message || 'Socket connection failed.');
           setIsJoining(false);
+        });
+
+        socket.on('disconnect', (reason) => {
+          realtimeDebugLog('Meeting socket disconnected', {
+            meetingId,
+            reason,
+          });
         });
       } catch (error) {
         if (error.name === 'NotAllowedError') {
@@ -466,12 +642,15 @@ export default function VideoRoom({
       disconnectAndCleanup();
     };
   }, [
+    clearJoinTimeout,
     createAndSendOffer,
     createPeerConnection,
     currentUserId,
     disconnectAndCleanup,
+    flushPendingIceCandidates,
     meetingId,
     onLeave,
+    queuePendingIceCandidate,
     removePeerConnection,
     syncMeetingState,
   ]);
@@ -544,14 +723,32 @@ export default function VideoRoom({
           </div>
         )}
 
+        {isPlaybackBlocked && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300/40 bg-amber-100/40 p-3 text-sm text-amber-900">
+            <p>
+              Browser autoplay blocked one or more streams. Click Enable
+              playback to continue.
+            </p>
+            <Button type="button" variant="outline" onClick={handleResumePlayback}>
+              Enable playback
+            </Button>
+          </div>
+        )}
+
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <StreamTile label="You" stream={localStream} muted />
+          <StreamTile
+            label="You"
+            stream={localStream}
+            muted
+            onPlaybackBlocked={handlePlaybackBlocked}
+          />
 
           {remoteEntries.map(([remoteUserId, stream]) => (
             <StreamTile
               key={remoteUserId}
               label={`User ${remoteUserId.slice(-4)}`}
               stream={stream}
+              onPlaybackBlocked={handlePlaybackBlocked}
             />
           ))}
         </div>

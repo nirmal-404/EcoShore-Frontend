@@ -17,10 +17,12 @@ export function CallScreen({
   peerName = 'User',
   isMuted = false,
   durationSeconds = 0,
+  isRemoteMediaBlocked = false,
   onAccept,
   onDecline,
   onEnd,
   onToggleMute,
+  onResumeMedia,
 }) {
   const title = peerName || 'User';
   const statusText =
@@ -42,6 +44,19 @@ export function CallScreen({
 
       <h2 className="mt-6 text-2xl font-bold text-center">{title}</h2>
       <p className="mt-2 text-sm text-blue-100/80 text-center">{statusText}</p>
+
+      {isRemoteMediaBlocked && onResumeMedia && (
+        <div className="mt-4 rounded-lg border border-amber-300/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-100">
+          <p>Remote media playback is blocked by browser autoplay policy.</p>
+          <button
+            type="button"
+            onClick={onResumeMedia}
+            className="mt-2 rounded-md bg-amber-300/20 px-3 py-1 font-medium text-amber-50 transition-colors hover:bg-amber-300/30"
+          >
+            Enable audio
+          </button>
+        </div>
+      )}
 
       {(phase === 'outgoing' || phase === 'connecting') && (
         <Loader2 className="mt-6 w-6 h-6 animate-spin text-blue-200" />

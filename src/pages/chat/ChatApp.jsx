@@ -24,16 +24,14 @@ import {
   getUserChatGroups,
   removeMemberFromGroup,
 } from '@/api/chatApi';
+import {
+  getRtcConfig,
+  getSocketServerUrl,
+  realtimeDebugLog,
+} from '@/lib/realtime';
 
-const rtcConfig = {
-  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-};
-
-const getSocketServerUrl = () => {
-  const apiBaseUrl =
-    import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
-  return apiBaseUrl.replace(/\/api\/?$/, '');
-};
+const rtcConfig = getRtcConfig();
+const CALL_CONNECT_TIMEOUT_MS = 20000;
 
 const initialCallState = {
   isVisible: false,
@@ -62,6 +60,7 @@ export default function ChatApp({
   const [callState, setCallState] = useState({ ...initialCallState });
   const [isCallMuted, setIsCallMuted] = useState(false);
   const [callDurationSeconds, setCallDurationSeconds] = useState(0);
+  const [isRemoteAudioBlocked, setIsRemoteAudioBlocked] = useState(false);
 
   const callSocketRef = useRef(null);
   const peerConnectionRef = useRef(null);
@@ -180,6 +179,7 @@ export default function ChatApp({
       peerConnectionRef.current.onicecandidate = null;
       peerConnectionRef.current.ontrack = null;
       peerConnectionRef.current.onconnectionstatechange = null;
+      peerConnectionRef.current.oniceconnectionstatechange = null;
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
@@ -196,6 +196,7 @@ export default function ChatApp({
     pendingIceCandidatesRef.current = [];
 
     setIsCallMuted(false);
+    setIsRemoteAudioBlocked(false);
   }, []);
 
   const closeCallScreen = useCallback(() => {
@@ -271,12 +272,28 @@ export default function ChatApp({
 
         if (remoteAudioRef.current && remoteStream) {
           remoteAudioRef.current.srcObject = remoteStream;
-          remoteAudioRef.current.play().catch(() => {});
+          const playPromise = remoteAudioRef.current.play();
+
+          if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch(() => {
+              setIsRemoteAudioBlocked(true);
+              realtimeDebugLog('Remote audio autoplay blocked', {
+                callId: String(callId),
+                remoteUserId: String(remoteUserId),
+              });
+            });
+          }
         }
       };
 
       peerConnection.onconnectionstatechange = () => {
         const connectionState = peerConnection.connectionState;
+
+        realtimeDebugLog('Direct call connection state change', {
+          callId: String(callId),
+          remoteUserId: String(remoteUserId),
+          connectionState,
+        });
 
         if (connectionState === 'connected') {
           if (disconnectedTimerRef.current) {
@@ -330,6 +347,14 @@ export default function ChatApp({
 
           closeCallScreen();
         }
+      };
+
+      peerConnection.oniceconnectionstatechange = () => {
+        realtimeDebugLog('Direct call ICE state change', {
+          callId: String(callId),
+          remoteUserId: String(remoteUserId),
+          iceConnectionState: peerConnection.iceConnectionState,
+        });
       };
 
       peerConnectionRef.current = peerConnection;
@@ -432,6 +457,19 @@ export default function ChatApp({
 
       return nextMuted;
     });
+  }, []);
+
+  const handleResumeRemoteAudio = useCallback(async () => {
+    if (!remoteAudioRef.current) {
+      return;
+    }
+
+    try {
+      await remoteAudioRef.current.play();
+      setIsRemoteAudioBlocked(false);
+    } catch {
+      alert('Unable to resume remote audio. Please allow autoplay in browser settings.');
+    }
   }, []);
 
   const ensureCallSocketConnected = useCallback((timeoutMs = 5000) => {
@@ -641,6 +679,41 @@ export default function ChatApp({
   }, [callState.phase, callState.callId]);
 
   useEffect(() => {
+    if (
+      !callState.isVisible ||
+      (callState.phase !== 'outgoing' && callState.phase !== 'connecting')
+    ) {
+      return undefined;
+    }
+
+    const timeoutId = setTimeout(() => {
+      const activeCall = activeCallStateRef.current;
+      const connectionState = peerConnectionRef.current?.connectionState;
+
+      if (
+        activeCall.phase === 'active' ||
+        activeCall.phase === 'idle' ||
+        connectionState === 'connected'
+      ) {
+        return;
+      }
+
+      realtimeDebugLog('Direct call connection timeout', {
+        callId: activeCall.callId,
+        phase: activeCall.phase,
+        connectionState: connectionState || 'unknown',
+      });
+
+      alert('Call connection timed out. Please try again.');
+      emitCallEndAndClose('failed');
+    }, CALL_CONNECT_TIMEOUT_MS);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [callState.isVisible, callState.phase, emitCallEndAndClose]);
+
+  useEffect(() => {
     if (!currentUserId) {
       return undefined;
     }
@@ -654,10 +727,16 @@ export default function ChatApp({
 
     const socket = io(`${getSocketServerUrl()}/chat-call`, {
       auth: { token },
-      transports: ['websocket', 'polling'],
+      transports: ['websocket'],
     });
 
     callSocketRef.current = socket;
+
+    socket.on('connect', () => {
+      realtimeDebugLog('Direct call socket connected', {
+        socketId: socket.id,
+      });
+    });
 
     socket.on('presence-updated', () => {
       queryClient.invalidateQueries(['chat-groups']);
@@ -709,6 +788,12 @@ export default function ChatApp({
     });
 
     socket.on('call-accepted', async (payload = {}) => {
+      realtimeDebugLog('Direct call accepted', {
+        callId: payload.callId,
+        fromUserId: payload.fromUserId,
+        toUserId: payload.toUserId,
+      });
+
       const peerUserId =
         String(payload.fromUserId) === String(currentUserId)
           ? String(payload.toUserId)
@@ -756,6 +841,11 @@ export default function ChatApp({
     socket.on('offer', async (payload = {}) => {
       const { callId, fromUserId, sdp } = payload;
       const activeCall = activeCallStateRef.current;
+
+      realtimeDebugLog('Direct call offer received', {
+        callId,
+        fromUserId,
+      });
 
       if (activeCall.callId && String(activeCall.callId) !== String(callId)) {
         return;
@@ -807,6 +897,11 @@ export default function ChatApp({
       const peerConnection = peerConnectionRef.current;
       const activeCall = activeCallStateRef.current;
 
+      realtimeDebugLog('Direct call answer received', {
+        callId,
+        fromUserId: payload.fromUserId,
+      });
+
       if (
         !peerConnection ||
         (activeCall.callId && String(activeCall.callId) !== String(callId))
@@ -846,6 +941,12 @@ export default function ChatApp({
           callId: String(callId),
           candidate,
         });
+
+        realtimeDebugLog('Queued pending ICE candidate', {
+          callId,
+          pendingCount: pendingIceCandidatesRef.current.length,
+        });
+
         return;
       }
 
@@ -865,13 +966,19 @@ export default function ChatApp({
       closeCallScreen();
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', (reason) => {
+      realtimeDebugLog('Direct call socket disconnected', { reason });
+
       if (activeCallStateRef.current.isVisible) {
         closeCallScreen();
       }
     });
 
-    socket.on('connect_error', () => {
+    socket.on('connect_error', (error) => {
+      realtimeDebugLog('Direct call socket connect_error', {
+        message: error?.message,
+      });
+
       if (activeCallStateRef.current.isVisible) {
         alert('Calling service connection failed.');
         closeCallScreen();
@@ -890,7 +997,6 @@ export default function ChatApp({
     closeCallScreen,
     createPeerConnection,
     currentUserId,
-    ensureCallSocketConnected,
     flushPendingIceCandidates,
     queryClient,
     setIsOpen,
@@ -1136,10 +1242,12 @@ export default function ChatApp({
                 peerName={callState.peerName}
                 isMuted={isCallMuted}
                 durationSeconds={callDurationSeconds}
+                isRemoteMediaBlocked={isRemoteAudioBlocked}
                 onAccept={handleAcceptIncomingCall}
                 onDecline={handleDeclineIncomingCall}
                 onEnd={handleEndCall}
                 onToggleMute={handleToggleMute}
+                onResumeMedia={handleResumeRemoteAudio}
               />
 
               <audio
