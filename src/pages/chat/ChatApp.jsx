@@ -30,8 +30,7 @@ const rtcConfig = {
 };
 
 const getSocketServerUrl = () => {
-  const apiBaseUrl =
-    import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+  const apiBaseUrl = import.meta.env.VITE_API_URL;
   return apiBaseUrl.replace(/\/api\/?$/, '');
 };
 

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import { Trash2, Weight, Box, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +11,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import API from '@/api';
 
 export default function CollectorDashboard() {
   const { user } = useSelector((state) => state.auth);
@@ -26,7 +26,7 @@ export default function CollectorDashboard() {
   const { data: events, isLoading } = useQuery({
     queryKey: ['collector-events'],
     queryFn: async () => {
-      const { data } = await axios.get('http://localhost:4000/api/events');
+      const { data } = await API.get('/events');
       // Only show approved events that aren't completed yet
       return data.filter((e) => e.status === 'approved');
     },
@@ -34,7 +34,7 @@ export default function CollectorDashboard() {
 
   const recordMutation = useMutation({
     mutationFn: async (payload) => {
-      return axios.post('http://localhost:4000/api/waste/record', payload, {
+      return API.post('/waste/record', payload, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
     },

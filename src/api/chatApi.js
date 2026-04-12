@@ -1,8 +1,5 @@
-import axios from 'axios';
 import Cookies from 'js-cookie';
-
-const BASE_URL = 'http://localhost:4000/api/chat';
-const AUTH_URL = 'http://localhost:4000/api';
+import API from '.';
 
 const getAuthHeaders = () => {
   const token = Cookies.get('token') || localStorage.getItem('token');
@@ -11,15 +8,15 @@ const getAuthHeaders = () => {
 
 // Groups
 export const createChatGroup = async (groupData) => {
-  const response = await axios.post(`${BASE_URL}/groups`, groupData, {
+  const response = await API.post(`/chat/groups`, groupData, {
     headers: getAuthHeaders(),
   });
   return response.data;
 };
 
 export const addMemberToGroup = async (groupId, userId) => {
-  const response = await axios.post(
-    `${BASE_URL}/groups/${groupId}/members`,
+  const response = await API.post(
+    `/chat/groups/${groupId}/members`,
     { userId },
     { headers: getAuthHeaders() }
   );
@@ -27,22 +24,22 @@ export const addMemberToGroup = async (groupId, userId) => {
 };
 
 export const removeMemberFromGroup = async (groupId, userId) => {
-  const response = await axios.delete(
-    `${BASE_URL}/groups/${groupId}/members/${userId}`,
+  const response = await API.delete(
+    `/chat/groups/${groupId}/members/${userId}`,
     { headers: getAuthHeaders() }
   );
   return response.data;
 };
 
 export const getUserChatGroups = async () => {
-  const response = await axios.get(`${BASE_URL}/groups`, {
+  const response = await API.get(`/chat/groups`, {
     headers: getAuthHeaders(),
   });
   return response.data;
 };
 
 export const getChatGroupById = async (groupId) => {
-  const response = await axios.get(`${BASE_URL}/groups/${groupId}`, {
+  const response = await API.get(`/chat/groups/${groupId}`, {
     headers: getAuthHeaders(),
   });
   return response.data;
@@ -54,7 +51,7 @@ export const getChatGroupById = async (groupId) => {
  * Returns: { volunteers: [{_id, name, email, role}], organizers: [{_id, name, email, role}] }
  */
 export const getUsersByRole = async () => {
-  const response = await axios.get(`${BASE_URL}/users`, {
+  const response = await API.get(`/chat/users`, {
     params: { roles: 'volunteer,organizer' },
     headers: getAuthHeaders(),
   });
@@ -73,7 +70,7 @@ export const getUsersByRole = async () => {
  */
 export const getAllUsers = async () => {
   try {
-    const response = await axios.get(`${AUTH_URL}/auth/users`, {
+    const response = await API.get(`/auth/users`, {
       headers: getAuthHeaders(),
     });
     console.log('getAllUsers response:', response);
@@ -91,7 +88,7 @@ export const getAllUsers = async () => {
 
 // Messages
 export const getMessages = async (groupId, params = {}) => {
-  const response = await axios.get(`${BASE_URL}/groups/${groupId}/messages`, {
+  const response = await API.get(`/chat/groups/${groupId}/messages`, {
     params,
     headers: getAuthHeaders(),
   });
@@ -99,8 +96,8 @@ export const getMessages = async (groupId, params = {}) => {
 };
 
 export const sendMessage = async (groupId, text) => {
-  const response = await axios.post(
-    `${BASE_URL}/groups/${groupId}/messages`,
+  const response = await API.post(
+    `chat/groups/${groupId}/messages`,
     { text },
     { headers: getAuthHeaders() }
   );
@@ -108,8 +105,8 @@ export const sendMessage = async (groupId, text) => {
 };
 
 export const markMessageSeen = async (groupId, messageId) => {
-  const response = await axios.patch(
-    `${BASE_URL}/groups/${groupId}/messages/${messageId}/seen`,
+  const response = await API.patch(
+    `/chat/groups/${groupId}/messages/${messageId}/seen`,
     {},
     { headers: getAuthHeaders() }
   );
