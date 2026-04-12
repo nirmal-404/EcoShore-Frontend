@@ -203,7 +203,9 @@ export function MessageList({
               >
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/90 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 px-3 py-1 text-xs text-gray-700 dark:text-gray-300">
                   <span>{msg.text || 'Voice call'}</span>
-                  <span className="text-gray-500 dark:text-gray-400">{timeStr}</span>
+                  <span className="text-gray-500 dark:text-gray-400">
+                    {timeStr}
+                  </span>
                 </span>
               </div>
             );

@@ -80,7 +80,9 @@ export default function Home() {
         <div className="container relative z-10 mx-auto px-6 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-cyan-700 dark:text-cyan-300">
             <Waves className="h-4 w-4" />
-            <span className="text-sm font-semibold">EcoShore: Protecting Our Oceans</span>
+            <span className="text-sm font-semibold">
+              EcoShore: Protecting Our Oceans
+            </span>
           </div>
 
           <h1 className="mt-8 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-7xl dark:text-white">
@@ -89,8 +91,8 @@ export default function Home() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-3xl text-base text-slate-600 sm:text-lg dark:text-slate-300">
-            Join the movement to preserve our coastlines. Organize events, track waste analytics,
-            and make a measurable impact on plastic pollution.
+            Join the movement to preserve our coastlines. Organize events, track
+            waste analytics, and make a measurable impact on plastic pollution.
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -222,8 +224,8 @@ export default function Home() {
               <div className="h-[3px] w-24 rounded-full bg-gradient-to-r from-primary to-primary/25" />
 
               <p className="mt-8 leading-relaxed">
-                EcoShore helps communities build cleaner coastlines through collaboration, verification,
-                and measurable impact.
+                EcoShore helps communities build cleaner coastlines through
+                collaboration, verification, and measurable impact.
               </p>
 
               <div className="mt-5 space-y-3">
@@ -238,8 +240,12 @@ export default function Home() {
                       </div>
 
                       <div>
-                        <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
+                        <h3 className="text-sm font-semibold text-foreground">
+                          {item.title}
+                        </h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {item.description}
+                        </p>
                       </div>
                     </div>
                   </div>

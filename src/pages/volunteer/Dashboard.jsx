@@ -147,7 +147,10 @@ export default function VolunteerDashboard() {
     }).length;
   }, [sortedEvents]);
 
-  const upcomingEventsCount = Math.max(sortedEvents.length - completedEventsCount, 0);
+  const upcomingEventsCount = Math.max(
+    sortedEvents.length - completedEventsCount,
+    0
+  );
   const completionRate =
     sortedEvents.length > 0
       ? Math.round((completedEventsCount / sortedEvents.length) * 100)
@@ -174,7 +177,8 @@ export default function VolunteerDashboard() {
             Volunteer Dashboard
           </h1>
           <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-            Track your participation, manage role applications, and stay ready for upcoming cleanups.
+            Track your participation, manage role applications, and stay ready
+            for upcoming cleanups.
           </p>
         </div>
         <Button
@@ -195,8 +199,12 @@ export default function VolunteerDashboard() {
               <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary text-3xl font-bold text-primary-foreground shadow-sm">
                 {avatarLetter}
               </div>
-              <CardTitle className="text-2xl">{user?.name || 'Volunteer'}</CardTitle>
-              <CardDescription className="break-all">{user?.email || '-'}</CardDescription>
+              <CardTitle className="text-2xl">
+                {user?.name || 'Volunteer'}
+              </CardTitle>
+              <CardDescription className="break-all">
+                {user?.email || '-'}
+              </CardDescription>
               <Badge variant="secondary" className="mt-2 w-fit">
                 {roleLabel}
               </Badge>
@@ -207,7 +215,9 @@ export default function VolunteerDashboard() {
                   <Star className="h-4 w-4 text-amber-500" />
                   Volunteer Rating
                 </div>
-                <span className="text-sm font-semibold text-foreground">4.8</span>
+                <span className="text-sm font-semibold text-foreground">
+                  4.8
+                </span>
               </div>
 
               <div className="flex items-center justify-between rounded-xl border border-border/70 px-4 py-3">
@@ -215,7 +225,9 @@ export default function VolunteerDashboard() {
                   <ClipboardList className="h-4 w-4 text-primary" />
                   Events Attended
                 </div>
-                <span className="text-sm font-semibold text-foreground">{sortedEvents.length}</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {sortedEvents.length}
+                </span>
               </div>
 
               <div className="flex items-center justify-between rounded-xl border border-border/70 px-4 py-3">
@@ -223,7 +235,9 @@ export default function VolunteerDashboard() {
                   <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                   Completion Rate
                 </div>
-                <span className="text-sm font-semibold text-foreground">{completionRate}%</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {completionRate}%
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -233,7 +247,8 @@ export default function VolunteerDashboard() {
               <CardHeader>
                 <CardTitle className="text-lg">Become an Organizer</CardTitle>
                 <CardDescription>
-                  Share why you are ready to lead and include a contact channel for follow-up.
+                  Share why you are ready to lead and include a contact channel
+                  for follow-up.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -267,7 +282,9 @@ export default function VolunteerDashboard() {
                       contactDetails: contact.trim(),
                     })
                   }
-                  disabled={mutation.isPending || !canSubmitOrganizerApplication}
+                  disabled={
+                    mutation.isPending || !canSubmitOrganizerApplication
+                  }
                 >
                   <Send className="mr-2 h-4 w-4" />
                   {mutation.isPending ? 'Submitting...' : 'Submit application'}
@@ -284,7 +301,9 @@ export default function VolunteerDashboard() {
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Total joined
                 </p>
-                <p className="mt-2 text-2xl font-semibold text-foreground">{sortedEvents.length}</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">
+                  {sortedEvents.length}
+                </p>
               </CardContent>
             </Card>
 
@@ -293,7 +312,9 @@ export default function VolunteerDashboard() {
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Upcoming
                 </p>
-                <p className="mt-2 text-2xl font-semibold text-foreground">{upcomingEventsCount}</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">
+                  {upcomingEventsCount}
+                </p>
               </CardContent>
             </Card>
 
@@ -302,7 +323,9 @@ export default function VolunteerDashboard() {
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Completed
                 </p>
-                <p className="mt-2 text-2xl font-semibold text-foreground">{completedEventsCount}</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">
+                  {completedEventsCount}
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -320,8 +343,13 @@ export default function VolunteerDashboard() {
               {nextEvent ? (
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-base font-semibold text-foreground">{nextEvent.title || 'Untitled event'}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{formatDate(nextEvent.date)} • {nextEvent.time || 'Time TBA'}</p>
+                    <p className="text-base font-semibold text-foreground">
+                      {nextEvent.title || 'Untitled event'}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {formatDate(nextEvent.date)} •{' '}
+                      {nextEvent.time || 'Time TBA'}
+                    </p>
                   </div>
                   <Button
                     type="button"
@@ -334,7 +362,11 @@ export default function VolunteerDashboard() {
                   </Button>
                 </div>
               ) : (
-                <Button type="button" variant="outline" onClick={() => navigate('/events')}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/events')}
+                >
                   Browse available events
                   <ArrowUpRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -389,9 +421,12 @@ export default function VolunteerDashboard() {
 
               {!isLoading && !isError && sortedEvents.length === 0 && (
                 <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-10 text-center">
-                  <h3 className="text-lg font-semibold text-foreground">No joined events yet</h3>
+                  <h3 className="text-lg font-semibold text-foreground">
+                    No joined events yet
+                  </h3>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Start by joining a cleanup event to build your participation history.
+                    Start by joining a cleanup event to build your participation
+                    history.
                   </p>
                   <Button
                     type="button"
@@ -420,7 +455,9 @@ export default function VolunteerDashboard() {
                           <span className="text-[10px] font-semibold tracking-wide text-muted-foreground">
                             {month}
                           </span>
-                          <span className="text-lg font-bold text-foreground">{day}</span>
+                          <span className="text-lg font-bold text-foreground">
+                            {day}
+                          </span>
                         </div>
 
                         <div className="min-w-0 flex-1">

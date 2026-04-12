@@ -310,7 +310,10 @@ export default function ManageUsers() {
                       {!item.isActive && (
                         <Button
                           onClick={() =>
-                            handleActivateUser(item._id, item.name || item.email)
+                            handleActivateUser(
+                              item._id,
+                              item.name || item.email
+                            )
                           }
                           disabled={isActioning}
                           size="sm"
@@ -433,9 +436,16 @@ export default function ManageUsers() {
         <CardContent className="flex items-start gap-3 pt-6">
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
           <div>
-            <p className="font-semibold text-destructive">Error loading users</p>
+            <p className="font-semibold text-destructive">
+              Error loading users
+            </p>
             <p className="mt-1 text-sm text-muted-foreground">{error}</p>
-            <Button onClick={fetchUsers} size="sm" variant="outline" className="mt-3">
+            <Button
+              onClick={fetchUsers}
+              size="sm"
+              variant="outline"
+              className="mt-3"
+            >
               Retry
             </Button>
           </div>
@@ -468,7 +478,9 @@ export default function ManageUsers() {
               {ROLE_TABS.map((tab) => {
                 const TabIcon = tab.icon;
                 const tabUsers = usersByRole[tab.key] || [];
-                const activeCount = tabUsers.filter((item) => item.isActive).length;
+                const activeCount = tabUsers.filter(
+                  (item) => item.isActive
+                ).length;
                 const isSelected = activeRole === tab.key;
 
                 return (
@@ -484,7 +496,9 @@ export default function ManageUsers() {
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className={`text-sm font-semibold ${tab.accentClass}`}>
+                        <p
+                          className={`text-sm font-semibold ${tab.accentClass}`}
+                        >
                           {tab.label}
                         </p>
                         <p className="mt-1 text-3xl font-bold text-foreground">
@@ -495,7 +509,9 @@ export default function ManageUsers() {
                         </p>
                       </div>
 
-                      <TabIcon className={`h-9 w-9 opacity-80 ${tab.accentClass}`} />
+                      <TabIcon
+                        className={`h-9 w-9 opacity-80 ${tab.accentClass}`}
+                      />
                     </div>
                   </button>
                 );
