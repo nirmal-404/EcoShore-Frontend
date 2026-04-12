@@ -137,7 +137,7 @@ export default function Login() {
               DEVELOPER TOOLS: QUICK LOGIN SECTION
               Note: Remove this entire block below for Production deployment
               ============================================================== */}
-          <div className="border-t border-dashed border-border bg-muted/30 p-6">
+          {/* <div className="border-t border-dashed border-border bg-muted/30 p-6">
             <div className="mb-4 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
               <Code2 className="w-4 h-4" />
               Testing Quick Logins
@@ -178,7 +178,7 @@ export default function Login() {
                 Agent
               </button>
             </div>
-          </div>
+          </div> */}
           {/* ============================================================== */}
         </div>
       </div>
